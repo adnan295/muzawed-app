@@ -19,12 +19,17 @@ import Support from "@/pages/Support";
 import Favorites from "@/pages/Favorites";
 import Addresses from "@/pages/Addresses";
 import FacilityDetails from "@/pages/FacilityDetails";
+import Settings from "@/pages/Settings";
+import Login from "@/pages/Login";
+import CategoryProducts from "@/pages/CategoryProducts";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/login" component={Login} />
       <Route path="/categories" component={Categories} />
+      <Route path="/category/:id" component={CategoryProducts} />
       <Route path="/cart" component={Cart} />
       <Route path="/profile" component={Profile} />
       <Route path="/product/:id" component={ProductDetails} />
@@ -38,6 +43,7 @@ function Router() {
       <Route path="/favorites" component={Favorites} />
       <Route path="/addresses" component={Addresses} />
       <Route path="/facility" component={FacilityDetails} />
+      <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
   );

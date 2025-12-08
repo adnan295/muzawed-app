@@ -2,8 +2,11 @@ import { MobileLayout } from '@/components/layout/MobileLayout';
 import { CATEGORIES } from '@/lib/data';
 import { Card } from '@/components/ui/card';
 import { ChevronLeft } from 'lucide-react';
+import { useLocation } from 'wouter';
 
 export default function Categories() {
+  const [, setLocation] = useLocation();
+
   return (
     <MobileLayout>
       <div className="p-4 space-y-4">
@@ -11,7 +14,11 @@ export default function Categories() {
         
         <div className="grid grid-cols-1 gap-3">
           {CATEGORIES.map((cat) => (
-            <Card key={cat.id} className="flex items-center p-4 hover:bg-accent/50 transition-colors cursor-pointer group shadow-sm border-none bg-white">
+            <Card 
+              key={cat.id} 
+              className="flex items-center p-4 hover:bg-accent/50 transition-colors cursor-pointer group shadow-sm border-none bg-white"
+              onClick={() => setLocation(`/category/${cat.id}`)}
+            >
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 ${cat.color} bg-opacity-20`}>
                  <span className="text-xl">📦</span>
               </div>
