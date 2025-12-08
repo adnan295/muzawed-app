@@ -55,6 +55,7 @@ Preferred communication style: Simple, everyday language.
 - **Banners/Slides Management:** `banners` table with scheduling, view/click tracking, target audience. Full CRUD API, duplicate, reorder, bulk-delete, stats. Admin dashboard "الشرائح" tab with KPIs, search/filter, bulk actions, scheduling, target audience, templates, live preview. `AdsCarousel` component with analytics.
 - **Configurable Delivery Fee System:** `deliverySettings` table with per-warehouse base fees, free thresholds (amount or quantity). `orders.deliveryFee` field. Admin dashboard "الإعدادات" tab for CRUD on delivery settings. Checkout page integrates automatic delivery fee calculation.
 - **Staff Management:** `staff` table with employee data. Full CRUD API for staff. Admin dashboard "الموظفين" tab with KPIs, advanced filtering, add/edit/delete staff dialogs, and comprehensive permissions management for various modules (orders, products, customers, etc.).
+- **Phone-Only Registration:** Simplified customer registration requiring only phone number. Auto-registration on first login if user doesn't exist. Password and facilityName fields are optional. Country code is +963 (Syria).
 
 # External Dependencies
 
