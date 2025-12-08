@@ -669,3 +669,17 @@ export const banners = pgTable("banners", {
 export const insertBannerSchema = createInsertSchema(banners).omit({ id: true, createdAt: true });
 export type InsertBanner = z.infer<typeof insertBannerSchema>;
 export type Banner = typeof banners.$inferSelect;
+
+// Banner Products table - منتجات الباقات الإعلانية
+export const bannerProducts = pgTable("banner_products", {
+  id: serial("id").primaryKey(),
+  bannerId: integer("banner_id").notNull().references(() => banners.id, { onDelete: "cascade" }),
+  productId: integer("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+  promoPrice: decimal("promo_price", { precision: 10, scale: 2 }).notNull(), // سعر العرض الخاص
+  quantity: integer("quantity").default(1).notNull(), // الكمية في الباقة
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertBannerProductSchema = createInsertSchema(bannerProducts).omit({ id: true, createdAt: true });
+export type InsertBannerProduct = z.infer<typeof insertBannerProductSchema>;
+export type BannerProduct = typeof bannerProducts.$inferSelect;

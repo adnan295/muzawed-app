@@ -81,6 +81,9 @@ import {
   type Banner,
   type InsertBanner,
   banners,
+  type BannerProduct,
+  type InsertBannerProduct,
+  bannerProducts,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte, count, or } from "drizzle-orm";
@@ -319,6 +322,13 @@ export interface IStorage {
   reorderBanners(bannerIds: number[]): Promise<void>;
   deleteBanners(ids: number[]): Promise<void>;
   getBannerStats(): Promise<{ totalViews: number; totalClicks: number; avgCtr: number }>;
+
+  // Banner Products - منتجات الباقات
+  getBannerProducts(bannerId: number): Promise<(BannerProduct & { product: Product })[]>;
+  addBannerProduct(bannerProduct: InsertBannerProduct): Promise<BannerProduct>;
+  updateBannerProduct(id: number, data: Partial<InsertBannerProduct>): Promise<BannerProduct | undefined>;
+  removeBannerProduct(id: number): Promise<void>;
+  clearBannerProducts(bannerId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1341,6 +1351,40 @@ export class DatabaseStorage implements IStorage {
     const avgCtr = totalViews > 0 ? (totalClicks / totalViews) * 100 : 0;
     
     return { totalViews, totalClicks, avgCtr };
+  }
+
+  // Banner Products - منتجات الباقات
+  async getBannerProducts(bannerId: number): Promise<(BannerProduct & { product: Product })[]> {
+    const items = await db.select()
+      .from(bannerProducts)
+      .innerJoin(products, eq(bannerProducts.productId, products.id))
+      .where(eq(bannerProducts.bannerId, bannerId));
+    
+    return items.map(item => ({
+      ...item.banner_products,
+      product: item.products
+    }));
+  }
+
+  async addBannerProduct(bannerProduct: InsertBannerProduct): Promise<BannerProduct> {
+    const [newItem] = await db.insert(bannerProducts).values(bannerProduct).returning();
+    return newItem;
+  }
+
+  async updateBannerProduct(id: number, data: Partial<InsertBannerProduct>): Promise<BannerProduct | undefined> {
+    const [updated] = await db.update(bannerProducts)
+      .set(data)
+      .where(eq(bannerProducts.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async removeBannerProduct(id: number): Promise<void> {
+    await db.delete(bannerProducts).where(eq(bannerProducts.id, id));
+  }
+
+  async clearBannerProducts(bannerId: number): Promise<void> {
+    await db.delete(bannerProducts).where(eq(bannerProducts.bannerId, bannerId));
   }
 }
 
