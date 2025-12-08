@@ -30,7 +30,7 @@ import {
   GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight, LogOut
 } from 'lucide-react';
 import { Link } from 'wouter';
-import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI } from '@/lib/api';
+import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart, Line, Legend, ComposedChart, RadialBarChart, RadialBar, Treemap, FunnelChart, Funnel, LabelList } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -77,6 +77,22 @@ interface WarehouseData {
   phone?: string;
   capacity: number;
   isActive: boolean;
+}
+
+interface Driver {
+  id: number;
+  name: string;
+  phone: string;
+  licenseNumber?: string;
+  vehiclePlate?: string;
+  vehicleType?: string;
+  cityId?: number;
+  warehouseId?: number;
+  status: string;
+  rating?: string;
+  completedDeliveries: number;
+  isActive: boolean;
+  notes?: string;
 }
 
 const salesData = [
@@ -238,6 +254,14 @@ export default function Admin() {
   });
   const [newCity, setNewCity] = useState({ name: '', region: '' });
 
+  // Driver management state
+  const [isAddDriverOpen, setIsAddDriverOpen] = useState(false);
+  const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
+  const [newDriver, setNewDriver] = useState({
+    name: '', phone: '', licenseNumber: '', vehiclePlate: '', vehicleType: 'فان توصيل',
+    cityId: '', warehouseId: '', status: 'available', notes: '',
+  });
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -299,6 +323,11 @@ export default function Admin() {
   const { data: warehousesList = [], refetch: refetchWarehouses } = useQuery<WarehouseData[]>({
     queryKey: ['warehouses'],
     queryFn: () => warehousesAPI.getAll() as Promise<WarehouseData[]>,
+  });
+
+  const { data: driversList = [], refetch: refetchDrivers } = useQuery<Driver[]>({
+    queryKey: ['drivers'],
+    queryFn: () => driversAPI.getAll() as Promise<Driver[]>,
   });
 
   useEffect(() => {
@@ -578,6 +607,95 @@ export default function Admin() {
       refetchWarehouses();
     } catch (error) {
       toast({ title: 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  // Driver handlers
+  const handleAddDriver = async () => {
+    if (!newDriver.name || !newDriver.phone) {
+      toast({ title: 'يرجى ملء الحقول المطلوبة', variant: 'destructive' });
+      return;
+    }
+    try {
+      await driversAPI.create({
+        ...newDriver,
+        cityId: newDriver.cityId ? parseInt(newDriver.cityId) : null,
+        warehouseId: newDriver.warehouseId ? parseInt(newDriver.warehouseId) : null,
+      });
+      toast({ title: 'تم إضافة السائق بنجاح', className: 'bg-green-600 text-white' });
+      setIsAddDriverOpen(false);
+      setNewDriver({ name: '', phone: '', licenseNumber: '', vehiclePlate: '', vehicleType: 'فان توصيل', cityId: '', warehouseId: '', status: 'available', notes: '' });
+      refetchDrivers();
+    } catch (error: any) {
+      toast({ title: error.message || 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const handleEditDriver = async () => {
+    if (!editingDriver || !newDriver.name || !newDriver.phone) {
+      toast({ title: 'يرجى ملء الحقول المطلوبة', variant: 'destructive' });
+      return;
+    }
+    try {
+      await driversAPI.update(editingDriver.id, {
+        ...newDriver,
+        cityId: newDriver.cityId ? parseInt(newDriver.cityId) : null,
+        warehouseId: newDriver.warehouseId ? parseInt(newDriver.warehouseId) : null,
+      });
+      toast({ title: 'تم تحديث بيانات السائق', className: 'bg-green-600 text-white' });
+      setIsAddDriverOpen(false);
+      setEditingDriver(null);
+      setNewDriver({ name: '', phone: '', licenseNumber: '', vehiclePlate: '', vehicleType: 'فان توصيل', cityId: '', warehouseId: '', status: 'available', notes: '' });
+      refetchDrivers();
+    } catch (error: any) {
+      toast({ title: error.message || 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteDriver = async (id: number) => {
+    if (!confirm('هل أنت متأكد من حذف هذا السائق؟')) return;
+    try {
+      await driversAPI.delete(id);
+      toast({ title: 'تم حذف السائق', className: 'bg-green-600 text-white' });
+      refetchDrivers();
+    } catch (error) {
+      toast({ title: 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const openEditDriver = (driver: Driver) => {
+    setEditingDriver(driver);
+    setNewDriver({
+      name: driver.name,
+      phone: driver.phone,
+      licenseNumber: driver.licenseNumber || '',
+      vehiclePlate: driver.vehiclePlate || '',
+      vehicleType: driver.vehicleType || 'فان توصيل',
+      cityId: driver.cityId?.toString() || '',
+      warehouseId: driver.warehouseId?.toString() || '',
+      status: driver.status,
+      notes: driver.notes || '',
+    });
+    setIsAddDriverOpen(true);
+  };
+
+  const getDriverStatusColor = (status: string) => {
+    switch (status) {
+      case 'available': return 'bg-green-100 text-green-700';
+      case 'on_delivery': return 'bg-blue-100 text-blue-700';
+      case 'offline': return 'bg-gray-100 text-gray-700';
+      case 'on_break': return 'bg-yellow-100 text-yellow-700';
+      default: return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  const getDriverStatusText = (status: string) => {
+    switch (status) {
+      case 'available': return 'متاح';
+      case 'on_delivery': return 'في مهمة';
+      case 'offline': return 'غير متصل';
+      case 'on_break': return 'استراحة';
+      default: return status;
     }
   };
 
@@ -1026,47 +1144,153 @@ export default function Admin() {
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-bold text-lg flex items-center gap-2">
                       <Users className="w-5 h-5 text-blue-500" />
-                      فريق التوصيل
+                      فريق التوصيل ({driversList.length})
                     </h3>
-                    <Button size="sm" className="rounded-xl gap-1" onClick={() => toast({ title: 'سيتم إضافة ميزة إدارة السائقين قريباً' })}>
-                      <Plus className="w-4 h-4" />إضافة
-                    </Button>
+                    <Dialog open={isAddDriverOpen} onOpenChange={(open) => {
+                      setIsAddDriverOpen(open);
+                      if (!open) {
+                        setEditingDriver(null);
+                        setNewDriver({ name: '', phone: '', licenseNumber: '', vehiclePlate: '', vehicleType: 'فان توصيل', cityId: '', warehouseId: '', status: 'available', notes: '' });
+                      }
+                    }}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" className="rounded-xl gap-1" data-testid="button-add-driver">
+                          <Plus className="w-4 h-4" />إضافة
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-lg">
+                        <DialogHeader><DialogTitle>{editingDriver ? 'تعديل بيانات السائق' : 'إضافة سائق جديد'}</DialogTitle></DialogHeader>
+                        <div className="space-y-4 mt-4 max-h-[60vh] overflow-y-auto">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label>اسم السائق *</Label>
+                              <Input placeholder="مثال: أحمد محمد" value={newDriver.name} onChange={(e) => setNewDriver({ ...newDriver, name: e.target.value })} data-testid="input-driver-name" />
+                            </div>
+                            <div>
+                              <Label>رقم الهاتف *</Label>
+                              <Input placeholder="مثال: 0912345678" value={newDriver.phone} onChange={(e) => setNewDriver({ ...newDriver, phone: e.target.value })} data-testid="input-driver-phone" />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label>رقم الرخصة</Label>
+                              <Input placeholder="رقم رخصة القيادة" value={newDriver.licenseNumber} onChange={(e) => setNewDriver({ ...newDriver, licenseNumber: e.target.value })} />
+                            </div>
+                            <div>
+                              <Label>رقم لوحة المركبة</Label>
+                              <Input placeholder="مثال: دمشق 123456" value={newDriver.vehiclePlate} onChange={(e) => setNewDriver({ ...newDriver, vehiclePlate: e.target.value })} />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label>نوع المركبة</Label>
+                              <Select value={newDriver.vehicleType} onValueChange={(v) => setNewDriver({ ...newDriver, vehicleType: v })}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="فان توصيل">فان توصيل</SelectItem>
+                                  <SelectItem value="شاحنة صغيرة">شاحنة صغيرة</SelectItem>
+                                  <SelectItem value="شاحنة كبيرة">شاحنة كبيرة</SelectItem>
+                                  <SelectItem value="دراجة نارية">دراجة نارية</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label>الحالة</Label>
+                              <Select value={newDriver.status} onValueChange={(v) => setNewDriver({ ...newDriver, status: v })}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="available">متاح</SelectItem>
+                                  <SelectItem value="on_delivery">في مهمة</SelectItem>
+                                  <SelectItem value="offline">غير متصل</SelectItem>
+                                  <SelectItem value="on_break">استراحة</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label>المدينة</Label>
+                              <Select value={newDriver.cityId} onValueChange={(v) => setNewDriver({ ...newDriver, cityId: v })}>
+                                <SelectTrigger><SelectValue placeholder="اختر المدينة" /></SelectTrigger>
+                                <SelectContent>
+                                  {cities.map((city) => (<SelectItem key={city.id} value={city.id.toString()}>{city.name}</SelectItem>))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label>المستودع</Label>
+                              <Select value={newDriver.warehouseId} onValueChange={(v) => setNewDriver({ ...newDriver, warehouseId: v })}>
+                                <SelectTrigger><SelectValue placeholder="اختر المستودع" /></SelectTrigger>
+                                <SelectContent>
+                                  {warehousesList.map((wh) => (<SelectItem key={wh.id} value={wh.id.toString()}>{wh.name}</SelectItem>))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <div>
+                            <Label>ملاحظات</Label>
+                            <Textarea placeholder="ملاحظات إضافية..." value={newDriver.notes} onChange={(e) => setNewDriver({ ...newDriver, notes: e.target.value })} rows={2} />
+                          </div>
+                        </div>
+                        <div className="flex gap-2 mt-4">
+                          <Button className="flex-1 rounded-xl" onClick={editingDriver ? handleEditDriver : handleAddDriver} data-testid="button-save-driver">
+                            {editingDriver ? 'حفظ التعديلات' : 'إضافة السائق'}
+                          </Button>
+                          <Button variant="outline" className="rounded-xl" onClick={() => setIsAddDriverOpen(false)}>إلغاء</Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </div>
-                  <div className="space-y-3">
-                    {[
-                      { name: 'أحمد محمد', status: 'متاح', orders: 5, rating: 4.9, location: 'دمشق', avatar: '👨‍✈️', statusColor: 'bg-green-100 text-green-700' },
-                      { name: 'سعيد العلي', status: 'في مهمة', orders: 3, rating: 4.7, location: 'حلب', avatar: '👨‍✈️', statusColor: 'bg-blue-100 text-blue-700' },
-                      { name: 'خالد السالم', status: 'متاح', orders: 7, rating: 4.8, location: 'حمص', avatar: '👨‍✈️', statusColor: 'bg-green-100 text-green-700' },
-                      { name: 'ياسر الحسين', status: 'غير متاح', orders: 0, rating: 4.5, location: 'اللاذقية', avatar: '👨‍✈️', statusColor: 'bg-gray-100 text-gray-700' },
-                    ].map((driver, i) => (
-                      <div key={i} className="p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all cursor-pointer">
+                  <div className="space-y-3 max-h-[350px] overflow-y-auto">
+                    {driversList.length > 0 ? driversList.map((driver) => (
+                      <div key={driver.id} className="p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all cursor-pointer" data-testid={`driver-card-${driver.id}`}>
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-xl">
-                            {driver.avatar}
+                            👨‍✈️
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center justify-between">
                               <p className="font-bold text-sm">{driver.name}</p>
-                              <Badge className={`text-xs ${driver.statusColor}`}>{driver.status}</Badge>
+                              <Badge className={`text-xs ${getDriverStatusColor(driver.status)}`}>{getDriverStatusText(driver.status)}</Badge>
                             </div>
                             <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                              <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{driver.location}</span>
-                              <span className="flex items-center gap-1"><Star className="w-3 h-3 text-yellow-500" />{driver.rating}</span>
-                              <span className="flex items-center gap-1"><Package className="w-3 h-3" />{driver.orders} طلب</span>
+                              <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{driver.phone}</span>
+                              <span className="flex items-center gap-1"><Star className="w-3 h-3 text-yellow-500" />{driver.rating || '5.0'}</span>
+                              <span className="flex items-center gap-1"><Package className="w-3 h-3" />{driver.completedDeliveries} توصيل</span>
                             </div>
+                            {driver.vehiclePlate && (
+                              <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
+                                <span className="flex items-center gap-1"><Truck className="w-3 h-3" />{driver.vehiclePlate}</span>
+                                {driver.vehicleType && <span>({driver.vehicleType})</span>}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <Button size="icon" variant="ghost" className="h-7 w-7 rounded-lg hover:bg-blue-50 hover:text-blue-600" onClick={() => openEditDriver(driver)}>
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7 rounded-lg hover:bg-red-50 hover:text-red-600" onClick={() => handleDeleteDriver(driver.id)}>
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
                           </div>
                         </div>
                       </div>
-                    ))}
+                    )) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <Users className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                        <p className="text-sm">لا يوجد سائقين</p>
+                        <p className="text-xs">أضف سائقين لإدارة التوصيل</p>
+                      </div>
+                    )}
                   </div>
                   <div className="mt-4 p-3 bg-blue-50 rounded-xl border border-blue-100">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-blue-700">إجمالي السائقين</span>
-                      <span className="font-bold text-blue-700">4 سائقين</span>
+                      <span className="font-bold text-blue-700">{driversList.length} سائق</span>
                     </div>
                     <div className="flex items-center justify-between text-sm mt-1">
                       <span className="text-blue-700">متاحين الآن</span>
-                      <span className="font-bold text-blue-700">2 سائقين</span>
+                      <span className="font-bold text-blue-700">{driversList.filter(d => d.status === 'available').length} سائق</span>
                     </div>
                   </div>
                 </Card>

@@ -7,7 +7,7 @@ import {
   insertSupplierSchema, insertReturnSchema, insertShipmentSchema, insertCustomerSegmentSchema,
   insertReportSchema, insertStaffSchema, insertSupportTicketSchema, insertCouponSchema,
   insertWarehouseSchema, insertNotificationSchema, insertActivityLogSchema,
-  insertCitySchema, insertProductInventorySchema
+  insertCitySchema, insertProductInventorySchema, insertDriverSchema
 } from "@shared/schema";
 import { fromError } from "zod-validation-error";
 
@@ -1173,6 +1173,75 @@ export async function registerRoutes(
   app.delete("/api/cities/:id", async (req, res) => {
     try {
       await storage.deleteCity(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== Drivers Routes ====================
+
+  app.get("/api/drivers", async (req, res) => {
+    try {
+      const driversList = await storage.getDrivers();
+      res.json(driversList);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/drivers/available", async (req, res) => {
+    try {
+      const availableDrivers = await storage.getAvailableDrivers();
+      res.json(availableDrivers);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/drivers/:id", async (req, res) => {
+    try {
+      const driver = await storage.getDriver(parseInt(req.params.id));
+      if (!driver) return res.status(404).json({ error: "السائق غير موجود" });
+      res.json(driver);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/drivers/warehouse/:warehouseId", async (req, res) => {
+    try {
+      const driversList = await storage.getDriversByWarehouse(parseInt(req.params.warehouseId));
+      res.json(driversList);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/drivers", async (req, res) => {
+    try {
+      const validData = insertDriverSchema.parse(req.body);
+      const driver = await storage.createDriver(validData);
+      res.status(201).json(driver);
+    } catch (error: any) {
+      if (error.name === "ZodError") return res.status(400).json({ error: fromError(error).toString() });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/drivers/:id", async (req, res) => {
+    try {
+      const driver = await storage.updateDriver(parseInt(req.params.id), req.body);
+      if (!driver) return res.status(404).json({ error: "السائق غير موجود" });
+      res.json(driver);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/drivers/:id", async (req, res) => {
+    try {
+      await storage.deleteDriver(parseInt(req.params.id));
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

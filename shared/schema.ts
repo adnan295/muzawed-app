@@ -596,3 +596,25 @@ export const reports = pgTable("reports", {
 export const insertReportSchema = createInsertSchema(reports).omit({ id: true, createdAt: true });
 export type InsertReport = z.infer<typeof insertReportSchema>;
 export type Report = typeof reports.$inferSelect;
+
+// Drivers table - السائقين
+export const drivers = pgTable("drivers", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  phone: text("phone").notNull().unique(),
+  licenseNumber: text("license_number"),
+  vehiclePlate: text("vehicle_plate"),
+  vehicleType: text("vehicle_type"), // شاحنة صغيرة, فان توصيل, شاحنة كبيرة, دراجة نارية
+  cityId: integer("city_id").references(() => cities.id),
+  warehouseId: integer("warehouse_id").references(() => warehouses.id),
+  status: text("status").default("available").notNull(), // available, on_delivery, offline, on_break
+  rating: decimal("rating", { precision: 2, scale: 1 }).default("5.0"),
+  completedDeliveries: integer("completed_deliveries").default(0).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertDriverSchema = createInsertSchema(drivers).omit({ id: true, createdAt: true });
+export type InsertDriver = z.infer<typeof insertDriverSchema>;
+export type Driver = typeof drivers.$inferSelect;

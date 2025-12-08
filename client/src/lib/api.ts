@@ -368,3 +368,22 @@ export const inventoryAPI = {
     body: JSON.stringify({ quantity }),
   }),
 };
+
+// Drivers API
+export const driversAPI = {
+  getAll: () => request("/drivers"),
+  getById: (id: number) => request(`/drivers/${id}`),
+  getAvailable: () => request("/drivers/available"),
+  getByWarehouse: (warehouseId: number) => request(`/drivers/warehouse/${warehouseId}`),
+  create: (data: any) => request("/drivers", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+  update: (id: number, data: any) => request(`/drivers/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }),
+  delete: (id: number) => request(`/drivers/${id}`, {
+    method: "DELETE",
+  }),
+};

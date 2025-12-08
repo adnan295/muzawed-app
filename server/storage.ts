@@ -72,6 +72,9 @@ import {
   type ProductInventory,
   type InsertProductInventory,
   productInventory,
+  type Driver,
+  type InsertDriver,
+  drivers,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte, count, or } from "drizzle-orm";
@@ -247,6 +250,15 @@ export interface IStorage {
   // Inventory
   getLowStockProducts(threshold?: number): Promise<Product[]>;
   updateProductStock(id: number, quantity: number): Promise<Product | undefined>;
+
+  // Drivers
+  getDrivers(): Promise<Driver[]>;
+  getDriver(id: number): Promise<Driver | undefined>;
+  createDriver(driver: InsertDriver): Promise<Driver>;
+  updateDriver(id: number, driver: Partial<InsertDriver>): Promise<Driver | undefined>;
+  deleteDriver(id: number): Promise<void>;
+  getDriversByWarehouse(warehouseId: number): Promise<Driver[]>;
+  getAvailableDrivers(): Promise<Driver[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -909,6 +921,38 @@ export class DatabaseStorage implements IStorage {
   async updateProductStock(id: number, quantity: number): Promise<Product | undefined> {
     const [updated] = await db.update(products).set({ stock: quantity }).where(eq(products.id, id)).returning();
     return updated || undefined;
+  }
+
+  // Drivers
+  async getDrivers(): Promise<Driver[]> {
+    return await db.select().from(drivers).orderBy(desc(drivers.createdAt));
+  }
+
+  async getDriver(id: number): Promise<Driver | undefined> {
+    const [driver] = await db.select().from(drivers).where(eq(drivers.id, id));
+    return driver || undefined;
+  }
+
+  async createDriver(driver: InsertDriver): Promise<Driver> {
+    const [newDriver] = await db.insert(drivers).values(driver).returning();
+    return newDriver;
+  }
+
+  async updateDriver(id: number, driver: Partial<InsertDriver>): Promise<Driver | undefined> {
+    const [updated] = await db.update(drivers).set(driver).where(eq(drivers.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async deleteDriver(id: number): Promise<void> {
+    await db.delete(drivers).where(eq(drivers.id, id));
+  }
+
+  async getDriversByWarehouse(warehouseId: number): Promise<Driver[]> {
+    return await db.select().from(drivers).where(eq(drivers.warehouseId, warehouseId));
+  }
+
+  async getAvailableDrivers(): Promise<Driver[]> {
+    return await db.select().from(drivers).where(and(eq(drivers.status, 'available'), eq(drivers.isActive, true)));
   }
 }
 
