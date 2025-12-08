@@ -256,3 +256,176 @@ export const walletTransactionsRelations = relations(walletTransactions, ({ one 
     references: [wallets.id],
   }),
 }));
+
+// Staff/Employees table
+export const staff = pgTable("staff", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  phone: text("phone").notNull(),
+  password: text("password").notNull(),
+  role: text("role").notNull(), // admin, manager, sales, support, warehouse
+  department: text("department"), // sales, support, warehouse, accounting
+  permissions: text("permissions").array(), // ['orders', 'products', 'customers', 'reports']
+  status: text("status").default("active").notNull(), // active, inactive
+  avatar: text("avatar"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertStaffSchema = createInsertSchema(staff).omit({ id: true, createdAt: true });
+export type InsertStaff = z.infer<typeof insertStaffSchema>;
+export type Staff = typeof staff.$inferSelect;
+
+// Support Tickets table
+export const supportTickets = pgTable("support_tickets", {
+  id: serial("id").primaryKey(),
+  ticketNumber: text("ticket_number").notNull().unique(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  assignedTo: integer("assigned_to").references(() => staff.id),
+  category: text("category").notNull(), // order, payment, product, technical, other
+  priority: text("priority").default("medium").notNull(), // low, medium, high, urgent
+  status: text("status").default("open").notNull(), // open, in_progress, resolved, closed
+  subject: text("subject").notNull(),
+  description: text("description").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertSupportTicketSchema = createInsertSchema(supportTickets).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
+export type SupportTicket = typeof supportTickets.$inferSelect;
+
+// Ticket Messages table
+export const ticketMessages = pgTable("ticket_messages", {
+  id: serial("id").primaryKey(),
+  ticketId: integer("ticket_id").notNull().references(() => supportTickets.id, { onDelete: "cascade" }),
+  senderId: integer("sender_id").notNull(),
+  senderType: text("sender_type").notNull(), // user, staff
+  message: text("message").notNull(),
+  attachments: text("attachments").array(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertTicketMessageSchema = createInsertSchema(ticketMessages).omit({ id: true, createdAt: true });
+export type InsertTicketMessage = z.infer<typeof insertTicketMessageSchema>;
+export type TicketMessage = typeof ticketMessages.$inferSelect;
+
+// Loyalty Points table
+export const loyaltyPoints = pgTable("loyalty_points", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
+  totalPoints: integer("total_points").default(0).notNull(),
+  tier: text("tier").default("bronze").notNull(), // bronze, silver, gold, platinum
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertLoyaltyPointsSchema = createInsertSchema(loyaltyPoints).omit({ id: true, createdAt: true });
+export type InsertLoyaltyPoints = z.infer<typeof insertLoyaltyPointsSchema>;
+export type LoyaltyPoints = typeof loyaltyPoints.$inferSelect;
+
+// Loyalty Transactions table
+export const loyaltyTransactions = pgTable("loyalty_transactions", {
+  id: serial("id").primaryKey(),
+  loyaltyId: integer("loyalty_id").notNull().references(() => loyaltyPoints.id, { onDelete: "cascade" }),
+  orderId: integer("order_id").references(() => orders.id),
+  type: text("type").notNull(), // earned, redeemed, expired, bonus
+  points: integer("points").notNull(),
+  description: text("description").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertLoyaltyTransactionSchema = createInsertSchema(loyaltyTransactions).omit({ id: true, createdAt: true });
+export type InsertLoyaltyTransaction = z.infer<typeof insertLoyaltyTransactionSchema>;
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+
+// Coupons table
+export const coupons = pgTable("coupons", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  type: text("type").notNull(), // percentage, fixed
+  value: decimal("value", { precision: 10, scale: 2 }).notNull(),
+  minOrderAmount: decimal("min_order_amount", { precision: 10, scale: 2 }),
+  maxDiscount: decimal("max_discount", { precision: 10, scale: 2 }),
+  usageLimit: integer("usage_limit"),
+  usageCount: integer("usage_count").default(0).notNull(),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCouponSchema = createInsertSchema(coupons).omit({ id: true, createdAt: true, usageCount: true });
+export type InsertCoupon = z.infer<typeof insertCouponSchema>;
+export type Coupon = typeof coupons.$inferSelect;
+
+// Warehouses table
+export const warehouses = pgTable("warehouses", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  code: text("code").notNull().unique(),
+  address: text("address").notNull(),
+  city: text("city").notNull(),
+  manager: text("manager"),
+  phone: text("phone"),
+  capacity: integer("capacity"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertWarehouseSchema = createInsertSchema(warehouses).omit({ id: true, createdAt: true });
+export type InsertWarehouse = z.infer<typeof insertWarehouseSchema>;
+export type Warehouse = typeof warehouses.$inferSelect;
+
+// Invoices table
+export const invoices = pgTable("invoices", {
+  id: serial("id").primaryKey(),
+  invoiceNumber: text("invoice_number").notNull().unique(),
+  orderId: integer("order_id").notNull().references(() => orders.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
+  taxAmount: decimal("tax_amount", { precision: 10, scale: 2 }).notNull(),
+  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0"),
+  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+  status: text("status").default("unpaid").notNull(), // unpaid, paid, cancelled
+  dueDate: timestamp("due_date"),
+  paidAt: timestamp("paid_at"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertInvoiceSchema = createInsertSchema(invoices).omit({ id: true, createdAt: true });
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+export type Invoice = typeof invoices.$inferSelect;
+
+// Notifications table
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  staffId: integer("staff_id").references(() => staff.id),
+  type: text("type").notNull(), // order, payment, stock, system, promotion
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  isRead: boolean("is_read").default(false).notNull(),
+  data: text("data"), // JSON string for additional data
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true });
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Notification = typeof notifications.$inferSelect;
+
+// Activity Logs table
+export const activityLogs = pgTable("activity_logs", {
+  id: serial("id").primaryKey(),
+  staffId: integer("staff_id").references(() => staff.id),
+  action: text("action").notNull(), // created, updated, deleted, viewed
+  entity: text("entity").notNull(), // order, product, user, etc
+  entityId: integer("entity_id"),
+  details: text("details"),
+  ipAddress: text("ip_address"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertActivityLogSchema = createInsertSchema(activityLogs).omit({ id: true, createdAt: true });
+export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
+export type ActivityLog = typeof activityLogs.$inferSelect;
