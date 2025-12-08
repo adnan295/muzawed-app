@@ -1,6 +1,6 @@
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { ProductCard } from '@/components/ui/ProductCard';
-import { PRODUCTS } from '@/lib/data';
+import { PRODUCTS, BRANDS } from '@/lib/data';
 import { useRoute } from 'wouter';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -35,9 +35,9 @@ export default function SearchResults() {
           
           <div className="mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
             <Button size="sm" variant="secondary" className="rounded-full text-xs h-8 bg-primary text-white hover:bg-primary/90">الكل</Button>
-            <Button size="sm" variant="outline" className="rounded-full text-xs h-8 border-gray-200">الأكثر مبيعاً</Button>
-            <Button size="sm" variant="outline" className="rounded-full text-xs h-8 border-gray-200">الأقل سعراً</Button>
-            <Button size="sm" variant="outline" className="rounded-full text-xs h-8 border-gray-200">عروض</Button>
+            {BRANDS.slice(0, 4).map(brand => (
+               <Button key={brand.id} size="sm" variant="outline" className="rounded-full text-xs h-8 border-gray-200">{brand.name}</Button>
+            ))}
           </div>
         </div>
 

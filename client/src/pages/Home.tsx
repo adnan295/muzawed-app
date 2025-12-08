@@ -1,6 +1,6 @@
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { ProductCard } from '@/components/ui/ProductCard';
-import { CATEGORIES, PRODUCTS } from '@/lib/data';
+import { CATEGORIES, PRODUCTS, BRANDS } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
 import { AdsCarousel } from '@/components/ui/AdsCarousel';
@@ -33,6 +33,22 @@ export default function Home() {
                 </div>
                 <span className="text-xs font-medium text-center leading-tight">{cat.name}</span>
               </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Brands Section */}
+        <div>
+           <div className="flex items-center justify-between px-4 mb-3">
+            <h3 className="font-bold text-lg">أهم العلامات التجارية</h3>
+          </div>
+          <div className="flex overflow-x-auto px-4 gap-3 no-scrollbar pb-2">
+            {BRANDS.map((brand) => (
+               <div key={brand.id} className="flex-shrink-0 flex flex-col items-center gap-1 cursor-pointer w-16">
+                 <div className={`w-16 h-16 rounded-full flex items-center justify-center shadow-md border-2 border-white ${brand.logo} text-center`}>
+                   <span className="font-bold text-[10px] px-1">{brand.name}</span>
+                 </div>
+               </div>
             ))}
           </div>
         </div>

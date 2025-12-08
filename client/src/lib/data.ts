@@ -30,6 +30,21 @@ export const CATEGORIES: Category[] = [
   { id: 'sweets', name: 'حلويات', icon: 'candy', color: 'bg-pink-100 text-pink-600' },
 ];
 
+export interface Brand {
+  id: string;
+  name: string;
+  logo: string; // Placeholder color or text for now
+}
+
+export const BRANDS: Brand[] = [
+  { id: 'nova', name: 'نوفا', logo: 'bg-blue-600 text-white' },
+  { id: 'almarai', name: 'المراعي', logo: 'bg-blue-500 text-white' },
+  { id: 'afia', name: 'عافية', logo: 'bg-yellow-500 text-white' },
+  { id: 'shalan', name: 'الشعلان', logo: 'bg-red-600 text-white' },
+  { id: 'berain', name: 'بيرين', logo: 'bg-cyan-600 text-white' },
+  { id: 'osra', name: 'الأسرة', logo: 'bg-orange-600 text-white' },
+];
+
 export const PRODUCTS: Product[] = [
   {
     id: '1',
