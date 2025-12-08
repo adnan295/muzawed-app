@@ -30,7 +30,7 @@ import {
   GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight, LogOut
 } from 'lucide-react';
 import { Link } from 'wouter';
-import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI } from '@/lib/api';
+import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart, Line, Legend, ComposedChart, RadialBarChart, RadialBar, Treemap, FunnelChart, Funnel, LabelList } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -93,6 +93,28 @@ interface Driver {
   completedDeliveries: number;
   isActive: boolean;
   notes?: string;
+}
+
+interface Vehicle {
+  id: number;
+  plateNumber: string;
+  type: string;
+  brand?: string;
+  model?: string;
+  year?: number;
+  color?: string;
+  capacity?: string;
+  fuelType?: string;
+  driverId?: number;
+  warehouseId?: number;
+  status: string;
+  lastMaintenanceDate?: string;
+  nextMaintenanceDate?: string;
+  insuranceExpiryDate?: string;
+  licenseExpiryDate?: string;
+  mileage: number;
+  notes?: string;
+  isActive: boolean;
 }
 
 const salesData = [
@@ -262,6 +284,14 @@ export default function Admin() {
     cityId: '', warehouseId: '', status: 'available', notes: '',
   });
 
+  // Vehicle management state
+  const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
+  const [newVehicle, setNewVehicle] = useState({
+    plateNumber: '', type: 'فان توصيل', brand: '', model: '', year: '', color: '',
+    capacity: '', fuelType: 'ديزل', driverId: '', warehouseId: '', status: 'available', mileage: '0', notes: '',
+  });
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -328,6 +358,11 @@ export default function Admin() {
   const { data: driversList = [], refetch: refetchDrivers } = useQuery<Driver[]>({
     queryKey: ['drivers'],
     queryFn: () => driversAPI.getAll() as Promise<Driver[]>,
+  });
+
+  const { data: vehiclesList = [], refetch: refetchVehicles } = useQuery<Vehicle[]>({
+    queryKey: ['vehicles'],
+    queryFn: () => vehiclesAPI.getAll() as Promise<Vehicle[]>,
   });
 
   useEffect(() => {
@@ -695,6 +730,103 @@ export default function Admin() {
       case 'on_delivery': return 'في مهمة';
       case 'offline': return 'غير متصل';
       case 'on_break': return 'استراحة';
+      default: return status;
+    }
+  };
+
+  // Vehicle handlers
+  const handleAddVehicle = async () => {
+    if (!newVehicle.plateNumber || !newVehicle.type) {
+      toast({ title: 'يرجى ملء الحقول المطلوبة', variant: 'destructive' });
+      return;
+    }
+    try {
+      await vehiclesAPI.create({
+        ...newVehicle,
+        year: newVehicle.year ? parseInt(newVehicle.year) : null,
+        mileage: parseInt(newVehicle.mileage) || 0,
+        driverId: newVehicle.driverId ? parseInt(newVehicle.driverId) : null,
+        warehouseId: newVehicle.warehouseId ? parseInt(newVehicle.warehouseId) : null,
+      });
+      toast({ title: 'تم إضافة المركبة بنجاح', className: 'bg-green-600 text-white' });
+      setIsAddVehicleOpen(false);
+      setNewVehicle({ plateNumber: '', type: 'فان توصيل', brand: '', model: '', year: '', color: '', capacity: '', fuelType: 'ديزل', driverId: '', warehouseId: '', status: 'available', mileage: '0', notes: '' });
+      refetchVehicles();
+    } catch (error: any) {
+      toast({ title: error.message || 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const handleEditVehicle = async () => {
+    if (!editingVehicle || !newVehicle.plateNumber || !newVehicle.type) {
+      toast({ title: 'يرجى ملء الحقول المطلوبة', variant: 'destructive' });
+      return;
+    }
+    try {
+      await vehiclesAPI.update(editingVehicle.id, {
+        ...newVehicle,
+        year: newVehicle.year ? parseInt(newVehicle.year) : null,
+        mileage: parseInt(newVehicle.mileage) || 0,
+        driverId: newVehicle.driverId ? parseInt(newVehicle.driverId) : null,
+        warehouseId: newVehicle.warehouseId ? parseInt(newVehicle.warehouseId) : null,
+      });
+      toast({ title: 'تم تحديث بيانات المركبة', className: 'bg-green-600 text-white' });
+      setIsAddVehicleOpen(false);
+      setEditingVehicle(null);
+      setNewVehicle({ plateNumber: '', type: 'فان توصيل', brand: '', model: '', year: '', color: '', capacity: '', fuelType: 'ديزل', driverId: '', warehouseId: '', status: 'available', mileage: '0', notes: '' });
+      refetchVehicles();
+    } catch (error: any) {
+      toast({ title: error.message || 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteVehicle = async (id: number) => {
+    if (!confirm('هل أنت متأكد من حذف هذه المركبة؟')) return;
+    try {
+      await vehiclesAPI.delete(id);
+      toast({ title: 'تم حذف المركبة', className: 'bg-green-600 text-white' });
+      refetchVehicles();
+    } catch (error) {
+      toast({ title: 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const openEditVehicle = (vehicle: Vehicle) => {
+    setEditingVehicle(vehicle);
+    setNewVehicle({
+      plateNumber: vehicle.plateNumber,
+      type: vehicle.type,
+      brand: vehicle.brand || '',
+      model: vehicle.model || '',
+      year: vehicle.year?.toString() || '',
+      color: vehicle.color || '',
+      capacity: vehicle.capacity || '',
+      fuelType: vehicle.fuelType || 'ديزل',
+      driverId: vehicle.driverId?.toString() || '',
+      warehouseId: vehicle.warehouseId?.toString() || '',
+      status: vehicle.status,
+      mileage: vehicle.mileage?.toString() || '0',
+      notes: vehicle.notes || '',
+    });
+    setIsAddVehicleOpen(true);
+  };
+
+  const getVehicleStatusColor = (status: string) => {
+    switch (status) {
+      case 'available': return 'bg-green-100 text-green-700';
+      case 'in_use': return 'bg-blue-100 text-blue-700';
+      case 'maintenance': return 'bg-yellow-100 text-yellow-700';
+      case 'out_of_service': return 'bg-red-100 text-red-700';
+      default: return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  const getVehicleStatusText = (status: string) => {
+    switch (status) {
+      case 'available': return 'متاحة';
+      case 'in_use': return 'قيد الاستخدام';
+      case 'maintenance': return 'صيانة';
+      case 'out_of_service': return 'خارج الخدمة';
       default: return status;
     }
   };
@@ -1291,6 +1423,191 @@ export default function Admin() {
                     <div className="flex items-center justify-between text-sm mt-1">
                       <span className="text-blue-700">متاحين الآن</span>
                       <span className="font-bold text-blue-700">{driversList.filter(d => d.status === 'available').length} سائق</span>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Vehicles Management Card */}
+                <Card className="p-6 border-none shadow-lg rounded-2xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-lg flex items-center gap-2">
+                      <Truck className="w-5 h-5 text-orange-500" />
+                      أسطول المركبات ({vehiclesList.length})
+                    </h3>
+                    <Dialog open={isAddVehicleOpen} onOpenChange={(open) => {
+                      setIsAddVehicleOpen(open);
+                      if (!open) {
+                        setEditingVehicle(null);
+                        setNewVehicle({ plateNumber: '', type: 'فان توصيل', brand: '', model: '', year: '', color: '', capacity: '', fuelType: 'ديزل', driverId: '', warehouseId: '', status: 'available', mileage: '0', notes: '' });
+                      }
+                    }}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" className="rounded-xl gap-1" data-testid="button-add-vehicle">
+                          <Plus className="w-4 h-4" />إضافة مركبة
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-lg">
+                        <DialogHeader><DialogTitle>{editingVehicle ? 'تعديل بيانات المركبة' : 'إضافة مركبة جديدة'}</DialogTitle></DialogHeader>
+                        <div className="space-y-4 mt-4 max-h-[60vh] overflow-y-auto">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label>رقم اللوحة *</Label>
+                              <Input placeholder="مثال: دمشق 123456" value={newVehicle.plateNumber} onChange={(e) => setNewVehicle({ ...newVehicle, plateNumber: e.target.value })} data-testid="input-vehicle-plate" />
+                            </div>
+                            <div>
+                              <Label>نوع المركبة *</Label>
+                              <Select value={newVehicle.type} onValueChange={(v) => setNewVehicle({ ...newVehicle, type: v })}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="فان توصيل">فان توصيل</SelectItem>
+                                  <SelectItem value="شاحنة صغيرة">شاحنة صغيرة</SelectItem>
+                                  <SelectItem value="شاحنة كبيرة">شاحنة كبيرة</SelectItem>
+                                  <SelectItem value="دراجة نارية">دراجة نارية</SelectItem>
+                                  <SelectItem value="سيارة">سيارة</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div>
+                              <Label>الماركة</Label>
+                              <Input placeholder="مثال: تويوتا" value={newVehicle.brand} onChange={(e) => setNewVehicle({ ...newVehicle, brand: e.target.value })} />
+                            </div>
+                            <div>
+                              <Label>الموديل</Label>
+                              <Input placeholder="مثال: هايلكس" value={newVehicle.model} onChange={(e) => setNewVehicle({ ...newVehicle, model: e.target.value })} />
+                            </div>
+                            <div>
+                              <Label>سنة الصنع</Label>
+                              <Input type="number" placeholder="2020" value={newVehicle.year} onChange={(e) => setNewVehicle({ ...newVehicle, year: e.target.value })} />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div>
+                              <Label>اللون</Label>
+                              <Input placeholder="أبيض" value={newVehicle.color} onChange={(e) => setNewVehicle({ ...newVehicle, color: e.target.value })} />
+                            </div>
+                            <div>
+                              <Label>السعة (طن)</Label>
+                              <Input placeholder="2.5" value={newVehicle.capacity} onChange={(e) => setNewVehicle({ ...newVehicle, capacity: e.target.value })} />
+                            </div>
+                            <div>
+                              <Label>نوع الوقود</Label>
+                              <Select value={newVehicle.fuelType} onValueChange={(v) => setNewVehicle({ ...newVehicle, fuelType: v })}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="بنزين">بنزين</SelectItem>
+                                  <SelectItem value="ديزل">ديزل</SelectItem>
+                                  <SelectItem value="كهرباء">كهرباء</SelectItem>
+                                  <SelectItem value="هجين">هجين</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label>الحالة</Label>
+                              <Select value={newVehicle.status} onValueChange={(v) => setNewVehicle({ ...newVehicle, status: v })}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="available">متاحة</SelectItem>
+                                  <SelectItem value="in_use">قيد الاستخدام</SelectItem>
+                                  <SelectItem value="maintenance">صيانة</SelectItem>
+                                  <SelectItem value="out_of_service">خارج الخدمة</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label>عداد الكيلومترات</Label>
+                              <Input type="number" placeholder="0" value={newVehicle.mileage} onChange={(e) => setNewVehicle({ ...newVehicle, mileage: e.target.value })} />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label>السائق المسؤول</Label>
+                              <Select value={newVehicle.driverId} onValueChange={(v) => setNewVehicle({ ...newVehicle, driverId: v })}>
+                                <SelectTrigger><SelectValue placeholder="اختر السائق" /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="">بدون سائق</SelectItem>
+                                  {driversList.map((driver) => (<SelectItem key={driver.id} value={driver.id.toString()}>{driver.name}</SelectItem>))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label>المستودع</Label>
+                              <Select value={newVehicle.warehouseId} onValueChange={(v) => setNewVehicle({ ...newVehicle, warehouseId: v })}>
+                                <SelectTrigger><SelectValue placeholder="اختر المستودع" /></SelectTrigger>
+                                <SelectContent>
+                                  {warehousesList.map((wh) => (<SelectItem key={wh.id} value={wh.id.toString()}>{wh.name}</SelectItem>))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <div>
+                            <Label>ملاحظات</Label>
+                            <Textarea placeholder="ملاحظات إضافية..." value={newVehicle.notes} onChange={(e) => setNewVehicle({ ...newVehicle, notes: e.target.value })} rows={2} />
+                          </div>
+                        </div>
+                        <div className="flex gap-2 mt-4">
+                          <Button className="flex-1 rounded-xl" onClick={editingVehicle ? handleEditVehicle : handleAddVehicle} data-testid="button-save-vehicle">
+                            {editingVehicle ? 'حفظ التعديلات' : 'إضافة المركبة'}
+                          </Button>
+                          <Button variant="outline" className="rounded-xl" onClick={() => setIsAddVehicleOpen(false)}>إلغاء</Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                  <div className="space-y-3 max-h-[350px] overflow-y-auto">
+                    {vehiclesList.length > 0 ? vehiclesList.map((vehicle) => (
+                      <div key={vehicle.id} className="p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all cursor-pointer" data-testid={`vehicle-card-${vehicle.id}`}>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-xl">
+                            🚛
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <p className="font-bold text-sm">{vehicle.plateNumber}</p>
+                              <Badge className={`text-xs ${getVehicleStatusColor(vehicle.status)}`}>{getVehicleStatusText(vehicle.status)}</Badge>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                              <span className="flex items-center gap-1"><Truck className="w-3 h-3" />{vehicle.type}</span>
+                              {vehicle.brand && <span>• {vehicle.brand} {vehicle.model}</span>}
+                              {vehicle.capacity && <span>• {vehicle.capacity} طن</span>}
+                            </div>
+                            {vehicle.driverId && (
+                              <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
+                                <span className="flex items-center gap-1"><Users className="w-3 h-3" />
+                                  {driversList.find(d => d.id === vehicle.driverId)?.name || 'سائق غير معروف'}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <Button size="icon" variant="ghost" className="h-7 w-7 rounded-lg hover:bg-blue-50 hover:text-blue-600" onClick={() => openEditVehicle(vehicle)}>
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7 rounded-lg hover:bg-red-50 hover:text-red-600" onClick={() => handleDeleteVehicle(vehicle.id)}>
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <Truck className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                        <p className="text-sm">لا توجد مركبات</p>
+                        <p className="text-xs">أضف مركبات لإدارة الأسطول</p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-4 p-3 bg-orange-50 rounded-xl border border-orange-100">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-orange-700">إجمالي المركبات</span>
+                      <span className="font-bold text-orange-700">{vehiclesList.length} مركبة</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm mt-1">
+                      <span className="text-orange-700">متاحة الآن</span>
+                      <span className="font-bold text-orange-700">{vehiclesList.filter(v => v.status === 'available').length} مركبة</span>
                     </div>
                   </div>
                 </Card>
