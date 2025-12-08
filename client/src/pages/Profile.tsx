@@ -9,9 +9,9 @@ export default function Profile() {
 
   const menuItems = [
     { icon: Package, label: 'طلباتي', desc: 'تتبع طلباتك الحالية والسابقة', href: '/orders' },
-    { icon: MapPin, label: 'عناويني', desc: 'إدارة مواقع التوصيل' },
+    { icon: MapPin, label: 'عناويني', desc: 'إدارة مواقع التوصيل', href: '/addresses' },
     { icon: CreditCard, label: 'المحفظة والمدفوعات', desc: 'طرق الدفع والرصيد', href: '/wallet' },
-    { icon: Store, label: 'تفاصيل المنشأة', desc: 'معلومات السجل التجاري والضريبة' },
+    { icon: Store, label: 'تفاصيل المنشأة', desc: 'معلومات السجل التجاري والضريبة', href: '/facility' },
     { icon: Phone, label: 'المساعدة والدعم', desc: 'تواصل مع خدمة العملاء', href: '/support' },
     { icon: Settings, label: 'الإعدادات', desc: 'اللغة والإشعارات' },
   ];

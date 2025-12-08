@@ -56,7 +56,12 @@ export default function ProductDetails() {
             <Button size="icon" variant="secondary" className="rounded-full bg-white/80 backdrop-blur-md shadow-sm hover:bg-white h-10 w-10">
               <Share2 className="w-5 h-5 text-foreground" />
             </Button>
-            <Button size="icon" variant="secondary" className="rounded-full bg-white/80 backdrop-blur-md shadow-sm hover:bg-white h-10 w-10">
+            <Button 
+              size="icon" 
+              variant="secondary" 
+              className="rounded-full bg-white/80 backdrop-blur-md shadow-sm hover:bg-white h-10 w-10"
+              onClick={() => setLocation('/favorites')}
+            >
               <Heart className="w-5 h-5 text-foreground" />
             </Button>
           </div>

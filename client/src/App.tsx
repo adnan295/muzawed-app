@@ -16,6 +16,9 @@ import SearchResults from "@/pages/SearchResults";
 import Offers from "@/pages/Offers";
 import Notifications from "@/pages/Notifications";
 import Support from "@/pages/Support";
+import Favorites from "@/pages/Favorites";
+import Addresses from "@/pages/Addresses";
+import FacilityDetails from "@/pages/FacilityDetails";
 
 function Router() {
   return (
@@ -32,6 +35,9 @@ function Router() {
       <Route path="/offers" component={Offers} />
       <Route path="/notifications" component={Notifications} />
       <Route path="/support" component={Support} />
+      <Route path="/favorites" component={Favorites} />
+      <Route path="/addresses" component={Addresses} />
+      <Route path="/facility" component={FacilityDetails} />
       <Route component={NotFound} />
     </Switch>
   );
