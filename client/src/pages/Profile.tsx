@@ -2,10 +2,13 @@ import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { User, Package, MapPin, CreditCard, Settings, LogOut, Phone, Store } from 'lucide-react';
+import { useLocation } from 'wouter';
 
 export default function Profile() {
+  const [, setLocation] = useLocation();
+
   const menuItems = [
-    { icon: Package, label: 'طلباتي', desc: 'تتبع طلباتك الحالية والسابقة' },
+    { icon: Package, label: 'طلباتي', desc: 'تتبع طلباتك الحالية والسابقة', href: '/orders' },
     { icon: MapPin, label: 'عناويني', desc: 'إدارة مواقع التوصيل' },
     { icon: CreditCard, label: 'المحفظة والمدفوعات', desc: 'طرق الدفع والرصيد' },
     { icon: Store, label: 'تفاصيل المنشأة', desc: 'معلومات السجل التجاري والضريبة' },
@@ -33,7 +36,11 @@ export default function Profile() {
 
       <div className="px-4 -mt-10 relative z-20 space-y-3 pb-8">
         {menuItems.map((item, index) => (
-          <Card key={index} className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-none shadow-sm cursor-pointer">
+          <Card 
+            key={index} 
+            className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-none shadow-sm cursor-pointer"
+            onClick={() => item.href && setLocation(item.href)}
+          >
             <div className="w-10 h-10 rounded-full bg-primary/5 text-primary flex items-center justify-center">
               <item.icon className="w-5 h-5" />
             </div>

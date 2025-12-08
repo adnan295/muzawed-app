@@ -1,3 +1,4 @@
+import { Link, useLocation } from 'wouter';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { PRODUCTS } from '@/lib/data';
 import { Button } from '@/components/ui/button';
@@ -5,6 +6,7 @@ import { Trash2, Plus, Minus, CreditCard } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 export default function Cart() {
+  const [, setLocation] = useLocation();
   // Mock cart items (subset of products)
   const cartItems = [
     { ...PRODUCTS[0], quantity: 10 },
@@ -76,7 +78,10 @@ export default function Cart() {
         </div>
 
         <div className="p-4 bg-white border-t border-gray-100 z-20">
-          <Button className="w-full h-12 text-lg font-bold rounded-xl shadow-lg shadow-primary/20">
+          <Button 
+            className="w-full h-12 text-lg font-bold rounded-xl shadow-lg shadow-primary/20"
+            onClick={() => setLocation('/checkout')}
+          >
             <CreditCard className="w-5 h-5 ml-2" />
             إتمام الشراء
           </Button>
