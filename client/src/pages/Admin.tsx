@@ -2089,64 +2089,217 @@ export default function Admin() {
             </Card>
           </TabsContent>
 
-          {/* Orders Tab */}
+          {/* Orders Tab - Enhanced */}
           <TabsContent value="orders">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+              <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-blue-100 text-xs">إجمالي الطلبات</p>
+                    <p className="text-2xl font-bold">{adminOrders.length}</p>
+                  </div>
+                  <ShoppingCart className="w-8 h-8 text-blue-200" />
+                </div>
+              </Card>
+              <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-yellow-500 to-yellow-600 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-yellow-100 text-xs">قيد الانتظار</p>
+                    <p className="text-2xl font-bold">{adminOrders.filter((o: any) => o.status === 'pending').length}</p>
+                  </div>
+                  <Clock className="w-8 h-8 text-yellow-200" />
+                </div>
+              </Card>
+              <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-purple-100 text-xs">قيد التوصيل</p>
+                    <p className="text-2xl font-bold">{adminOrders.filter((o: any) => o.status === 'shipped').length}</p>
+                  </div>
+                  <Truck className="w-8 h-8 text-purple-200" />
+                </div>
+              </Card>
+              <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-green-500 to-green-600 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-green-100 text-xs">مكتمل</p>
+                    <p className="text-2xl font-bold">{adminOrders.filter((o: any) => o.status === 'delivered').length}</p>
+                  </div>
+                  <CheckCircle className="w-8 h-8 text-green-200" />
+                </div>
+              </Card>
+              <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-emerald-100 text-xs">إجمالي المبيعات</p>
+                    <p className="text-xl font-bold">{adminOrders.reduce((sum: number, o: any) => sum + parseFloat(o.total || 0), 0).toLocaleString('ar-SA')} ر.س</p>
+                  </div>
+                  <DollarSign className="w-8 h-8 text-emerald-200" />
+                </div>
+              </Card>
+            </div>
+
             <Card className="p-6 border-none shadow-lg rounded-2xl">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="font-bold text-xl">إدارة الطلبات ({adminOrders.length})</h3>
-                <div className="flex gap-2">
-                  <Button variant="outline" className="rounded-xl">الكل</Button>
-                  <Button variant="outline" className="rounded-xl bg-yellow-50 border-yellow-200 text-yellow-700">قيد الانتظار</Button>
-                  <Button variant="outline" className="rounded-xl bg-blue-50 border-blue-200 text-blue-700">قيد التجهيز</Button>
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <h3 className="font-bold text-xl flex items-center gap-2">
+                  <ClipboardList className="w-6 h-6 text-primary" />
+                  إدارة الطلبات
+                </h3>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Input className="w-48 bg-gray-50 border-none rounded-xl" placeholder="بحث برقم الطلب..." data-testid="search-orders" />
+                  <Select defaultValue="all">
+                    <SelectTrigger className="w-36 rounded-xl bg-gray-50 border-none"><SelectValue placeholder="الحالة" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">جميع الحالات</SelectItem>
+                      <SelectItem value="pending">قيد الانتظار</SelectItem>
+                      <SelectItem value="confirmed">مؤكد</SelectItem>
+                      <SelectItem value="processing">قيد التجهيز</SelectItem>
+                      <SelectItem value="shipped">قيد التوصيل</SelectItem>
+                      <SelectItem value="delivered">تم التوصيل</SelectItem>
+                      <SelectItem value="cancelled">ملغي</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" className="rounded-xl gap-2">
+                    <FileText className="w-4 h-4" />تصدير
+                  </Button>
                 </div>
               </div>
-              <div className="space-y-4">
-                {adminOrders.length > 0 ? adminOrders.slice(0, 10).map((order: any) => (
-                  <div key={order.id} className="p-4 bg-gray-50 rounded-2xl flex items-center justify-between hover:bg-gray-100 cursor-pointer transition-colors" data-testid={`order-row-${order.id}`}>
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center"><Package className="w-6 h-6 text-primary" /></div>
-                      <div>
-                        <p className="font-bold">طلب #{order.id}</p>
-                        <p className="text-sm text-gray-500">{order.user?.facilityName || 'عميل'}</p>
-                        <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString('ar-SA')}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span className="font-bold text-primary">{order.total} ر.س</span>
-                      {getStatusBadge(order.status)}
-                      <Select defaultValue={order.status} onValueChange={async (value) => {
-                        try {
-                          await fetch(`/api/orders/${order.id}/status`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ status: value }),
-                          });
-                          toast({ title: 'تم تحديث حالة الطلب', className: 'bg-green-600 text-white' });
-                          queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
-                        } catch (error) {
-                          toast({ title: 'حدث خطأ', variant: 'destructive' });
-                        }
-                      }}>
-                        <SelectTrigger className="w-32 rounded-lg text-sm">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pending">قيد الانتظار</SelectItem>
-                          <SelectItem value="processing">قيد التجهيز</SelectItem>
-                          <SelectItem value="shipped">قيد الشحن</SelectItem>
-                          <SelectItem value="delivered">تم التوصيل</SelectItem>
-                          <SelectItem value="cancelled">ملغي</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                )) : (
-                  <div className="text-center py-12 text-gray-500">
-                    <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                    <p>لا توجد طلبات</p>
-                  </div>
-                )}
+
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">رقم الطلب</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">العميل</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">التاريخ</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">المبلغ</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">طريقة الدفع</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">الحالة</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">تغيير الحالة</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">الإجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {adminOrders.length > 0 ? adminOrders.map((order: any) => (
+                      <tr key={order.id} className="hover:bg-gray-50" data-testid={`order-row-${order.id}`}>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                              order.status === 'delivered' ? 'bg-green-100 text-green-600' :
+                              order.status === 'shipped' ? 'bg-purple-100 text-purple-600' :
+                              order.status === 'processing' ? 'bg-blue-100 text-blue-600' :
+                              order.status === 'cancelled' ? 'bg-red-100 text-red-600' :
+                              'bg-yellow-100 text-yellow-600'
+                            }`}>
+                              <Package className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="font-bold text-primary">#{order.id}</p>
+                              <p className="text-xs text-gray-400">{order.items?.length || 0} منتج</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div>
+                            <p className="font-bold text-sm">{order.user?.facilityName || 'عميل'}</p>
+                            <p className="text-xs text-gray-500">{order.user?.phone || ''}</p>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div>
+                            <p className="text-sm">{new Date(order.createdAt).toLocaleDateString('ar-SA')}</p>
+                            <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}</p>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <p className="font-bold text-lg text-primary">{parseFloat(order.total).toLocaleString('ar-SA')} ر.س</p>
+                        </td>
+                        <td className="px-4 py-4">
+                          <Badge className={order.paymentMethod === 'wallet' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'}>
+                            {order.paymentMethod === 'wallet' ? 'محفظة' : order.paymentMethod === 'cash' ? 'كاش عند التسليم' : order.paymentMethod || 'كاش'}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-4">{getStatusBadge(order.status)}</td>
+                        <td className="px-4 py-4">
+                          <Select defaultValue={order.status} onValueChange={async (value) => {
+                            try {
+                              await fetch(`/api/orders/${order.id}/status`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ status: value }),
+                              });
+                              toast({ title: 'تم تحديث حالة الطلب', className: 'bg-green-600 text-white' });
+                              queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+                            } catch (error) {
+                              toast({ title: 'حدث خطأ', variant: 'destructive' });
+                            }
+                          }}>
+                            <SelectTrigger className="w-36 rounded-lg text-sm" data-testid={`order-status-${order.id}`}><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pending">قيد الانتظار</SelectItem>
+                              <SelectItem value="confirmed">مؤكد</SelectItem>
+                              <SelectItem value="processing">قيد التجهيز</SelectItem>
+                              <SelectItem value="shipped">قيد التوصيل</SelectItem>
+                              <SelectItem value="delivered">تم التوصيل</SelectItem>
+                              <SelectItem value="cancelled">ملغي</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="ghost" className="rounded-lg" title="عرض التفاصيل" data-testid={`view-order-${order.id}`}>
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="rounded-lg" title="طباعة الفاتورة">
+                              <FileText className="w-4 h-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50" title="إلغاء الطلب"
+                              onClick={async () => {
+                                if (confirm('هل أنت متأكد من إلغاء هذا الطلب؟')) {
+                                  try {
+                                    await fetch(`/api/orders/${order.id}/status`, {
+                                      method: 'PUT',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ status: 'cancelled' }),
+                                    });
+                                    toast({ title: 'تم إلغاء الطلب', className: 'bg-red-600 text-white' });
+                                    queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+                                  } catch (error) {
+                                    toast({ title: 'حدث خطأ', variant: 'destructive' });
+                                  }
+                                }
+                              }}
+                              data-testid={`cancel-order-${order.id}`}
+                            >
+                              <XCircle className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    )) : (
+                      <tr>
+                        <td colSpan={8} className="text-center py-16 text-gray-500">
+                          <ShoppingCart className="w-20 h-20 mx-auto mb-4 text-gray-300" />
+                          <p className="text-lg font-bold mb-2">لا توجد طلبات</p>
+                          <p className="text-sm">ستظهر الطلبات هنا عند إنشائها من قبل العملاء</p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
+
+              {adminOrders.length > 0 && (
+                <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                  <p className="text-sm text-gray-500">عرض {Math.min(adminOrders.length, 50)} من {adminOrders.length} طلب</p>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="rounded-lg" disabled>السابق</Button>
+                    <Button variant="outline" size="sm" className="rounded-lg bg-primary text-white">1</Button>
+                    <Button variant="outline" size="sm" className="rounded-lg" disabled>التالي</Button>
+                  </div>
+                </div>
+              )}
             </Card>
           </TabsContent>
 
