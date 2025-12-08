@@ -914,6 +914,19 @@ export async function registerRoutes(
     }
   });
 
+  app.put("/api/users/:id", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const updatedUser = await storage.updateUser(userId, req.body);
+      if (!updatedUser) {
+        return res.status(404).json({ error: "المستخدم غير موجود" });
+      }
+      res.json(updatedUser);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ==================== Notifications Routes ====================
   
   app.get("/api/notifications", async (req, res) => {

@@ -6,7 +6,7 @@ import { AdsCarousel } from '@/components/ui/AdsCarousel';
 import { Link, useLocation } from 'wouter';
 import { Input } from '@/components/ui/input';
 import { useQuery } from '@tanstack/react-query';
-import { productsAPI, categoriesAPI, brandsAPI } from '@/lib/api';
+import { productsAPI, categoriesAPI, brandsAPI, productsByCityAPI, citiesAPI } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 
 export default function Home() {
@@ -23,10 +23,22 @@ export default function Home() {
     queryFn: () => brandsAPI.getAll() as Promise<any[]>,
   });
 
-  const { data: products = [] } = useQuery<any[]>({
-    queryKey: ['products'],
-    queryFn: () => productsAPI.getAll() as Promise<any[]>,
+  const { data: cities = [] } = useQuery<any[]>({
+    queryKey: ['cities'],
+    queryFn: () => citiesAPI.getAll() as Promise<any[]>,
   });
+
+  const { data: products = [] } = useQuery<any[]>({
+    queryKey: ['products', user?.cityId],
+    queryFn: () => {
+      if (user?.cityId) {
+        return productsByCityAPI.getByCity(user.cityId) as Promise<any[]>;
+      }
+      return productsAPI.getAll() as Promise<any[]>;
+    },
+  });
+
+  const userCity = cities.find((c: any) => c.id === user?.cityId);
 
   const categoryIcons: Record<string, string> = {
     "مواد غذائية": "🍞",
@@ -54,10 +66,10 @@ export default function Home() {
                  <h1 className="text-xl font-bold" data-testid="text-facility-name">
                    {user?.facilityName || 'ضيف'}
                  </h1>
-                 <div className="flex items-center gap-1 text-[10px] text-purple-100 mt-1 bg-white/10 w-fit px-2 py-1 rounded-full">
+                 <Link href="/profile" className="flex items-center gap-1 text-[10px] text-purple-100 mt-1 bg-white/10 w-fit px-2 py-1 rounded-full hover:bg-white/20 transition-colors cursor-pointer">
                     <MapPin className="w-3 h-3" />
-                    الرياض، حي الملقا
-                 </div>
+                    {userCity?.name || 'اختر مدينتك'}
+                 </Link>
                </div>
                <div className="flex gap-3">
                  <Button size="icon" variant="ghost" className="bg-white/10 hover:bg-white/20 text-white rounded-xl relative" onClick={() => setLocation('/notifications')}>

@@ -7,12 +7,14 @@ interface User {
   facilityType?: string;
   commercialRegister?: string;
   taxNumber?: string;
+  cityId?: number | null;
 }
 
 interface AuthContextType {
   user: User | null;
   login: (user: User) => void;
   logout: () => void;
+  updateUser: (updates: Partial<User>) => void;
   isAuthenticated: boolean;
 }
 
@@ -34,11 +36,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("sary_user");
   };
 
+  const updateUser = (updates: Partial<User>) => {
+    if (user) {
+      const updatedUser = { ...user, ...updates };
+      setUser(updatedUser);
+      localStorage.setItem("sary_user", JSON.stringify(updatedUser));
+    }
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
       login, 
-      logout, 
+      logout,
+      updateUser,
       isAuthenticated: !!user 
     }}>
       {children}

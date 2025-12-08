@@ -1,11 +1,15 @@
+import { useState } from 'react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { User, Package, MapPin, CreditCard, Settings, LogOut, Phone, Store, Gift, TrendingUp, Shield } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { User, Package, MapPin, CreditCard, Settings, LogOut, Phone, Store, Gift, TrendingUp, Shield, ChevronLeft, CheckCircle } from 'lucide-react';
 import { useLocation, Link } from 'wouter';
 import { useAuth } from '@/lib/AuthContext';
-import { useQuery } from '@tanstack/react-query';
-import { ordersAPI, walletAPI } from '@/lib/api';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ordersAPI, walletAPI, citiesAPI } from '@/lib/api';
 
 interface Order {
   id: number;
@@ -17,9 +21,19 @@ interface Wallet {
   balance: string;
 }
 
+interface City {
+  id: number;
+  name: string;
+  region: string;
+  isActive: boolean;
+}
+
 export default function Profile() {
   const [, setLocation] = useLocation();
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, updateUser, isAuthenticated } = useAuth();
+  const [isCityDialogOpen, setIsCityDialogOpen] = useState(false);
+  const [selectedCityId, setSelectedCityId] = useState<string>(user?.cityId?.toString() || '');
+  const queryClient = useQueryClient();
 
   const { data: orders = [] } = useQuery<Order[]>({
     queryKey: ['orders', user?.id],
@@ -33,10 +47,38 @@ export default function Profile() {
     enabled: !!user?.id,
   });
 
+  const { data: cities = [] } = useQuery<City[]>({
+    queryKey: ['cities'],
+    queryFn: () => citiesAPI.getAll() as Promise<City[]>,
+  });
+
   const handleLogout = () => {
     logout();
     setLocation('/');
   };
+
+  const handleCityChange = async () => {
+    if (selectedCityId && user) {
+      try {
+        const response = await fetch(`/api/users/${user.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cityId: parseInt(selectedCityId) }),
+        });
+        if (!response.ok) {
+          throw new Error('Failed to update city');
+        }
+        updateUser({ cityId: parseInt(selectedCityId) });
+        await queryClient.refetchQueries({ queryKey: ['products'], exact: false });
+        setIsCityDialogOpen(false);
+      } catch (error) {
+        console.error('Error updating city:', error);
+        alert('حدث خطأ أثناء تحديث المدينة. حاول مرة أخرى.');
+      }
+    }
+  };
+
+  const userCity = cities.find(c => c.id === user?.cityId);
 
   const menuItems = [
     { icon: Package, label: 'طلباتي', desc: 'تتبع طلباتك الحالية والسابقة', href: '/orders' },
@@ -105,6 +147,53 @@ export default function Profile() {
       </div>
 
       <div className="px-4 -mt-14 relative z-20 space-y-3 pb-8">
+        {/* City Selection */}
+        <Card 
+          className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-none shadow-sm cursor-pointer bg-gradient-to-l from-blue-500/10 to-transparent"
+          onClick={() => setIsCityDialogOpen(true)}
+          data-testid="button-select-city"
+        >
+          <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center">
+            <MapPin className="w-5 h-5" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-bold text-sm text-foreground">مدينة التوصيل</h3>
+            <p className="text-xs text-muted-foreground">
+              {userCity ? userCity.name : 'اختر مدينتك لعرض المنتجات المتوفرة'}
+            </p>
+          </div>
+          {userCity && (
+            <CheckCircle className="w-5 h-5 text-green-500" />
+          )}
+          <ChevronLeft className="w-5 h-5 text-gray-400" />
+        </Card>
+
+        {/* City Selection Dialog */}
+        <Dialog open={isCityDialogOpen} onOpenChange={setIsCityDialogOpen}>
+          <DialogContent className="max-w-sm max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-center">اختر مدينة التوصيل</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-gray-500 text-center mb-4">
+              سيتم عرض المنتجات المتوفرة في مستودع المدينة المختارة
+            </p>
+            <RadioGroup value={selectedCityId} onValueChange={setSelectedCityId} className="space-y-2">
+              {cities.filter(c => c.isActive).map((city) => (
+                <div key={city.id} className="flex items-center space-x-2 p-3 rounded-xl border border-gray-200 hover:border-primary transition-colors cursor-pointer" onClick={() => setSelectedCityId(city.id.toString())}>
+                  <RadioGroupItem value={city.id.toString()} id={`city-${city.id}`} className="mr-3" />
+                  <Label htmlFor={`city-${city.id}`} className="flex-1 cursor-pointer">
+                    <span className="font-bold">{city.name}</span>
+                    <span className="text-xs text-gray-500 block">{city.region}</span>
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+            <Button className="w-full mt-4 rounded-xl" onClick={handleCityChange} disabled={!selectedCityId}>
+              تأكيد المدينة
+            </Button>
+          </DialogContent>
+        </Dialog>
+
         {/* Admin Link */}
         <Card 
           className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-none shadow-sm cursor-pointer bg-gradient-to-l from-primary/5 to-transparent"

@@ -148,6 +148,9 @@ Shopping & Orders:
 **December 2024**
 - Added multi-warehouse architecture with cities and warehouses management
 - Admin dashboard: Cities and Warehouses tab with real data CRUD operations
+- Customer city selection: Users can select their city in Profile, products filter by city's warehouse
+- AuthContext extended with cityId field and updateUser function
+- Home page shows only products from user's selected city warehouse
 - Added notifications system with full CRUD API endpoints
 - Added activity logs tracking system
 - Added inventory management with low-stock alerts API
