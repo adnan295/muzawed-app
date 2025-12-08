@@ -26,9 +26,9 @@ export const authAPI = {
     method: "POST",
     body: JSON.stringify(data),
   }),
-  login: (phone: string, password: string) => request("/auth/login", {
+  login: (phone: string) => request("/auth/login", {
     method: "POST",
-    body: JSON.stringify({ phone, password }),
+    body: JSON.stringify({ phone }),
   }),
 };
 

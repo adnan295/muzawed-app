@@ -36,8 +36,8 @@ export type Warehouse = typeof warehouses.$inferSelect;
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   phone: text("phone").notNull().unique(),
-  password: text("password").notNull(),
-  facilityName: text("facility_name").notNull(),
+  password: text("password"),
+  facilityName: text("facility_name"),
   facilityType: text("facility_type"),
   commercialRegister: text("commercial_register"),
   taxNumber: text("tax_number"),

@@ -44,11 +44,11 @@ export async function registerRoutes(
 
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { phone, password } = req.body;
+      const { phone } = req.body;
       
       const user = await storage.getUserByPhone(phone);
-      if (!user || user.password !== password) {
-        return res.status(401).json({ error: "رقم الجوال أو كلمة المرور غير صحيحة" });
+      if (!user) {
+        return res.status(404).json({ error: "المستخدم غير موجود" });
       }
 
       res.json({ user });
