@@ -1,11 +1,42 @@
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { User, Package, MapPin, CreditCard, Settings, LogOut, Phone, Store, Gift, TrendingUp, TrendingDown, PieChart } from 'lucide-react';
-import { useLocation } from 'wouter';
+import { User, Package, MapPin, CreditCard, Settings, LogOut, Phone, Store, Gift, TrendingUp, Shield } from 'lucide-react';
+import { useLocation, Link } from 'wouter';
+import { useAuth } from '@/lib/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { ordersAPI, walletAPI } from '@/lib/api';
+
+interface Order {
+  id: number;
+  total: string;
+}
+
+interface Wallet {
+  id: number;
+  balance: string;
+}
 
 export default function Profile() {
   const [, setLocation] = useLocation();
+  const { user, logout, isAuthenticated } = useAuth();
+
+  const { data: orders = [] } = useQuery<Order[]>({
+    queryKey: ['orders', user?.id],
+    queryFn: () => ordersAPI.getAll(user!.id) as Promise<Order[]>,
+    enabled: !!user?.id,
+  });
+
+  const { data: wallet } = useQuery<Wallet>({
+    queryKey: ['wallet', user?.id],
+    queryFn: () => walletAPI.get(user!.id) as Promise<Wallet>,
+    enabled: !!user?.id,
+  });
+
+  const handleLogout = () => {
+    logout();
+    setLocation('/');
+  };
 
   const menuItems = [
     { icon: Package, label: 'طلباتي', desc: 'تتبع طلباتك الحالية والسابقة', href: '/orders' },
@@ -17,17 +48,34 @@ export default function Profile() {
     { icon: Settings, label: 'الإعدادات', desc: 'اللغة والإشعارات', href: '/settings' },
   ];
 
+  if (!isAuthenticated) {
+    return (
+      <MobileLayout hideHeader>
+        <div className="flex flex-col items-center justify-center h-[80vh] p-4">
+          <User className="w-16 h-16 text-gray-300 mb-4" />
+          <h2 className="text-xl font-bold mb-2">مرحباً بك</h2>
+          <p className="text-gray-500 text-center mb-6">سجل دخولك للوصول لحسابك</p>
+          <Link href="/login">
+            <Button className="rounded-xl px-8">تسجيل الدخول</Button>
+          </Link>
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  const totalSpent = orders.reduce((acc: number, order: any) => acc + parseFloat(order.total || '0'), 0);
+
   return (
     <MobileLayout hideHeader>
       <div className="bg-primary pb-24 pt-10 px-4 rounded-b-[2.5rem] shadow-xl mb-4 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
         <div className="relative z-10 flex items-center gap-4 text-white mb-6">
           <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border-2 border-white/30 text-2xl font-bold">
-            س
+            {user?.facilityName?.charAt(0) || 'س'}
           </div>
           <div>
-            <h1 className="text-xl font-bold">سوبر ماركت السعادة</h1>
-            <p className="text-purple-100 opacity-90 text-sm">050XXXXXXX</p>
+            <h1 className="text-xl font-bold" data-testid="text-user-name">{user?.facilityName}</h1>
+            <p className="text-purple-100 opacity-90 text-sm">{user?.phone}</p>
             <div className="flex items-center gap-2 mt-2">
               <span className="bg-secondary text-white text-[10px] px-2 py-0.5 rounded-full font-bold">عميل مميز</span>
             </div>
@@ -37,31 +85,47 @@ export default function Profile() {
         {/* Business Dashboard Stats */}
         <div className="grid grid-cols-3 gap-2 relative z-10">
           <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 text-center border border-white/10">
-            <div className="text-xs text-purple-100 mb-1">مشتريات الشهر</div>
-            <div className="font-bold text-lg text-white">4,500</div>
+            <div className="text-xs text-purple-100 mb-1">إجمالي المشتريات</div>
+            <div className="font-bold text-lg text-white">{totalSpent.toFixed(0)}</div>
             <div className="text-[10px] text-green-300 flex items-center justify-center gap-1">
-              <TrendingUp className="w-3 h-3" /> 12%
+              <TrendingUp className="w-3 h-3" /> ر.س
             </div>
           </div>
           <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 text-center border border-white/10">
             <div className="text-xs text-purple-100 mb-1">عدد الطلبات</div>
-            <div className="font-bold text-lg text-white">8</div>
-            <div className="text-[10px] text-white/60">اخر 30 يوم</div>
+            <div className="font-bold text-lg text-white">{orders.length}</div>
+            <div className="text-[10px] text-white/60">طلب</div>
           </div>
           <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 text-center border border-white/10">
-            <div className="text-xs text-purple-100 mb-1">التوفير</div>
-            <div className="font-bold text-lg text-white">350</div>
+            <div className="text-xs text-purple-100 mb-1">رصيد المحفظة</div>
+            <div className="font-bold text-lg text-white">{wallet?.balance || '0'}</div>
             <div className="text-[10px] text-green-300">ر.س</div>
           </div>
         </div>
       </div>
 
       <div className="px-4 -mt-14 relative z-20 space-y-3 pb-8">
+        {/* Admin Link */}
+        <Card 
+          className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-none shadow-sm cursor-pointer bg-gradient-to-l from-primary/5 to-transparent"
+          onClick={() => setLocation('/admin')}
+          data-testid="link-admin"
+        >
+          <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center">
+            <Shield className="w-5 h-5" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-bold text-sm text-foreground">لوحة التحكم</h3>
+            <p className="text-xs text-muted-foreground">إدارة المنتجات والطلبات</p>
+          </div>
+        </Card>
+
         {menuItems.map((item, index) => (
           <Card 
             key={index} 
             className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-none shadow-sm cursor-pointer"
             onClick={() => item.href && setLocation(item.href)}
+            data-testid={`menu-item-${index}`}
           >
             <div className="w-10 h-10 rounded-full bg-primary/5 text-primary flex items-center justify-center">
               <item.icon className="w-5 h-5" />
@@ -73,7 +137,12 @@ export default function Profile() {
           </Card>
         ))}
 
-        <Button variant="outline" className="w-full text-destructive hover:text-destructive hover:bg-destructive/5 border-destructive/20 h-12 rounded-xl mt-6">
+        <Button 
+          variant="outline" 
+          className="w-full text-destructive hover:text-destructive hover:bg-destructive/5 border-destructive/20 h-12 rounded-xl mt-6"
+          onClick={handleLogout}
+          data-testid="button-logout"
+        >
           <LogOut className="w-4 h-4 ml-2" />
           تسجيل الخروج
         </Button>

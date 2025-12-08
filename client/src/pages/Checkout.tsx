@@ -1,40 +1,149 @@
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { CreditCard, Truck, Calendar, CheckCircle2, MapPin } from 'lucide-react';
+import { CreditCard, Calendar, CheckCircle2, MapPin, ShoppingBag } from 'lucide-react';
 import { useState } from 'react';
-import { useLocation } from 'wouter';
+import { useLocation, Link } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { cartAPI, addressesAPI, ordersAPI } from '@/lib/api';
+import { useAuth } from '@/lib/AuthContext';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
+interface CartItemWithProduct {
+  id: number;
+  userId: number;
+  productId: number;
+  quantity: number;
+  product: {
+    id: number;
+    name: string;
+    price: string;
+    image: string;
+    unit: string;
+  };
+}
+
+interface Address {
+  id: number;
+  title: string;
+  details: string;
+  isDefault: boolean;
+}
 
 export default function Checkout() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [isSuccess, setIsSuccess] = useState(false);
+  const [orderId, setOrderId] = useState<number | null>(null);
 
-  const handlePlaceOrder = () => {
-    setIsSuccess(true);
-    // Simulate delay before redirecting
-    setTimeout(() => {
-      setIsSuccess(false);
-      setLocation('/orders');
+  const { data: cartItems = [] } = useQuery<CartItemWithProduct[]>({
+    queryKey: ['cart', user?.id],
+    queryFn: () => cartAPI.get(user!.id) as Promise<CartItemWithProduct[]>,
+    enabled: !!user?.id,
+  });
+
+  const { data: addresses = [] } = useQuery<Address[]>({
+    queryKey: ['addresses', user?.id],
+    queryFn: () => addressesAPI.getAll(user!.id) as Promise<Address[]>,
+    enabled: !!user?.id,
+  });
+
+  const defaultAddress = addresses.find(a => a.isDefault) || addresses[0];
+
+  const subtotal = cartItems.reduce((acc, item) => 
+    acc + (parseFloat(item.product?.price || '0') * item.quantity), 0);
+  const tax = subtotal * 0.15;
+  const total = subtotal + tax;
+
+  const createOrderMutation = useMutation({
+    mutationFn: async () => {
+      if (!user || !defaultAddress) throw new Error('Missing data');
+      
+      const orderData = {
+        userId: user.id,
+        addressId: defaultAddress.id,
+        status: 'pending',
+        subtotal: subtotal.toFixed(2),
+        tax: tax.toFixed(2),
+        total: total.toFixed(2),
+        paymentMethod: paymentMethod === 'card' ? 'card' : paymentMethod === 'cod' ? 'cash' : 'wallet',
+      };
+
+      const orderItems = cartItems.map(item => ({
+        productId: item.productId,
+        productName: item.product.name,
+        quantity: item.quantity,
+        price: item.product.price,
+        total: (parseFloat(item.product.price) * item.quantity).toFixed(2),
+      }));
+
+      return ordersAPI.create(orderData, orderItems);
+    },
+    onSuccess: (data: any) => {
+      setOrderId(data.id);
+      setIsSuccess(true);
+      queryClient.invalidateQueries({ queryKey: ['cart'] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      
+      setTimeout(() => {
+        setIsSuccess(false);
+        setLocation('/orders');
+        toast({
+          title: "تم استلام طلبك بنجاح",
+          description: `رقم الطلب #${data.id}`,
+          className: "bg-green-600 text-white border-none",
+        });
+      }, 2000);
+    },
+    onError: (error: any) => {
       toast({
-        title: "تم استلام طلبك بنجاح",
-        description: "رقم الطلب #12345",
-        className: "bg-green-600 text-white border-none",
+        title: "خطأ",
+        description: error.message || "حدث خطأ أثناء إنشاء الطلب",
+        variant: "destructive",
       });
-    }, 2000);
-  };
+    },
+  });
+
+  if (!isAuthenticated) {
+    return (
+      <MobileLayout hideHeader>
+        <div className="flex flex-col items-center justify-center h-[80vh] p-4">
+          <ShoppingBag className="w-16 h-16 text-gray-300 mb-4" />
+          <h2 className="text-xl font-bold mb-2">سجل دخولك أولاً</h2>
+          <p className="text-gray-500 text-center mb-6">يجب تسجيل الدخول لإتمام الطلب</p>
+          <Link href="/login">
+            <Button className="rounded-xl px-8">تسجيل الدخول</Button>
+          </Link>
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  if (cartItems.length === 0) {
+    return (
+      <MobileLayout hideHeader>
+        <div className="flex flex-col items-center justify-center h-[80vh] p-4">
+          <ShoppingBag className="w-16 h-16 text-gray-300 mb-4" />
+          <h2 className="text-xl font-bold mb-2">السلة فارغة</h2>
+          <p className="text-gray-500 text-center mb-6">أضف منتجات للسلة أولاً</p>
+          <Link href="/">
+            <Button className="rounded-xl px-8">تسوق الآن</Button>
+          </Link>
+        </div>
+      </MobileLayout>
+    );
+  }
 
   return (
     <MobileLayout hideHeader>
@@ -52,15 +161,26 @@ export default function Checkout() {
               <MapPin className="w-4 h-4 text-primary" />
               عنوان التوصيل
             </h3>
-            <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 mb-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="font-bold text-sm">سوبر ماركت السعادة</p>
-                  <p className="text-xs text-muted-foreground mt-1">الرياض، حي الملقا، شارع أنس بن مالك</p>
+            {defaultAddress ? (
+              <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 mb-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-bold text-sm" data-testid="text-address-title">{defaultAddress.title}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{defaultAddress.details}</p>
+                  </div>
+                  <Link href="/addresses">
+                    <Button variant="link" className="text-primary text-xs h-auto p-0">تغيير</Button>
+                  </Link>
                 </div>
-                <Button variant="link" className="text-primary text-xs h-auto p-0">تغيير</Button>
               </div>
-            </div>
+            ) : (
+              <div className="bg-yellow-50 p-3 rounded-xl border border-yellow-200">
+                <p className="text-sm text-yellow-800">لم تضف عنوان توصيل بعد</p>
+                <Link href="/addresses">
+                  <Button size="sm" className="mt-2 rounded-lg">إضافة عنوان</Button>
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Delivery Time */}
@@ -105,8 +225,8 @@ export default function Checkout() {
                 <Label htmlFor="card" className="flex-1 cursor-pointer flex items-center justify-between mr-2">
                   <span>بطاقة مدى / ائتمانية</span>
                   <div className="flex gap-1">
-                    <div className="w-8 h-5 bg-gray-200 rounded"></div>
-                    <div className="w-8 h-5 bg-gray-200 rounded"></div>
+                    <div className="w-8 h-5 bg-blue-100 rounded text-[8px] flex items-center justify-center font-bold text-blue-600">مدى</div>
+                    <div className="w-8 h-5 bg-orange-100 rounded text-[8px] flex items-center justify-center font-bold text-orange-600">Visa</div>
                   </div>
                 </Label>
               </div>
@@ -115,10 +235,23 @@ export default function Checkout() {
                 <Label htmlFor="cod" className="flex-1 cursor-pointer mr-2">الدفع عند الاستلام (نقدي)</Label>
               </div>
               <div className="flex items-center space-x-2 space-x-reverse rounded-xl border p-3 hover:bg-accent cursor-pointer transition-colors">
-                <RadioGroupItem value="transfer" id="transfer" />
-                <Label htmlFor="transfer" className="flex-1 cursor-pointer mr-2">تحويل بنكي</Label>
+                <RadioGroupItem value="wallet" id="wallet" />
+                <Label htmlFor="wallet" className="flex-1 cursor-pointer mr-2">المحفظة</Label>
               </div>
             </RadioGroup>
+          </div>
+
+          {/* Order Items Summary */}
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+            <h3 className="font-bold text-sm mb-3">المنتجات ({cartItems.length})</h3>
+            <div className="space-y-2">
+              {cartItems.map(item => (
+                <div key={item.id} className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">{item.product?.name} × {item.quantity}</span>
+                  <span className="font-bold">{(parseFloat(item.product?.price || '0') * item.quantity).toFixed(2)} ر.س</span>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Summary */}
@@ -126,11 +259,11 @@ export default function Checkout() {
             <h3 className="font-bold text-sm mb-2">ملخص الدفع</h3>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">المجموع</span>
-              <span>625.00 ر.س</span>
+              <span>{subtotal.toFixed(2)} ر.س</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">الضريبة (15%)</span>
-              <span>93.75 ر.س</span>
+              <span>{tax.toFixed(2)} ر.س</span>
             </div>
             <div className="flex justify-between text-sm text-green-600">
               <span className="text-muted-foreground">التوصيل</span>
@@ -139,7 +272,7 @@ export default function Checkout() {
             <Separator />
             <div className="flex justify-between text-lg font-bold">
               <span>الإجمالي</span>
-              <span className="text-primary">718.75 ر.س</span>
+              <span className="text-primary" data-testid="text-total">{total.toFixed(2)} ر.س</span>
             </div>
           </div>
         </div>
@@ -148,9 +281,11 @@ export default function Checkout() {
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 z-20 max-w-md mx-auto">
           <Button 
             className="w-full h-12 text-lg font-bold rounded-xl shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90"
-            onClick={handlePlaceOrder}
+            onClick={() => createOrderMutation.mutate()}
+            disabled={!defaultAddress || createOrderMutation.isPending}
+            data-testid="button-confirm-order"
           >
-            تأكيد الطلب (718.75 ر.س)
+            {createOrderMutation.isPending ? 'جاري الإرسال...' : `تأكيد الطلب (${total.toFixed(2)} ر.س)`}
           </Button>
         </div>
 
@@ -163,7 +298,7 @@ export default function Checkout() {
               </div>
               <DialogTitle className="text-xl font-bold text-foreground">تم الطلب بنجاح!</DialogTitle>
               <DialogDescription className="text-center text-muted-foreground">
-                شكراً لثقتكم. رقم طلبك هو #12345. يمكنك تتبع حالة الطلب من صفحة طلباتي.
+                شكراً لثقتكم. رقم طلبك هو #{orderId}. يمكنك تتبع حالة الطلب من صفحة طلباتي.
               </DialogDescription>
             </div>
           </DialogContent>
