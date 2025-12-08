@@ -22,11 +22,13 @@ import FacilityDetails from "@/pages/FacilityDetails";
 import Settings from "@/pages/Settings";
 import Login from "@/pages/Login";
 import CategoryProducts from "@/pages/CategoryProducts";
+import Onboarding from "@/pages/Onboarding";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/onboarding" component={Onboarding} />
       <Route path="/login" component={Login} />
       <Route path="/categories" component={Categories} />
       <Route path="/category/:id" component={CategoryProducts} />

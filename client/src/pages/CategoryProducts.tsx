@@ -2,9 +2,9 @@ import { MobileLayout } from '@/components/layout/MobileLayout';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { PRODUCTS, CATEGORIES } from '@/lib/data';
 import { useRoute } from 'wouter';
-import { Search, SlidersHorizontal, ChevronRight } from 'lucide-react';
+import { Search, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { FilterSheet } from '@/components/ui/FilterSheet';
 
 export default function CategoryProducts() {
   const [, params] = useRoute('/category/:id');
@@ -36,13 +36,13 @@ export default function CategoryProducts() {
         </div>
         
         {/* Subcategories / Filters */}
-        <div className="bg-white px-4 pb-4 mb-2 border-b border-gray-100">
-           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+        <div className="bg-white px-4 pb-4 mb-2 border-b border-gray-100 flex items-center justify-between gap-3">
+           <div className="flex-1 flex items-center gap-2 overflow-x-auto no-scrollbar">
             <Button size="sm" className="rounded-full text-xs h-8 bg-primary text-white hover:bg-primary/90 min-w-fit px-4">الكل</Button>
             <Button size="sm" variant="outline" className="rounded-full text-xs h-8 border-gray-200 min-w-fit px-4">الأكثر مبيعاً</Button>
             <Button size="sm" variant="outline" className="rounded-full text-xs h-8 border-gray-200 min-w-fit px-4">عروض خاصة</Button>
-            <Button size="sm" variant="outline" className="rounded-full text-xs h-8 border-gray-200 min-w-fit px-4">أصناف جديدة</Button>
           </div>
+          <FilterSheet />
         </div>
 
         <div className="p-4 pt-2">
