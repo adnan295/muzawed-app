@@ -6,7 +6,8 @@ import {
   insertPaymentCardSchema, insertWalletTransactionSchema, insertPromotionSchema,
   insertSupplierSchema, insertReturnSchema, insertShipmentSchema, insertCustomerSegmentSchema,
   insertReportSchema, insertStaffSchema, insertSupportTicketSchema, insertCouponSchema,
-  insertWarehouseSchema, insertNotificationSchema, insertActivityLogSchema
+  insertWarehouseSchema, insertNotificationSchema, insertActivityLogSchema,
+  insertCitySchema, insertProductInventorySchema
 } from "@shared/schema";
 import { fromError } from "zod-validation-error";
 
@@ -1009,6 +1010,129 @@ export async function registerRoutes(
       const product = await storage.updateProductStock(parseInt(req.params.id), quantity);
       if (!product) return res.status(404).json({ error: "المنتج غير موجود" });
       res.json(product);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== Cities Routes ====================
+
+  app.get("/api/cities", async (req, res) => {
+    try {
+      const cities = await storage.getCities();
+      res.json(cities);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/cities/:id", async (req, res) => {
+    try {
+      const city = await storage.getCity(parseInt(req.params.id));
+      if (!city) return res.status(404).json({ error: "المدينة غير موجودة" });
+      res.json(city);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/cities", async (req, res) => {
+    try {
+      const validData = insertCitySchema.parse(req.body);
+      const city = await storage.createCity(validData);
+      res.status(201).json(city);
+    } catch (error: any) {
+      if (error.name === "ZodError") return res.status(400).json({ error: fromError(error).toString() });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/cities/:id", async (req, res) => {
+    try {
+      const city = await storage.updateCity(parseInt(req.params.id), req.body);
+      if (!city) return res.status(404).json({ error: "المدينة غير موجودة" });
+      res.json(city);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/cities/:id", async (req, res) => {
+    try {
+      await storage.deleteCity(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== Warehouses with Cities Routes ====================
+
+  app.get("/api/warehouses/by-city/:cityId", async (req, res) => {
+    try {
+      const warehouse = await storage.getWarehouseByCity(parseInt(req.params.cityId));
+      if (!warehouse) return res.status(404).json({ error: "لا يوجد مستودع لهذه المدينة" });
+      res.json(warehouse);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== Product Inventory Routes ====================
+
+  app.get("/api/product-inventory/warehouse/:warehouseId", async (req, res) => {
+    try {
+      const inventory = await storage.getProductInventory(parseInt(req.params.warehouseId));
+      res.json(inventory);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/product-inventory/product/:productId", async (req, res) => {
+    try {
+      const inventory = await storage.getProductInventoryByProduct(parseInt(req.params.productId));
+      res.json(inventory);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/product-inventory", async (req, res) => {
+    try {
+      const validData = insertProductInventorySchema.parse(req.body);
+      const inventory = await storage.createProductInventory(validData);
+      res.status(201).json(inventory);
+    } catch (error: any) {
+      if (error.name === "ZodError") return res.status(400).json({ error: fromError(error).toString() });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/product-inventory/:id", async (req, res) => {
+    try {
+      const inventory = await storage.updateProductInventory(parseInt(req.params.id), req.body);
+      if (!inventory) return res.status(404).json({ error: "سجل المخزون غير موجود" });
+      res.json(inventory);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/product-inventory/:id", async (req, res) => {
+    try {
+      await storage.deleteProductInventory(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get products by city (for customer filtering)
+  app.get("/api/products/by-city/:cityId", async (req, res) => {
+    try {
+      const products = await storage.getProductsByCity(parseInt(req.params.cityId));
+      res.json(products);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

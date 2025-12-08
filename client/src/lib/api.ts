@@ -267,6 +267,7 @@ export const couponsAPI = {
 export const warehousesAPI = {
   getAll: () => request("/warehouses"),
   getById: (id: number) => request(`/warehouses/${id}`),
+  getByCity: (cityId: number) => request(`/warehouses/by-city/${cityId}`),
   create: (data: any) => request("/warehouses", {
     method: "POST",
     body: JSON.stringify(data),
@@ -275,6 +276,48 @@ export const warehousesAPI = {
     method: "PUT",
     body: JSON.stringify(data),
   }),
+  delete: (id: number) => request(`/warehouses/${id}`, {
+    method: "DELETE",
+  }),
+};
+
+// Cities API
+export const citiesAPI = {
+  getAll: () => request("/cities"),
+  getById: (id: number) => request(`/cities/${id}`),
+  create: (data: any) => request("/cities", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+  update: (id: number, data: any) => request(`/cities/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }),
+  delete: (id: number) => request(`/cities/${id}`, {
+    method: "DELETE",
+  }),
+};
+
+// Product Inventory API (per warehouse)
+export const productInventoryAPI = {
+  getByWarehouse: (warehouseId: number) => request(`/product-inventory/warehouse/${warehouseId}`),
+  getByProduct: (productId: number) => request(`/product-inventory/product/${productId}`),
+  create: (data: any) => request("/product-inventory", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+  update: (id: number, data: any) => request(`/product-inventory/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }),
+  delete: (id: number) => request(`/product-inventory/${id}`, {
+    method: "DELETE",
+  }),
+};
+
+// Products by City API (for customer filtering)
+export const productsByCityAPI = {
+  getByCity: (cityId: number) => request(`/products/by-city/${cityId}`),
 };
 
 // Notifications API
