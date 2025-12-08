@@ -1,7 +1,7 @@
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { User, Package, MapPin, CreditCard, Settings, LogOut, Phone, Store } from 'lucide-react';
+import { User, Package, MapPin, CreditCard, Settings, LogOut, Phone, Store, Gift } from 'lucide-react';
 import { useLocation } from 'wouter';
 
 export default function Profile() {
@@ -11,6 +11,7 @@ export default function Profile() {
     { icon: Package, label: 'طلباتي', desc: 'تتبع طلباتك الحالية والسابقة', href: '/orders' },
     { icon: MapPin, label: 'عناويني', desc: 'إدارة مواقع التوصيل', href: '/addresses' },
     { icon: CreditCard, label: 'المحفظة والمدفوعات', desc: 'طرق الدفع والرصيد', href: '/wallet' },
+    { icon: Gift, label: 'دعوة صديق', desc: 'اكسب رصيد مجاني بدعوة أصدقائك', href: '/referral' },
     { icon: Store, label: 'تفاصيل المنشأة', desc: 'معلومات السجل التجاري والضريبة', href: '/facility' },
     { icon: Phone, label: 'المساعدة والدعم', desc: 'تواصل مع خدمة العملاء', href: '/support' },
     { icon: Settings, label: 'الإعدادات', desc: 'اللغة والإشعارات', href: '/settings' },

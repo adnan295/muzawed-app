@@ -2,6 +2,7 @@ import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ArrowUpRight, ArrowDownLeft, Wallet as WalletIcon, CreditCard, History } from 'lucide-react';
+import { Link } from 'wouter';
 
 export default function Wallet() {
   const transactions = [
@@ -29,10 +30,12 @@ export default function Wallet() {
                  <ArrowDownLeft className="w-4 h-4 ml-2" />
                  شحن
                </Button>
-               <Button variant="outline" className="bg-primary/50 text-white border-white/20 hover:bg-primary/70 font-bold w-32 rounded-xl backdrop-blur-sm">
-                 <CreditCard className="w-4 h-4 ml-2" />
-                 البطاقات
-               </Button>
+               <Link href="/cards">
+                 <Button variant="outline" className="bg-primary/50 text-white border-white/20 hover:bg-primary/70 font-bold w-32 rounded-xl backdrop-blur-sm">
+                   <CreditCard className="w-4 h-4 ml-2" />
+                   البطاقات
+                 </Button>
+               </Link>
              </div>
           </div>
         </div>
