@@ -996,72 +996,222 @@ export default function Admin() {
 
           {/* Reports Tab */}
           <TabsContent value="reports">
-            <Card className="p-6 border-none shadow-lg rounded-2xl">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="font-bold text-xl flex items-center gap-2"><FileText className="w-5 h-5 text-blue-500" />التقارير والتصدير</h3>
-                  <p className="text-gray-500 text-sm mt-1">إنشاء وتصدير التقارير</p>
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                {[
-                  { title: 'تقرير المبيعات', icon: DollarSign, color: 'from-green-500 to-emerald-600' },
-                  { title: 'تقرير المخزون', icon: Package, color: 'from-blue-500 to-cyan-600' },
-                  { title: 'تقرير العملاء', icon: Users, color: 'from-purple-500 to-violet-600' },
-                  { title: 'تقرير الطلبات', icon: ClipboardList, color: 'from-orange-500 to-amber-600' },
-                ].map((report, index) => (
-                  <div key={index} className="bg-gray-50 rounded-2xl p-5 border border-gray-100 hover:shadow-md transition-all cursor-pointer group">
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${report.color} flex items-center justify-center text-white mb-3 group-hover:scale-110 transition-transform`}>
-                      <report.icon className="w-6 h-6" />
-                    </div>
-                    <h4 className="font-bold">{report.title}</h4>
-                    <div className="flex gap-2 mt-3">
-                      <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1"><File className="w-3 h-3" />PDF</Button>
-                      <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1"><FileSpreadsheet className="w-3 h-3" />Excel</Button>
-                    </div>
+            <div className="space-y-6">
+              <Card className="p-6 border-none shadow-lg rounded-2xl">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="font-bold text-xl flex items-center gap-2"><FileText className="w-5 h-5 text-blue-500" />التقارير والتصدير</h3>
+                    <p className="text-gray-500 text-sm mt-1">إنشاء وتصدير التقارير المتقدمة</p>
                   </div>
-                ))}
+                  <div className="flex gap-2">
+                    <Button variant="outline" className="rounded-xl gap-2"><RefreshCw className="w-4 h-4" />تحديث البيانات</Button>
+                    <Button className="rounded-xl gap-2"><Download className="w-4 h-4" />تصدير الكل</Button>
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                  {[
+                    { title: 'تقرير المبيعات', icon: DollarSign, color: 'from-green-500 to-emerald-600', value: '٢,٤٥٠,٠٠٠', change: '+15%' },
+                    { title: 'تقرير المخزون', icon: Package, color: 'from-blue-500 to-cyan-600', value: '٣,٥٤٢ منتج', change: '+8%' },
+                    { title: 'تقرير العملاء', icon: Users, color: 'from-purple-500 to-violet-600', value: '٩,٨٧٦ عميل', change: '+22%' },
+                    { title: 'تقرير الطلبات', icon: ClipboardList, color: 'from-orange-500 to-amber-600', value: '١٢,٣٤٥ طلب', change: '+18%' },
+                  ].map((report, index) => (
+                    <div key={index} className="bg-gray-50 rounded-2xl p-5 border border-gray-100 hover:shadow-md transition-all cursor-pointer group">
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${report.color} flex items-center justify-center text-white mb-3 group-hover:scale-110 transition-transform`}>
+                        <report.icon className="w-6 h-6" />
+                      </div>
+                      <h4 className="font-bold">{report.title}</h4>
+                      <p className="text-2xl font-bold text-gray-900 mt-2">{report.value}</p>
+                      <p className="text-sm text-green-600 flex items-center gap-1 mt-1"><TrendingUp className="w-3 h-3" />{report.change} من الشهر السابق</p>
+                      <div className="flex gap-2 mt-3">
+                        <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1" data-testid={`button-export-pdf-${index}`}><File className="w-3 h-3" />PDF</Button>
+                        <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1" data-testid={`button-export-excel-${index}`}><FileSpreadsheet className="w-3 h-3" />Excel</Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              <div className="grid lg:grid-cols-2 gap-6">
+                <Card className="p-6 border-none shadow-lg rounded-2xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-bold flex items-center gap-2"><BarChart3 className="w-5 h-5 text-blue-500" />تحليل المبيعات الشهري</h4>
+                    <Select defaultValue="2024">
+                      <SelectTrigger className="w-32 rounded-xl"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="2024">2024</SelectItem>
+                        <SelectItem value="2023">2023</SelectItem>
+                        <SelectItem value="2022">2022</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={salesData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis dataKey="name" stroke="#888" fontSize={12} />
+                        <YAxis yAxisId="left" stroke="#888" fontSize={12} />
+                        <YAxis yAxisId="right" orientation="right" stroke="#888" fontSize={12} />
+                        <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                        <Legend />
+                        <Bar yAxisId="left" dataKey="sales" name="المبيعات" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                        <Line yAxisId="right" type="monotone" dataKey="orders" name="الطلبات" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981' }} />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
+
+                <Card className="p-6 border-none shadow-lg rounded-2xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-bold flex items-center gap-2"><PieChart className="w-5 h-5 text-purple-500" />توزيع المبيعات حسب الفئة</h4>
+                    <Button variant="outline" size="sm" className="rounded-xl gap-1"><Download className="w-3 h-3" />تصدير</Button>
+                  </div>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartsPie>
+                        <Pie data={categoryPieData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={5} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                          {categoryPieData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </RechartsPie>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
               </div>
 
-              <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
-                <h4 className="font-bold mb-4">تقرير مخصص</h4>
-                <div className="grid md:grid-cols-4 gap-4">
+              <div className="grid lg:grid-cols-2 gap-6">
+                <Card className="p-6 border-none shadow-lg rounded-2xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-bold flex items-center gap-2"><Activity className="w-5 h-5 text-green-500" />الأداء اليومي</h4>
+                    <Badge className="bg-green-100 text-green-700">مباشر</Badge>
+                  </div>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={hourlyData}>
+                        <defs>
+                          <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis dataKey="hour" stroke="#888" fontSize={10} />
+                        <YAxis stroke="#888" fontSize={10} />
+                        <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                        <Area type="monotone" dataKey="revenue" name="الإيرادات" stroke="#10b981" fillOpacity={1} fill="url(#colorRevenue)" strokeWidth={2} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
+
+                <Card className="p-6 border-none shadow-lg rounded-2xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-bold flex items-center gap-2"><Target className="w-5 h-5 text-orange-500" />قمع التحويل</h4>
+                    <Button variant="outline" size="sm" className="rounded-xl gap-1"><Eye className="w-3 h-3" />التفاصيل</Button>
+                  </div>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <FunnelChart>
+                        <Tooltip />
+                        <Funnel dataKey="value" data={funnelData} isAnimationActive>
+                          <LabelList position="center" fill="#fff" stroke="none" dataKey="name" />
+                        </Funnel>
+                      </FunnelChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
+              </div>
+
+              <Card className="p-6 border-none shadow-lg rounded-2xl">
+                <h4 className="font-bold mb-4 flex items-center gap-2"><Settings className="w-5 h-5 text-gray-500" />تقرير مخصص</h4>
+                <div className="grid md:grid-cols-5 gap-4">
                   <div>
                     <Label>نوع التقرير</Label>
                     <Select>
-                      <SelectTrigger className="rounded-xl mt-1"><SelectValue placeholder="اختر" /></SelectTrigger>
+                      <SelectTrigger className="rounded-xl mt-1" data-testid="select-report-type"><SelectValue placeholder="اختر" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="sales">المبيعات</SelectItem>
                         <SelectItem value="inventory">المخزون</SelectItem>
                         <SelectItem value="customers">العملاء</SelectItem>
                         <SelectItem value="financial">المالي</SelectItem>
+                        <SelectItem value="orders">الطلبات</SelectItem>
+                        <SelectItem value="products">المنتجات</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
                     <Label>من تاريخ</Label>
-                    <Input type="date" className="rounded-xl mt-1" />
+                    <Input type="date" className="rounded-xl mt-1" data-testid="input-date-from" />
                   </div>
                   <div>
                     <Label>إلى تاريخ</Label>
-                    <Input type="date" className="rounded-xl mt-1" />
+                    <Input type="date" className="rounded-xl mt-1" data-testid="input-date-to" />
+                  </div>
+                  <div>
+                    <Label>التجميع</Label>
+                    <Select>
+                      <SelectTrigger className="rounded-xl mt-1" data-testid="select-grouping"><SelectValue placeholder="اختر" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="daily">يومي</SelectItem>
+                        <SelectItem value="weekly">أسبوعي</SelectItem>
+                        <SelectItem value="monthly">شهري</SelectItem>
+                        <SelectItem value="yearly">سنوي</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <Label>الصيغة</Label>
                     <Select>
-                      <SelectTrigger className="rounded-xl mt-1"><SelectValue placeholder="اختر" /></SelectTrigger>
+                      <SelectTrigger className="rounded-xl mt-1" data-testid="select-format"><SelectValue placeholder="اختر" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="pdf">PDF</SelectItem>
-                        <SelectItem value="excel">Excel</SelectItem>
+                        <SelectItem value="excel">Excel (.xlsx)</SelectItem>
                         <SelectItem value="csv">CSV</SelectItem>
+                        <SelectItem value="json">JSON</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
-                <Button className="mt-4 rounded-xl gap-2"><Download className="w-4 h-4" />إنشاء التقرير</Button>
-              </div>
-            </Card>
+                <div className="flex gap-3 mt-4">
+                  <Button className="rounded-xl gap-2" data-testid="button-generate-report"><Download className="w-4 h-4" />إنشاء التقرير</Button>
+                  <Button variant="outline" className="rounded-xl gap-2" data-testid="button-schedule-report"><Calendar className="w-4 h-4" />جدولة التقرير</Button>
+                  <Button variant="outline" className="rounded-xl gap-2" data-testid="button-email-report"><Mail className="w-4 h-4" />إرسال بالبريد</Button>
+                </div>
+              </Card>
+
+              <Card className="p-6 border-none shadow-lg rounded-2xl">
+                <h4 className="font-bold mb-4 flex items-center gap-2"><ClipboardList className="w-5 h-5 text-blue-500" />التقارير المجدولة</h4>
+                <div className="space-y-3">
+                  {[
+                    { name: 'تقرير المبيعات اليومي', schedule: 'يومياً - 9:00 ص', recipients: 'ahmed@sary.sa, sara@sary.sa', status: 'active' },
+                    { name: 'تقرير المخزون الأسبوعي', schedule: 'أسبوعياً - الأحد', recipients: 'warehouse@sary.sa', status: 'active' },
+                    { name: 'تقرير الأداء الشهري', schedule: 'شهرياً - اليوم الأول', recipients: 'management@sary.sa', status: 'paused' },
+                  ].map((report, index) => (
+                    <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                          <FileText className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-bold">{report.name}</p>
+                          <p className="text-sm text-gray-500">{report.schedule} • {report.recipients}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Badge className={report.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>
+                          {report.status === 'active' ? 'نشط' : 'متوقف'}
+                        </Badge>
+                        <Button variant="outline" size="sm" className="rounded-lg"><Edit className="w-4 h-4" /></Button>
+                        <Button variant="outline" size="sm" className="rounded-lg text-red-500 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* Staff Management Tab */}
