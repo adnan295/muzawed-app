@@ -1562,7 +1562,13 @@ export async function registerRoutes(
 
   app.post("/api/banners", async (req, res) => {
     try {
-      const validData = insertBannerSchema.parse(req.body);
+      // Convert date strings to Date objects or null
+      const data = {
+        ...req.body,
+        startDate: req.body.startDate ? new Date(req.body.startDate) : null,
+        endDate: req.body.endDate ? new Date(req.body.endDate) : null,
+      };
+      const validData = insertBannerSchema.parse(data);
       const banner = await storage.createBanner(validData);
       res.status(201).json(banner);
     } catch (error: any) {
@@ -1573,7 +1579,13 @@ export async function registerRoutes(
 
   app.put("/api/banners/:id", async (req, res) => {
     try {
-      const banner = await storage.updateBanner(parseInt(req.params.id), req.body);
+      // Convert date strings to Date objects or null
+      const data = {
+        ...req.body,
+        startDate: req.body.startDate ? new Date(req.body.startDate) : null,
+        endDate: req.body.endDate ? new Date(req.body.endDate) : null,
+      };
+      const banner = await storage.updateBanner(parseInt(req.params.id), data);
       if (!banner) return res.status(404).json({ error: "الشريحة غير موجودة" });
       res.json(banner);
     } catch (error: any) {
