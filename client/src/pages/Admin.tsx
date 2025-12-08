@@ -198,6 +198,7 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
+  const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [isAddStaffOpen, setIsAddStaffOpen] = useState(false);
   const [isAddCouponOpen, setIsAddCouponOpen] = useState(false);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
@@ -401,10 +402,30 @@ export default function Admin() {
     { title: 'منتجات منخفضة المخزون', value: dashboardStats?.lowStockProducts?.toString() || lowStockProductsData.length.toString(), suffix: 'منتج', icon: AlertTriangle, color: 'from-orange-500 to-orange-600', change: lowStockProductsData.length > 10 ? 'تنبيه!' : 'طبيعي', changeType: lowStockProductsData.length > 10 ? 'down' : 'up' },
   ];
 
+  const handleEditProduct = (product: Product) => {
+    setEditingProductId(product.id);
+    setNewProduct({
+      name: product.name,
+      categoryId: product.categoryId.toString(),
+      brandId: product.brandId?.toString() || '',
+      price: product.price,
+      originalPrice: product.originalPrice || '',
+      image: product.image,
+      minOrder: product.minOrder.toString(),
+      unit: product.unit,
+      stock: product.stock.toString(),
+    });
+    setIsAddProductOpen(true);
+  };
+
   const handleAddProduct = async () => {
     try {
-      const response = await fetch('/api/products', {
-        method: 'POST',
+      const isEditing = editingProductId !== null;
+      const url = isEditing ? `/api/products/${editingProductId}` : '/api/products';
+      const method = isEditing ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: newProduct.name,
@@ -421,8 +442,9 @@ export default function Admin() {
       });
 
       if (response.ok) {
-        toast({ title: 'تم إضافة المنتج بنجاح', className: 'bg-green-600 text-white' });
+        toast({ title: isEditing ? 'تم تحديث المنتج بنجاح' : 'تم إضافة المنتج بنجاح', className: 'bg-green-600 text-white' });
         setIsAddProductOpen(false);
+        setEditingProductId(null);
         setNewProduct({ name: '', categoryId: '', brandId: '', price: '', originalPrice: '', image: '', minOrder: '1', unit: 'كرتون', stock: '100' });
         setProductInventory([]);
         refetchProducts();
@@ -2317,12 +2339,18 @@ export default function Admin() {
                   <Button variant="outline" className="rounded-xl gap-2" onClick={() => window.print()}>
                     <Printer className="w-4 h-4" />طباعة
                   </Button>
-                  <Dialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
+                  <Dialog open={isAddProductOpen} onOpenChange={(open) => {
+                    setIsAddProductOpen(open);
+                    if (!open) {
+                      setEditingProductId(null);
+                      setNewProduct({ name: '', categoryId: '', brandId: '', price: '', originalPrice: '', image: '', minOrder: '1', unit: 'كرتون', stock: '100' });
+                    }
+                  }}>
                   <DialogTrigger asChild>
                     <Button className="rounded-xl gap-2" data-testid="button-add-product"><Plus className="w-4 h-4" />إضافة</Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-lg">
-                    <DialogHeader><DialogTitle>إضافة منتج جديد</DialogTitle></DialogHeader>
+                    <DialogHeader><DialogTitle>{editingProductId ? 'تعديل المنتج' : 'إضافة منتج جديد'}</DialogTitle></DialogHeader>
                     <div className="space-y-4 mt-4">
                       <div>
                         <Label>اسم المنتج *</Label>
@@ -2440,7 +2468,7 @@ export default function Admin() {
                       </div>
                       
                       <Button className="w-full rounded-xl" onClick={handleAddProduct} disabled={!newProduct.name || !newProduct.categoryId || !newProduct.price} data-testid="button-submit-product">
-                        <Plus className="w-4 h-4 ml-2" />إضافة المنتج
+                        {editingProductId ? <><Edit className="w-4 h-4 ml-2" />حفظ التعديلات</> : <><Plus className="w-4 h-4 ml-2" />إضافة المنتج</>}
                       </Button>
                     </div>
                   </DialogContent>
@@ -2752,7 +2780,8 @@ export default function Admin() {
                               <Button size="sm" variant="ghost" className="rounded-lg text-blue-600 hover:bg-blue-50" title="عرض التفاصيل" onClick={() => setSelectedProduct(product)}>
                                 <Eye className="w-4 h-4" />
                               </Button>
-                              <Button size="sm" variant="ghost" className="rounded-lg" title="تعديل" data-testid={`edit-product-${product.id}`}>
+                              <Button size="sm" variant="ghost" className="rounded-lg" title="تعديل" data-testid={`edit-product-${product.id}`}
+                                onClick={() => handleEditProduct(product)}>
                                 <Edit className="w-4 h-4" />
                               </Button>
                               <Button size="sm" variant="ghost" className="rounded-lg text-purple-600 hover:bg-purple-50" title="نسخ">
