@@ -125,7 +125,16 @@ Shopping & Orders:
 - class-variance-authority and clsx for className management
 
 **Notable Absence**
-- No payment gateway integration currently implemented (Stripe dependency present but unused)
+- Payment gateway integration intentionally not implemented per user preference - uses wallet/cash on delivery only
 - No email service integration (nodemailer present but unused)
 - No file upload handling beyond multer dependency
 - No WebSocket implementation despite server infrastructure
+
+## Recent Updates
+
+**December 2024**
+- Added notifications system with full CRUD API endpoints
+- Added activity logs tracking system
+- Added inventory management with low-stock alerts API
+- Enhanced reports tab with advanced charts (composed charts, pie charts, funnel charts, area charts)
+- Added scheduled reports management UI
