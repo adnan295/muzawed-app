@@ -846,6 +846,26 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/segments/:id", async (req, res) => {
+    try {
+      const segment = await storage.getCustomerSegment(parseInt(req.params.id));
+      if (!segment) return res.status(404).json({ error: "الشريحة غير موجودة" });
+      await storage.deleteCustomerSegment(parseInt(req.params.id));
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/segments/recalculate", async (req, res) => {
+    try {
+      await storage.recalculateSegmentCounts();
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ==================== Reports Routes ====================
   
   app.get("/api/reports", async (req, res) => {
