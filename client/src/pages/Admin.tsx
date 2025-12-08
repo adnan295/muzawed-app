@@ -1802,12 +1802,83 @@ export default function Admin() {
             </Card>
           </TabsContent>
 
-          {/* Products Tab */}
+          {/* Products Tab - World Class */}
           <TabsContent value="products">
+            {/* Product Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
+              <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-blue-100 text-xs">إجمالي المنتجات</p>
+                    <p className="text-2xl font-bold">{products.length}</p>
+                  </div>
+                  <Package className="w-8 h-8 text-blue-200" />
+                </div>
+              </Card>
+              <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-green-500 to-green-600 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-green-100 text-xs">مخزون متوفر</p>
+                    <p className="text-2xl font-bold">{products.filter(p => p.stock >= 30).length}</p>
+                  </div>
+                  <PackageCheck className="w-8 h-8 text-green-200" />
+                </div>
+              </Card>
+              <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-red-500 to-red-600 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-red-100 text-xs">مخزون منخفض</p>
+                    <p className="text-2xl font-bold">{products.filter(p => p.stock < 30).length}</p>
+                  </div>
+                  <AlertTriangle className="w-8 h-8 text-red-200" />
+                </div>
+              </Card>
+              <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-purple-100 text-xs">الأقسام</p>
+                    <p className="text-2xl font-bold">{categories.length}</p>
+                  </div>
+                  <Layers className="w-8 h-8 text-purple-200" />
+                </div>
+              </Card>
+              <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-orange-100 text-xs">العلامات التجارية</p>
+                    <p className="text-2xl font-bold">{brands.length}</p>
+                  </div>
+                  <Award className="w-8 h-8 text-orange-200" />
+                </div>
+              </Card>
+              <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-emerald-100 text-xs">قيمة المخزون</p>
+                    <p className="text-lg font-bold">{products.reduce((sum, p) => sum + (parseFloat(p.price) * p.stock), 0).toLocaleString('ar-SA').slice(0, 8)} ر.س</p>
+                  </div>
+                  <Coins className="w-8 h-8 text-emerald-200" />
+                </div>
+              </Card>
+            </div>
+
             <Card className="p-6 border-none shadow-lg rounded-2xl">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-xl">إدارة المنتجات ({products.length})</h3>
-                <Dialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                <h3 className="font-bold text-xl flex items-center gap-2">
+                  <Box className="w-6 h-6 text-primary" />
+                  إدارة المنتجات ({products.length})
+                </h3>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button variant="outline" className="rounded-xl gap-2">
+                    <Upload className="w-4 h-4" />استيراد
+                  </Button>
+                  <Button variant="outline" className="rounded-xl gap-2">
+                    <Download className="w-4 h-4" />تصدير Excel
+                  </Button>
+                  <Button variant="outline" className="rounded-xl gap-2" onClick={() => window.print()}>
+                    <Printer className="w-4 h-4" />طباعة
+                  </Button>
+                  <Dialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
                   <DialogTrigger asChild>
                     <Button className="rounded-xl gap-2" data-testid="button-add-product"><Plus className="w-4 h-4" />إضافة</Button>
                   </DialogTrigger>
@@ -1880,6 +1951,7 @@ export default function Admin() {
                     </div>
                   </DialogContent>
                 </Dialog>
+                </div>
               </div>
 
               {/* Filters */}
@@ -1919,10 +1991,14 @@ export default function Admin() {
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">#</th>
                       <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">المنتج</th>
                       <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">القسم</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">العلامة</th>
                       <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">السعر</th>
                       <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">المخزون</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">قيمة المخزون</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">الحالة</th>
                       <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">الإجراءات</th>
                     </tr>
                   </thead>
@@ -1937,37 +2013,72 @@ export default function Admin() {
                         if (filterStock === 'high') return p.stock >= 100;
                         return true;
                       })
-                      .slice(0, 50).map((product) => {
+                      .slice(0, 50).map((product, index) => {
                       const category = categories.find(c => c.id === product.categoryId);
+                      const brand = brands.find(b => b.id === product.brandId);
+                      const stockValue = parseFloat(product.price) * product.stock;
                       return (
                         <tr key={product.id} className="hover:bg-gray-50" data-testid={`product-row-${product.id}`}>
+                          <td className="px-4 py-3 text-sm text-gray-400">{index + 1}</td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
-                              <img src={product.image} alt={product.name} className="w-12 h-12 rounded-lg object-cover bg-gray-100" />
+                              <img src={product.image} alt={product.name} className="w-14 h-14 rounded-xl object-cover bg-gray-100 border" />
                               <div>
                                 <p className="font-bold text-sm">{product.name}</p>
-                                <p className="text-xs text-gray-500">{product.unit}</p>
+                                <p className="text-xs text-gray-500">الحد الأدنى: {product.minOrder} {product.unit}</p>
+                                <p className="text-xs text-gray-400">ID: {product.id}</p>
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{category?.name || 'غير محدد'}</td>
                           <td className="px-4 py-3">
-                            <span className="font-bold text-primary">{product.price} ر.س</span>
-                            {product.originalPrice && (
-                              <span className="text-xs text-gray-400 line-through mr-2">{product.originalPrice}</span>
+                            <Badge className={`${category?.color || 'bg-gray-100'} text-white text-xs`}>
+                              {category?.icon} {category?.name || 'غير محدد'}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-3 text-sm">{brand?.name || '-'}</td>
+                          <td className="px-4 py-3">
+                            <div>
+                              <span className="font-bold text-lg text-primary">{parseFloat(product.price).toLocaleString('ar-SA')} ر.س</span>
+                              {product.originalPrice && (
+                                <div>
+                                  <span className="text-xs text-gray-400 line-through">{product.originalPrice} ر.س</span>
+                                  <Badge className="mr-2 bg-red-100 text-red-600 text-xs">
+                                    -{Math.round((1 - parseFloat(product.price) / parseFloat(product.originalPrice)) * 100)}%
+                                  </Badge>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-3 h-3 rounded-full ${product.stock < 10 ? 'bg-red-500' : product.stock < 30 ? 'bg-yellow-500' : 'bg-green-500'}`}></div>
+                              <span className={`font-bold ${product.stock < 30 ? 'text-red-600' : 'text-gray-700'}`}>{product.stock}</span>
+                              <span className="text-xs text-gray-400">{product.unit}</span>
+                            </div>
+                            {product.stock < 30 && (
+                              <Badge className="bg-red-100 text-red-700 text-xs mt-1">تنبيه مخزون</Badge>
                             )}
                           </td>
                           <td className="px-4 py-3">
-                            <Badge className={product.stock < 30 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}>
-                              {product.stock} وحدة
+                            <span className="font-bold text-emerald-600">{stockValue.toLocaleString('ar-SA')} ر.س</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <Badge className={product.stock > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
+                              {product.stock > 0 ? 'متوفر' : 'نفذ'}
                             </Badge>
                           </td>
                           <td className="px-4 py-3">
-                            <div className="flex gap-2">
-                              <Button size="sm" variant="ghost" className="rounded-lg" data-testid={`edit-product-${product.id}`}>
+                            <div className="flex gap-1">
+                              <Button size="sm" variant="ghost" className="rounded-lg text-blue-600 hover:bg-blue-50" title="عرض التفاصيل">
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="rounded-lg" title="تعديل" data-testid={`edit-product-${product.id}`}>
                                 <Edit className="w-4 h-4" />
                               </Button>
-                              <Button size="sm" variant="ghost" className="rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50" 
+                              <Button size="sm" variant="ghost" className="rounded-lg text-purple-600 hover:bg-purple-50" title="نسخ">
+                                <Copy className="w-4 h-4" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50" title="حذف"
                                 onClick={async () => {
                                   if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
                                     try {
@@ -1991,6 +2102,18 @@ export default function Admin() {
                   </tbody>
                 </table>
               </div>
+              
+              {/* Pagination */}
+              {products.length > 0 && (
+                <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                  <p className="text-sm text-gray-500">عرض {Math.min(products.length, 50)} من {products.length} منتج</p>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="rounded-lg" disabled>السابق</Button>
+                    <Button variant="outline" size="sm" className="rounded-lg bg-primary text-white">1</Button>
+                    <Button variant="outline" size="sm" className="rounded-lg" disabled>التالي</Button>
+                  </div>
+                </div>
+              )}
               {products.length === 0 && (
                 <div className="text-center py-12 text-gray-500">
                   <Package className="w-16 h-16 mx-auto mb-4 text-gray-300" />
