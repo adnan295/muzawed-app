@@ -13,19 +13,19 @@ export default function Home() {
   const [, setLocation] = useLocation();
   const { user, isAuthenticated } = useAuth();
 
-  const { data: categories = [] } = useQuery({
+  const { data: categories = [] } = useQuery<any[]>({
     queryKey: ['categories'],
-    queryFn: () => categoriesAPI.getAll(),
+    queryFn: () => categoriesAPI.getAll() as Promise<any[]>,
   });
 
-  const { data: brands = [] } = useQuery({
+  const { data: brands = [] } = useQuery<any[]>({
     queryKey: ['brands'],
-    queryFn: () => brandsAPI.getAll(),
+    queryFn: () => brandsAPI.getAll() as Promise<any[]>,
   });
 
-  const { data: products = [] } = useQuery({
+  const { data: products = [] } = useQuery<any[]>({
     queryKey: ['products'],
-    queryFn: () => productsAPI.getAll(),
+    queryFn: () => productsAPI.getAll() as Promise<any[]>,
   });
 
   const categoryIcons: Record<string, string> = {

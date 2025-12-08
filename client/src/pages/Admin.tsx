@@ -240,6 +240,16 @@ export default function Admin() {
     queryFn: async () => (await adminAPI.getStats()) as any,
   });
 
+  const { data: adminOrders = [] } = useQuery({
+    queryKey: ['adminOrders'],
+    queryFn: async () => (await adminAPI.getOrders()) as any[],
+  });
+
+  const { data: adminUsers = [] } = useQuery({
+    queryKey: ['adminUsers'],
+    queryFn: async () => (await adminAPI.getUsers()) as any[],
+  });
+
   useEffect(() => {
     const adminAuth = localStorage.getItem('adminAuth');
     if (adminAuth) {
@@ -1708,7 +1718,78 @@ export default function Admin() {
                   <Button className="rounded-xl gap-2" onClick={() => setIsAddProductOpen(true)}><Plus className="w-4 h-4" />إضافة</Button>
                 </div>
               </div>
-              <div className="text-center py-8 text-gray-500">جدول المنتجات الكامل متاح هنا</div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">المنتج</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">القسم</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">السعر</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">المخزون</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">الإجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {products.filter(p => p.name.includes(searchQuery)).slice(0, 20).map((product) => {
+                      const category = categories.find(c => c.id === product.categoryId);
+                      return (
+                        <tr key={product.id} className="hover:bg-gray-50" data-testid={`product-row-${product.id}`}>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <img src={product.image} alt={product.name} className="w-12 h-12 rounded-lg object-cover bg-gray-100" />
+                              <div>
+                                <p className="font-bold text-sm">{product.name}</p>
+                                <p className="text-xs text-gray-500">{product.unit}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{category?.name || 'غير محدد'}</td>
+                          <td className="px-4 py-3">
+                            <span className="font-bold text-primary">{product.price} ر.س</span>
+                            {product.originalPrice && (
+                              <span className="text-xs text-gray-400 line-through mr-2">{product.originalPrice}</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <Badge className={product.stock < 30 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}>
+                              {product.stock} وحدة
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="ghost" className="rounded-lg" data-testid={`edit-product-${product.id}`}>
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50" 
+                                onClick={async () => {
+                                  if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
+                                    try {
+                                      await fetch(`/api/products/${product.id}`, { method: 'DELETE' });
+                                      toast({ title: 'تم حذف المنتج بنجاح', className: 'bg-green-600 text-white' });
+                                      refetchProducts();
+                                    } catch (error) {
+                                      toast({ title: 'حدث خطأ', variant: 'destructive' });
+                                    }
+                                  }
+                                }}
+                                data-testid={`delete-product-${product.id}`}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {products.length === 0 && (
+                <div className="text-center py-12 text-gray-500">
+                  <Package className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                  <p>لا توجد منتجات</p>
+                </div>
+              )}
             </Card>
           </TabsContent>
 
@@ -1716,24 +1797,59 @@ export default function Admin() {
           <TabsContent value="orders">
             <Card className="p-6 border-none shadow-lg rounded-2xl">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="font-bold text-xl">إدارة الطلبات</h3>
+                <h3 className="font-bold text-xl">إدارة الطلبات ({adminOrders.length})</h3>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="rounded-xl">الكل</Button>
+                  <Button variant="outline" className="rounded-xl bg-yellow-50 border-yellow-200 text-yellow-700">قيد الانتظار</Button>
+                  <Button variant="outline" className="rounded-xl bg-blue-50 border-blue-200 text-blue-700">قيد التجهيز</Button>
+                </div>
               </div>
               <div className="space-y-4">
-                {mockOrders.map((order) => (
-                  <div key={order.id} className="p-4 bg-gray-50 rounded-2xl flex items-center justify-between">
+                {adminOrders.length > 0 ? adminOrders.slice(0, 10).map((order: any) => (
+                  <div key={order.id} className="p-4 bg-gray-50 rounded-2xl flex items-center justify-between hover:bg-gray-100 cursor-pointer transition-colors" data-testid={`order-row-${order.id}`}>
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center"><Package className="w-6 h-6 text-primary" /></div>
                       <div>
                         <p className="font-bold">طلب #{order.id}</p>
-                        <p className="text-sm text-gray-500">{order.customer}</p>
+                        <p className="text-sm text-gray-500">{order.user?.facilityName || 'عميل'}</p>
+                        <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString('ar-SA')}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
-                      <span className="font-bold">{order.total} ر.س</span>
+                      <span className="font-bold text-primary">{order.total} ر.س</span>
                       {getStatusBadge(order.status)}
+                      <Select defaultValue={order.status} onValueChange={async (value) => {
+                        try {
+                          await fetch(`/api/orders/${order.id}/status`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ status: value }),
+                          });
+                          toast({ title: 'تم تحديث حالة الطلب', className: 'bg-green-600 text-white' });
+                          queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+                        } catch (error) {
+                          toast({ title: 'حدث خطأ', variant: 'destructive' });
+                        }
+                      }}>
+                        <SelectTrigger className="w-32 rounded-lg text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">قيد الانتظار</SelectItem>
+                          <SelectItem value="processing">قيد التجهيز</SelectItem>
+                          <SelectItem value="shipped">قيد الشحن</SelectItem>
+                          <SelectItem value="delivered">تم التوصيل</SelectItem>
+                          <SelectItem value="cancelled">ملغي</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-center py-12 text-gray-500">
+                    <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                    <p>لا توجد طلبات</p>
+                  </div>
+                )}
               </div>
             </Card>
           </TabsContent>
@@ -1742,9 +1858,59 @@ export default function Admin() {
           <TabsContent value="customers">
             <Card className="p-6 border-none shadow-lg rounded-2xl">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="font-bold text-xl">إدارة العملاء (10,450+ عميل)</h3>
+                <h3 className="font-bold text-xl">إدارة العملاء ({adminUsers.length} عميل)</h3>
+                <div className="flex gap-2">
+                  <Input className="w-64 bg-gray-50 border-none rounded-xl" placeholder="بحث عن عميل..." />
+                </div>
               </div>
-              <div className="text-center py-8 text-gray-500">جدول العملاء الكامل متاح هنا</div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">العميل</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">الهاتف</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">تاريخ التسجيل</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">الإجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {adminUsers.length > 0 ? adminUsers.slice(0, 20).map((user: any) => (
+                      <tr key={user.id} className="hover:bg-gray-50" data-testid={`customer-row-${user.id}`}>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                              {user.facilityName?.charAt(0) || 'ع'}
+                            </div>
+                            <div>
+                              <p className="font-bold text-sm">{user.facilityName || 'عميل'}</p>
+                              <p className="text-xs text-gray-500">{user.commercialRegister || 'غير محدد'}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600 font-mono">{user.phone}</td>
+                        <td className="px-4 py-3 text-sm text-gray-500">{new Date(user.createdAt).toLocaleDateString('ar-SA')}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="ghost" className="rounded-lg">
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="rounded-lg">
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    )) : (
+                      <tr>
+                        <td colSpan={4} className="text-center py-12 text-gray-500">
+                          <Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                          <p>لا يوجد عملاء مسجلين</p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </Card>
           </TabsContent>
 
