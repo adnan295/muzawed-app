@@ -447,6 +447,12 @@ export default function Admin() {
   const [productPromoPrice, setProductPromoPrice] = useState('');
   const [productQuantity, setProductQuantity] = useState('1');
 
+  // Banner Viewers State
+  const [showBannerViewersDialog, setShowBannerViewersDialog] = useState(false);
+  const [viewingBanner, setViewingBanner] = useState<any>(null);
+  const [bannerViewers, setBannerViewers] = useState<any[]>([]);
+  const [loadingBannerViewers, setLoadingBannerViewers] = useState(false);
+
   const fetchBannerProducts = async (bannerId: number) => {
     setLoadingBannerProducts(true);
     try {
@@ -463,6 +469,19 @@ export default function Admin() {
     setManagingBanner(banner);
     setShowBannerProductsDialog(true);
     await fetchBannerProducts(banner.id);
+  };
+
+  const handleViewBannerViewers = async (banner: any) => {
+    setViewingBanner(banner);
+    setShowBannerViewersDialog(true);
+    setLoadingBannerViewers(true);
+    try {
+      const viewers = await bannersAPI.getViewers(banner.id);
+      setBannerViewers(viewers);
+    } catch (error) {
+      console.error('Error fetching banner viewers:', error);
+    }
+    setLoadingBannerViewers(false);
   };
 
   const handleAddProductToBanner = async () => {
@@ -2703,6 +2722,17 @@ export default function Admin() {
                             <Button 
                               size="sm" 
                               variant="outline" 
+                              className="rounded-lg text-xs bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                              title="عرض المشاهدين"
+                              onClick={() => handleViewBannerViewers(banner)}
+                              data-testid={`view-viewers-banner-${banner.id}`}
+                            >
+                              <Eye className="w-3 h-3 ml-1" />
+                              المشاهدين
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
                               className="rounded-lg text-xs"
                               title="نسخ الشريحة"
                               onClick={async () => {
@@ -3156,6 +3186,111 @@ export default function Admin() {
                       variant="outline" 
                       className="w-full rounded-xl"
                       onClick={() => setShowBannerProductsDialog(false)}
+                    >
+                      إغلاق
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Banner Viewers Dialog */}
+              <Dialog open={showBannerViewersDialog} onOpenChange={setShowBannerViewersDialog}>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="text-xl flex items-center gap-2">
+                      <Eye className="w-5 h-5 text-blue-600" />
+                      مشاهدو الشريحة
+                    </DialogTitle>
+                    <DialogDescription>
+                      {viewingBanner?.title} - قائمة المستخدمين الذين شاهدوا هذه الشريحة
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="space-y-4">
+                    {loadingBannerViewers ? (
+                      <div className="text-center py-8">
+                        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />
+                      </div>
+                    ) : bannerViewers.length === 0 ? (
+                      <div className="text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                        <Eye className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                        <p className="text-gray-500">لا توجد مشاهدات مسجلة بعد</p>
+                        <p className="text-gray-400 text-sm">سيتم تسجيل المشاهدات عندما يشاهد العملاء الشريحة</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center justify-between bg-blue-50 rounded-xl p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">
+                              {bannerViewers.length}
+                            </div>
+                            <span className="font-semibold">إجمالي المشاهدات</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="bg-green-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">
+                              {bannerViewers.filter((v: any) => v.clicked).length}
+                            </div>
+                            <span className="font-semibold">نقرات</span>
+                          </div>
+                        </div>
+
+                        <div className="border rounded-xl overflow-hidden">
+                          <table className="w-full">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="text-right p-3 text-sm font-semibold">المستخدم</th>
+                                <th className="text-right p-3 text-sm font-semibold">وقت المشاهدة</th>
+                                <th className="text-center p-3 text-sm font-semibold">نقر</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {bannerViewers.slice(0, 50).map((view: any, idx: number) => (
+                                <tr key={view.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                  <td className="p-3">
+                                    {view.user ? (
+                                      <div className="flex items-center gap-2">
+                                        <div className="bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
+                                          {view.user.facilityName?.charAt(0) || view.user.phone?.charAt(0) || '?'}
+                                        </div>
+                                        <div>
+                                          <p className="font-semibold text-sm">{view.user.facilityName || 'غير محدد'}</p>
+                                          <p className="text-xs text-gray-500">{view.user.phone}</p>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <span className="text-gray-400 text-sm">زائر غير مسجل</span>
+                                    )}
+                                  </td>
+                                  <td className="p-3 text-sm text-gray-600">
+                                    {new Date(view.viewedAt).toLocaleString('ar-SY', { 
+                                      dateStyle: 'short', 
+                                      timeStyle: 'short' 
+                                    })}
+                                  </td>
+                                  <td className="p-3 text-center">
+                                    {view.clicked ? (
+                                      <Badge className="bg-green-100 text-green-700">نعم</Badge>
+                                    ) : (
+                                      <Badge variant="outline" className="text-gray-400">لا</Badge>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          {bannerViewers.length > 50 && (
+                            <div className="bg-gray-50 p-3 text-center text-sm text-gray-500">
+                              عرض أول 50 من أصل {bannerViewers.length} مشاهدة
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+
+                    <Button 
+                      variant="outline" 
+                      className="w-full rounded-xl"
+                      onClick={() => setShowBannerViewersDialog(false)}
                     >
                       إغلاق
                     </Button>

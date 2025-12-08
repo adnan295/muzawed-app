@@ -456,12 +456,15 @@ export const bannersAPI = {
   duplicate: (id: number) => request(`/banners/${id}/duplicate`, {
     method: "POST",
   }),
-  trackView: (id: number) => request(`/banners/${id}/view`, {
+  trackView: (id: number, userId?: number) => request(`/banners/${id}/view`, {
     method: "POST",
+    body: JSON.stringify({ userId }),
   }),
-  trackClick: (id: number) => request(`/banners/${id}/click`, {
+  trackClick: (id: number, userId?: number) => request(`/banners/${id}/click`, {
     method: "POST",
+    body: JSON.stringify({ userId }),
   }),
+  getViewers: (id: number) => request(`/banners/${id}/viewers`),
   reorder: (bannerIds: number[]) => request("/banners/reorder", {
     method: "POST",
     body: JSON.stringify({ bannerIds }),

@@ -1617,8 +1617,21 @@ export async function registerRoutes(
   // Increment banner views
   app.post("/api/banners/:id/view", async (req, res) => {
     try {
-      await storage.incrementBannerViews(parseInt(req.params.id));
+      const { userId } = req.body;
+      const ipAddress = req.ip || req.headers['x-forwarded-for'] as string;
+      const userAgent = req.headers['user-agent'];
+      await storage.trackBannerView(parseInt(req.params.id), userId, ipAddress, userAgent);
       res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get banner viewers
+  app.get("/api/banners/:id/viewers", async (req, res) => {
+    try {
+      const viewers = await storage.getBannerViewers(parseInt(req.params.id));
+      res.json(viewers);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

@@ -72,6 +72,9 @@ import {
   type ProductInventory,
   type InsertProductInventory,
   productInventory,
+  type BannerView,
+  type InsertBannerView,
+  bannerViews,
   type Driver,
   type InsertDriver,
   drivers,
@@ -323,6 +326,11 @@ export interface IStorage {
   reorderBanners(bannerIds: number[]): Promise<void>;
   deleteBanners(ids: number[]): Promise<void>;
   getBannerStats(): Promise<{ totalViews: number; totalClicks: number; avgCtr: number }>;
+
+  // Banner Views Tracking - تتبع مشاهدات الشرائح
+  trackBannerView(bannerId: number, userId?: number, ipAddress?: string, userAgent?: string): Promise<BannerView>;
+  trackBannerClick(bannerId: number, userId?: number): Promise<void>;
+  getBannerViewers(bannerId: number): Promise<(BannerView & { user?: User })[]>;
 
   // Banner Products - منتجات الباقات
   getBannerProducts(bannerId: number): Promise<(BannerProduct & { product: Product })[]>;
@@ -1366,6 +1374,54 @@ export class DatabaseStorage implements IStorage {
     const avgCtr = totalViews > 0 ? (totalClicks / totalViews) * 100 : 0;
     
     return { totalViews, totalClicks, avgCtr };
+  }
+
+  // Banner Views Tracking - تتبع مشاهدات الشرائح
+  async trackBannerView(bannerId: number, userId?: number, ipAddress?: string, userAgent?: string): Promise<BannerView> {
+    // Increment view count
+    await this.incrementBannerViews(bannerId);
+    
+    // Record individual view
+    const [view] = await db.insert(bannerViews).values({
+      bannerId,
+      userId: userId || null,
+      ipAddress: ipAddress || null,
+      userAgent: userAgent || null,
+      clicked: false,
+    }).returning();
+    
+    return view;
+  }
+
+  async trackBannerClick(bannerId: number, userId?: number): Promise<void> {
+    // Increment click count
+    await this.incrementBannerClicks(bannerId);
+    
+    // Update the most recent view for this user/banner to mark as clicked
+    if (userId) {
+      await db.update(bannerViews)
+        .set({ clicked: true, clickedAt: new Date() })
+        .where(
+          and(
+            eq(bannerViews.bannerId, bannerId),
+            eq(bannerViews.userId, userId),
+            eq(bannerViews.clicked, false)
+          )
+        );
+    }
+  }
+
+  async getBannerViewers(bannerId: number): Promise<(BannerView & { user?: User })[]> {
+    const views = await db.select()
+      .from(bannerViews)
+      .leftJoin(users, eq(bannerViews.userId, users.id))
+      .where(eq(bannerViews.bannerId, bannerId))
+      .orderBy(desc(bannerViews.viewedAt));
+    
+    return views.map(v => ({
+      ...v.banner_views,
+      user: v.users || undefined
+    }));
   }
 
   // Banner Products - منتجات الباقات

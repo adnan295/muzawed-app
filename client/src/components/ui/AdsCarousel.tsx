@@ -103,10 +103,10 @@ export function AdsCarousel() {
   useEffect(() => {
     const currentBanner = banners[selectedIndex];
     if (currentBanner && typeof currentBanner.id === 'number' && !trackedViews.has(currentBanner.id)) {
-      bannersAPI.trackView(currentBanner.id).catch(() => {});
+      bannersAPI.trackView(currentBanner.id, user?.id).catch(() => {});
       setTrackedViews(prev => new Set(prev).add(currentBanner.id));
     }
-  }, [selectedIndex, banners, trackedViews]);
+  }, [selectedIndex, banners, trackedViews, user]);
 
   const handleBannerClick = (banner: BannerProps) => {
     if (typeof banner.id === 'number') {

@@ -674,6 +674,22 @@ export const insertBannerSchema = createInsertSchema(banners).omit({ id: true, c
 export type InsertBanner = z.infer<typeof insertBannerSchema>;
 export type Banner = typeof banners.$inferSelect;
 
+// Banner Views tracking - تتبع مشاهدات الشرائح
+export const bannerViews = pgTable("banner_views", {
+  id: serial("id").primaryKey(),
+  bannerId: integer("banner_id").notNull().references(() => banners.id, { onDelete: 'cascade' }),
+  userId: integer("user_id").references(() => users.id, { onDelete: 'set null' }),
+  viewedAt: timestamp("viewed_at").defaultNow().notNull(),
+  clicked: boolean("clicked").default(false).notNull(),
+  clickedAt: timestamp("clicked_at"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+});
+
+export const insertBannerViewSchema = createInsertSchema(bannerViews).omit({ id: true, viewedAt: true });
+export type InsertBannerView = z.infer<typeof insertBannerViewSchema>;
+export type BannerView = typeof bannerViews.$inferSelect;
+
 // Banner Products table - منتجات الباقات الإعلانية
 export const bannerProducts = pgTable("banner_products", {
   id: serial("id").primaryKey(),
