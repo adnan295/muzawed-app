@@ -437,6 +437,65 @@ export default function Admin() {
     queryFn: () => bannersAPI.getStats(),
   });
 
+  // Banner Products State
+  const [showBannerProductsDialog, setShowBannerProductsDialog] = useState(false);
+  const [managingBanner, setManagingBanner] = useState<any>(null);
+  const [bannerProducts, setBannerProducts] = useState<any[]>([]);
+  const [loadingBannerProducts, setLoadingBannerProducts] = useState(false);
+  const [selectedProductForBanner, setSelectedProductForBanner] = useState<number | null>(null);
+  const [productPromoPrice, setProductPromoPrice] = useState('');
+  const [productQuantity, setProductQuantity] = useState('1');
+
+  const fetchBannerProducts = async (bannerId: number) => {
+    setLoadingBannerProducts(true);
+    try {
+      const res = await fetch(`/api/banners/${bannerId}/products`);
+      const data = await res.json();
+      setBannerProducts(data);
+    } catch (error) {
+      console.error('Error fetching banner products:', error);
+    }
+    setLoadingBannerProducts(false);
+  };
+
+  const handleManageBannerProducts = async (banner: any) => {
+    setManagingBanner(banner);
+    setShowBannerProductsDialog(true);
+    await fetchBannerProducts(banner.id);
+  };
+
+  const handleAddProductToBanner = async () => {
+    if (!managingBanner || !selectedProductForBanner || !productPromoPrice) return;
+    try {
+      await fetch(`/api/banners/${managingBanner.id}/products`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: selectedProductForBanner,
+          promoPrice: productPromoPrice,
+          quantity: parseInt(productQuantity) || 1
+        })
+      });
+      await fetchBannerProducts(managingBanner.id);
+      setSelectedProductForBanner(null);
+      setProductPromoPrice('');
+      setProductQuantity('1');
+      toast({ title: 'تمت إضافة المنتج للباقة', className: 'bg-green-600 text-white' });
+    } catch (error) {
+      toast({ title: 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const handleRemoveProductFromBanner = async (bannerProductId: number) => {
+    try {
+      await fetch(`/api/banner-products/${bannerProductId}`, { method: 'DELETE' });
+      await fetchBannerProducts(managingBanner.id);
+      toast({ title: 'تم إزالة المنتج من الباقة', className: 'bg-green-600 text-white' });
+    } catch (error) {
+      toast({ title: 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
   const filteredBanners = bannersList.filter((b: any) => {
     const matchesSearch = bannerSearch === '' || b.title?.toLowerCase().includes(bannerSearch.toLowerCase());
     const matchesStatus = bannerStatusFilter === 'all' || 
@@ -2588,6 +2647,17 @@ export default function Admin() {
                             <Button 
                               size="sm" 
                               variant="outline" 
+                              className="rounded-lg text-xs bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+                              title="إدارة منتجات الباقة"
+                              onClick={() => handleManageBannerProducts(banner)}
+                              data-testid={`manage-products-banner-${banner.id}`}
+                            >
+                              <Package className="w-3 h-3 ml-1" />
+                              المنتجات
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
                               className="rounded-lg text-xs"
                               title="نسخ الشريحة"
                               onClick={async () => {
@@ -2874,6 +2944,150 @@ export default function Admin() {
                         إلغاء
                       </Button>
                     </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Banner Products Management Dialog */}
+              <Dialog open={showBannerProductsDialog} onOpenChange={setShowBannerProductsDialog}>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="text-xl">إدارة منتجات الباقة</DialogTitle>
+                    <DialogDescription>
+                      {managingBanner?.title} - أضف منتجات العرض مع سعر العرض الخاص
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="space-y-6">
+                    {/* Add Product Section */}
+                    <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <Plus className="w-4 h-4 text-purple-600" />
+                        إضافة منتج للباقة
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <Select
+                          value={selectedProductForBanner?.toString() || ''}
+                          onValueChange={(val) => setSelectedProductForBanner(parseInt(val))}
+                        >
+                          <SelectTrigger className="rounded-xl">
+                            <SelectValue placeholder="اختر المنتج" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {products?.filter((p: any) => !bannerProducts.some(bp => bp.productId === p.id)).map((product: any) => (
+                              <SelectItem key={product.id} value={product.id.toString()}>
+                                {product.name} - {parseFloat(product.price).toLocaleString('ar-SY')} ل.س
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          type="number"
+                          placeholder="سعر العرض"
+                          value={productPromoPrice}
+                          onChange={(e) => setProductPromoPrice(e.target.value)}
+                          className="rounded-xl"
+                        />
+                        <Input
+                          type="number"
+                          placeholder="الكمية"
+                          value={productQuantity}
+                          onChange={(e) => setProductQuantity(e.target.value)}
+                          className="rounded-xl"
+                          min="1"
+                        />
+                      </div>
+                      <Button 
+                        className="mt-3 rounded-xl w-full"
+                        onClick={handleAddProductToBanner}
+                        disabled={!selectedProductForBanner || !productPromoPrice}
+                        data-testid="add-product-to-banner-btn"
+                      >
+                        <Plus className="w-4 h-4 ml-2" />
+                        إضافة للباقة
+                      </Button>
+                    </div>
+
+                    {/* Products List */}
+                    <div>
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <Package className="w-4 h-4 text-gray-600" />
+                        منتجات الباقة الحالية ({bannerProducts.length})
+                      </h4>
+
+                      {loadingBannerProducts ? (
+                        <div className="text-center py-8">
+                          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />
+                        </div>
+                      ) : bannerProducts.length === 0 ? (
+                        <div className="text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                          <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                          <p className="text-gray-500">لا توجد منتجات في هذه الباقة بعد</p>
+                          <p className="text-gray-400 text-sm">أضف منتجات لعرضها على العملاء</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {bannerProducts.map((bp: any) => {
+                            const originalPrice = parseFloat(bp.product.originalPrice || bp.product.price);
+                            const promoPrice = parseFloat(bp.promoPrice);
+                            const discount = Math.round(((originalPrice - promoPrice) / originalPrice) * 100);
+                            
+                            return (
+                              <div key={bp.id} className="flex items-center gap-4 bg-white border rounded-xl p-3">
+                                <img 
+                                  src={bp.product.image} 
+                                  alt={bp.product.name}
+                                  className="w-16 h-16 object-cover rounded-lg"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <h5 className="font-semibold truncate">{bp.product.name}</h5>
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <span className="text-primary font-bold">{promoPrice.toLocaleString('ar-SY')} ل.س</span>
+                                    <span className="text-gray-400 line-through text-xs">{originalPrice.toLocaleString('ar-SY')}</span>
+                                    {discount > 0 && (
+                                      <Badge className="bg-red-500 text-white text-xs">-{discount}%</Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-gray-500">الكمية: {bp.quantity}</p>
+                                </div>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="text-red-600 hover:bg-red-50 rounded-lg"
+                                  onClick={() => handleRemoveProductFromBanner(bp.id)}
+                                  data-testid={`remove-banner-product-${bp.id}`}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Summary */}
+                    {bannerProducts.length > 0 && (
+                      <div className="bg-gradient-to-r from-primary/10 to-purple-100 rounded-xl p-4">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold">إجمالي الباقة:</span>
+                          <span className="text-xl font-bold text-primary">
+                            {bannerProducts.reduce((sum: number, bp: any) => sum + (parseFloat(bp.promoPrice) * bp.quantity), 0).toLocaleString('ar-SY')} ل.س
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-1">
+                          رابط العرض: <code className="bg-white px-2 py-0.5 rounded">/promo/{managingBanner?.id}</code>
+                        </p>
+                      </div>
+                    )}
+
+                    <Button 
+                      variant="outline" 
+                      className="w-full rounded-xl"
+                      onClick={() => setShowBannerProductsDialog(false)}
+                    >
+                      إغلاق
+                    </Button>
                   </div>
                 </DialogContent>
               </Dialog>
