@@ -10,7 +10,7 @@ export default function Profile() {
   const menuItems = [
     { icon: Package, label: 'طلباتي', desc: 'تتبع طلباتك الحالية والسابقة', href: '/orders' },
     { icon: MapPin, label: 'عناويني', desc: 'إدارة مواقع التوصيل' },
-    { icon: CreditCard, label: 'المحفظة والمدفوعات', desc: 'طرق الدفع والرصيد' },
+    { icon: CreditCard, label: 'المحفظة والمدفوعات', desc: 'طرق الدفع والرصيد', href: '/wallet' },
     { icon: Store, label: 'تفاصيل المنشأة', desc: 'معلومات السجل التجاري والضريبة' },
     { icon: Phone, label: 'المساعدة والدعم', desc: 'تواصل مع خدمة العملاء' },
     { icon: Settings, label: 'الإعدادات', desc: 'اللغة والإشعارات' },

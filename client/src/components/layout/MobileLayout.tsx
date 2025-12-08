@@ -3,6 +3,7 @@ import { Home, Grid, ShoppingCart, User, Search, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useState } from 'react';
 
 interface MobileLayoutProps {
   children: React.ReactNode;
@@ -10,7 +11,15 @@ interface MobileLayoutProps {
 }
 
 export function MobileLayout({ children, hideHeader = false }: MobileLayoutProps) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      setLocation(`/search/${encodeURIComponent(searchQuery)}`);
+    }
+  };
 
   const navItems = [
     { href: '/', icon: Home, label: 'الرئيسية' },
@@ -33,13 +42,15 @@ export function MobileLayout({ children, hideHeader = false }: MobileLayoutProps
             <div className="font-bold text-xl tracking-tight">ساري</div>
           </div>
           
-          <div className="relative">
+          <form onSubmit={handleSearch} className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input 
               className="bg-white text-foreground pl-4 pr-10 h-11 rounded-xl border-0 shadow-sm focus-visible:ring-secondary" 
               placeholder="عن ماذا تبحث اليوم؟" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
-          </div>
+          </form>
         </header>
       )}
 
