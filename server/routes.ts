@@ -1645,5 +1645,71 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== Banner Products Routes - منتجات الباقات ====================
+
+  // Get products for a banner (promo bundle)
+  app.get("/api/banners/:bannerId/products", async (req, res) => {
+    try {
+      const bannerId = parseInt(req.params.bannerId);
+      const products = await storage.getBannerProducts(bannerId);
+      res.json(products);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Add product to banner bundle
+  app.post("/api/banners/:bannerId/products", async (req, res) => {
+    try {
+      const bannerId = parseInt(req.params.bannerId);
+      const { productId, promoPrice, quantity } = req.body;
+      const item = await storage.addBannerProduct({
+        bannerId,
+        productId,
+        promoPrice,
+        quantity: quantity || 1
+      });
+      res.status(201).json(item);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update banner product
+  app.put("/api/banner-products/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updated = await storage.updateBannerProduct(id, req.body);
+      if (!updated) {
+        return res.status(404).json({ error: "المنتج غير موجود" });
+      }
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Remove product from banner bundle
+  app.delete("/api/banner-products/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.removeBannerProduct(id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Clear all products from banner
+  app.delete("/api/banners/:bannerId/products", async (req, res) => {
+    try {
+      const bannerId = parseInt(req.params.bannerId);
+      await storage.clearBannerProducts(bannerId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }
