@@ -142,6 +142,7 @@ export const orders = pgTable("orders", {
   bannerId: integer("banner_id").references(() => banners.id), // Track which promo banner the order came from
   status: text("status").notNull().default("pending"), // pending, processing, shipped, delivered, cancelled
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
+  deliveryFee: decimal("delivery_fee", { precision: 10, scale: 2 }).default("0"), // رسوم التوصيل
   tax: decimal("tax", { precision: 10, scale: 2 }).notNull(),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
   paymentMethod: text("payment_method").notNull(), // wallet, card, cash
@@ -791,3 +792,21 @@ export const expenses = pgTable("expenses", {
 export const insertExpenseSchema = createInsertSchema(expenses).omit({ id: true, createdAt: true });
 export type InsertExpense = z.infer<typeof insertExpenseSchema>;
 export type Expense = typeof expenses.$inferSelect;
+
+// Delivery Settings table - إعدادات التوصيل
+export const deliverySettings = pgTable("delivery_settings", {
+  id: serial("id").primaryKey(),
+  warehouseId: integer("warehouse_id").references(() => warehouses.id).unique(),
+  cityId: integer("city_id").references(() => cities.id),
+  baseFee: decimal("base_fee", { precision: 10, scale: 2 }).notNull().default("0"), // رسوم التوصيل الأساسية
+  freeThresholdAmount: decimal("free_threshold_amount", { precision: 10, scale: 2 }), // الحد الأدنى للتوصيل المجاني (بالمبلغ)
+  freeThresholdQuantity: integer("free_threshold_quantity"), // الحد الأدنى للتوصيل المجاني (بالكمية)
+  isEnabled: boolean("is_enabled").default(true).notNull(),
+  notes: text("notes"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertDeliverySettingSchema = createInsertSchema(deliverySettings).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertDeliverySetting = z.infer<typeof insertDeliverySettingSchema>;
+export type DeliverySetting = typeof deliverySettings.$inferSelect;
