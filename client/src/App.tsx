@@ -31,6 +31,7 @@ import Referral from "@/pages/Referral";
 import Invoice from "@/pages/Invoice";
 import Admin from "@/pages/Admin";
 import AdminLogin from "@/pages/AdminLogin";
+import Promo from "@/pages/Promo";
 
 function Router() {
   return (
@@ -61,6 +62,7 @@ function Router() {
       <Route path="/settings" component={Settings} />
       <Route path="/admin" component={Admin} />
       <Route path="/admin/login" component={AdminLogin} />
+      <Route path="/promo/:bannerId" component={Promo} />
       <Route component={NotFound} />
     </Switch>
   );
