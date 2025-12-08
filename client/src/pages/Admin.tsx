@@ -190,6 +190,9 @@ export default function Admin() {
   const [newCategory, setNewCategory] = useState({ name: '', icon: '📦', color: 'from-blue-400 to-blue-500' });
   const [isAddBrandOpen, setIsAddBrandOpen] = useState(false);
   const [newBrand, setNewBrand] = useState({ name: '', logo: '🏷️' });
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterBrand, setFilterBrand] = useState<string>('all');
+  const [filterStock, setFilterStock] = useState<string>('all');
   const [isAddPromotionOpen, setIsAddPromotionOpen] = useState(false);
   const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -1775,85 +1778,116 @@ export default function Admin() {
           {/* Products Tab */}
           <TabsContent value="products">
             <Card className="p-6 border-none shadow-lg rounded-2xl">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-xl">إدارة المنتجات ({products.length})</h3>
-                <div className="flex items-center gap-3">
-                  <Input className="w-64 bg-gray-50 border-none rounded-xl" placeholder="بحث..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-                  <Dialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
-                    <DialogTrigger asChild>
-                      <Button className="rounded-xl gap-2" data-testid="button-add-product"><Plus className="w-4 h-4" />إضافة</Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-lg">
-                      <DialogHeader><DialogTitle>إضافة منتج جديد</DialogTitle></DialogHeader>
-                      <div className="space-y-4 mt-4">
-                        <div>
-                          <Label>اسم المنتج *</Label>
-                          <Input placeholder="مثال: حليب المراعي" value={newProduct.name} onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })} data-testid="input-product-name" />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label>القسم *</Label>
-                            <Select value={newProduct.categoryId} onValueChange={(v) => setNewProduct({ ...newProduct, categoryId: v })}>
-                              <SelectTrigger data-testid="select-category"><SelectValue placeholder="اختر القسم" /></SelectTrigger>
-                              <SelectContent>
-                                {categories.map((cat) => (<SelectItem key={cat.id} value={cat.id.toString()}>{cat.name}</SelectItem>))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label>العلامة التجارية</Label>
-                            <Select value={newProduct.brandId} onValueChange={(v) => setNewProduct({ ...newProduct, brandId: v })}>
-                              <SelectTrigger data-testid="select-brand"><SelectValue placeholder="اختر العلامة" /></SelectTrigger>
-                              <SelectContent>
-                                {brands.map((brand) => (<SelectItem key={brand.id} value={brand.id.toString()}>{brand.name}</SelectItem>))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label>السعر *</Label>
-                            <Input type="number" placeholder="0.00" value={newProduct.price} onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })} data-testid="input-price" />
-                          </div>
-                          <div>
-                            <Label>السعر الأصلي</Label>
-                            <Input type="number" placeholder="0.00" value={newProduct.originalPrice} onChange={(e) => setNewProduct({ ...newProduct, originalPrice: e.target.value })} data-testid="input-original-price" />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-3 gap-4">
-                          <div>
-                            <Label>الحد الأدنى</Label>
-                            <Input type="number" value={newProduct.minOrder} onChange={(e) => setNewProduct({ ...newProduct, minOrder: e.target.value })} data-testid="input-min-order" />
-                          </div>
-                          <div>
-                            <Label>الوحدة</Label>
-                            <Select value={newProduct.unit} onValueChange={(v) => setNewProduct({ ...newProduct, unit: v })}>
-                              <SelectTrigger data-testid="select-unit"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="كرتون">كرتون</SelectItem>
-                                <SelectItem value="كيس">كيس</SelectItem>
-                                <SelectItem value="علبة">علبة</SelectItem>
-                                <SelectItem value="قطعة">قطعة</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label>المخزون</Label>
-                            <Input type="number" value={newProduct.stock} onChange={(e) => setNewProduct({ ...newProduct, stock: e.target.value })} data-testid="input-stock" />
-                          </div>
-                        </div>
-                        <div>
-                          <Label>رابط الصورة</Label>
-                          <Input placeholder="https://..." value={newProduct.image} onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })} data-testid="input-image" />
-                        </div>
-                        <Button className="w-full rounded-xl" onClick={handleAddProduct} disabled={!newProduct.name || !newProduct.categoryId || !newProduct.price} data-testid="button-submit-product">
-                          <Plus className="w-4 h-4 ml-2" />إضافة المنتج
-                        </Button>
+                <Dialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="rounded-xl gap-2" data-testid="button-add-product"><Plus className="w-4 h-4" />إضافة</Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-lg">
+                    <DialogHeader><DialogTitle>إضافة منتج جديد</DialogTitle></DialogHeader>
+                    <div className="space-y-4 mt-4">
+                      <div>
+                        <Label>اسم المنتج *</Label>
+                        <Input placeholder="مثال: حليب المراعي" value={newProduct.name} onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })} data-testid="input-product-name" />
                       </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>القسم *</Label>
+                          <Select value={newProduct.categoryId} onValueChange={(v) => setNewProduct({ ...newProduct, categoryId: v })}>
+                            <SelectTrigger data-testid="select-category"><SelectValue placeholder="اختر القسم" /></SelectTrigger>
+                            <SelectContent>
+                              {categories.map((cat) => (<SelectItem key={cat.id} value={cat.id.toString()}>{cat.name}</SelectItem>))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>العلامة التجارية</Label>
+                          <Select value={newProduct.brandId} onValueChange={(v) => setNewProduct({ ...newProduct, brandId: v })}>
+                            <SelectTrigger data-testid="select-brand"><SelectValue placeholder="اختر العلامة" /></SelectTrigger>
+                            <SelectContent>
+                              {brands.map((brand) => (<SelectItem key={brand.id} value={brand.id.toString()}>{brand.name}</SelectItem>))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>السعر *</Label>
+                          <Input type="number" placeholder="0.00" value={newProduct.price} onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })} data-testid="input-price" />
+                        </div>
+                        <div>
+                          <Label>السعر الأصلي</Label>
+                          <Input type="number" placeholder="0.00" value={newProduct.originalPrice} onChange={(e) => setNewProduct({ ...newProduct, originalPrice: e.target.value })} data-testid="input-original-price" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <Label>الحد الأدنى</Label>
+                          <Input type="number" value={newProduct.minOrder} onChange={(e) => setNewProduct({ ...newProduct, minOrder: e.target.value })} data-testid="input-min-order" />
+                        </div>
+                        <div>
+                          <Label>الوحدة</Label>
+                          <Select value={newProduct.unit} onValueChange={(v) => setNewProduct({ ...newProduct, unit: v })}>
+                            <SelectTrigger data-testid="select-unit"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="كرتون">كرتون</SelectItem>
+                              <SelectItem value="كيس">كيس</SelectItem>
+                              <SelectItem value="علبة">علبة</SelectItem>
+                              <SelectItem value="قطعة">قطعة</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>المخزون</Label>
+                          <Input type="number" value={newProduct.stock} onChange={(e) => setNewProduct({ ...newProduct, stock: e.target.value })} data-testid="input-stock" />
+                        </div>
+                      </div>
+                      <div>
+                        <Label>رابط الصورة</Label>
+                        <Input placeholder="https://..." value={newProduct.image} onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })} data-testid="input-image" />
+                      </div>
+                      <Button className="w-full rounded-xl" onClick={handleAddProduct} disabled={!newProduct.name || !newProduct.categoryId || !newProduct.price} data-testid="button-submit-product">
+                        <Plus className="w-4 h-4 ml-2" />إضافة المنتج
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
+
+              {/* Filters */}
+              <div className="flex flex-wrap items-center gap-3 mb-6 p-4 bg-gray-50 rounded-xl">
+                <Input className="w-48 bg-white border-gray-200 rounded-lg" placeholder="بحث بالاسم..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} data-testid="input-search-products" />
+                <Select value={filterCategory} onValueChange={setFilterCategory}>
+                  <SelectTrigger className="w-40 bg-white rounded-lg" data-testid="filter-category"><SelectValue placeholder="القسم" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">جميع الأقسام</SelectItem>
+                    {categories.map((cat) => (<SelectItem key={cat.id} value={cat.id.toString()}>{cat.name}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+                <Select value={filterBrand} onValueChange={setFilterBrand}>
+                  <SelectTrigger className="w-40 bg-white rounded-lg" data-testid="filter-brand"><SelectValue placeholder="العلامة" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">جميع العلامات</SelectItem>
+                    {brands.map((brand) => (<SelectItem key={brand.id} value={brand.id.toString()}>{brand.name}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+                <Select value={filterStock} onValueChange={setFilterStock}>
+                  <SelectTrigger className="w-40 bg-white rounded-lg" data-testid="filter-stock"><SelectValue placeholder="المخزون" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">الكل</SelectItem>
+                    <SelectItem value="low">مخزون منخفض</SelectItem>
+                    <SelectItem value="normal">مخزون طبيعي</SelectItem>
+                    <SelectItem value="high">مخزون عالي</SelectItem>
+                  </SelectContent>
+                </Select>
+                {(filterCategory !== 'all' || filterBrand !== 'all' || filterStock !== 'all' || searchQuery) && (
+                  <Button variant="ghost" size="sm" className="text-gray-500" onClick={() => { setFilterCategory('all'); setFilterBrand('all'); setFilterStock('all'); setSearchQuery(''); }}>
+                    مسح الفلاتر
+                  </Button>
+                )}
+              </div>
+
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50">
@@ -1866,7 +1900,17 @@ export default function Admin() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {products.filter(p => p.name.includes(searchQuery)).slice(0, 20).map((product) => {
+                    {products
+                      .filter(p => searchQuery ? p.name.includes(searchQuery) : true)
+                      .filter(p => filterCategory !== 'all' ? p.categoryId === parseInt(filterCategory) : true)
+                      .filter(p => filterBrand !== 'all' ? p.brandId === parseInt(filterBrand) : true)
+                      .filter(p => {
+                        if (filterStock === 'low') return p.stock < 30;
+                        if (filterStock === 'normal') return p.stock >= 30 && p.stock < 100;
+                        if (filterStock === 'high') return p.stock >= 100;
+                        return true;
+                      })
+                      .slice(0, 50).map((product) => {
                       const category = categories.find(c => c.id === product.categoryId);
                       return (
                         <tr key={product.id} className="hover:bg-gray-50" data-testid={`product-row-${product.id}`}>
