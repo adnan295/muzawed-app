@@ -96,6 +96,12 @@ import {
   type BannerProduct,
   type InsertBannerProduct,
   bannerProducts,
+  type ExpenseCategory,
+  type InsertExpenseCategory,
+  expenseCategories,
+  type Expense,
+  type InsertExpense,
+  expenses,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte, count, or } from "drizzle-orm";
@@ -371,6 +377,25 @@ export interface IStorage {
   updateBannerProduct(id: number, data: Partial<InsertBannerProduct>): Promise<BannerProduct | undefined>;
   removeBannerProduct(id: number): Promise<void>;
   clearBannerProducts(bannerId: number): Promise<void>;
+
+  // Expense Categories - فئات المصاريف
+  getExpenseCategories(): Promise<ExpenseCategory[]>;
+  getExpenseCategory(id: number): Promise<ExpenseCategory | undefined>;
+  createExpenseCategory(category: InsertExpenseCategory): Promise<ExpenseCategory>;
+  updateExpenseCategory(id: number, category: Partial<InsertExpenseCategory>): Promise<ExpenseCategory | undefined>;
+  deleteExpenseCategory(id: number): Promise<void>;
+
+  // Expenses - المصاريف
+  getExpenses(filters?: { categoryId?: number; warehouseId?: number; startDate?: Date; endDate?: Date }): Promise<(Expense & { category: ExpenseCategory; warehouse?: { id: number; name: string } })[]>;
+  getExpense(id: number): Promise<Expense | undefined>;
+  createExpense(expense: InsertExpense): Promise<Expense>;
+  updateExpense(id: number, expense: Partial<InsertExpense>): Promise<Expense | undefined>;
+  deleteExpense(id: number): Promise<void>;
+  getExpenseSummary(filters?: { startDate?: Date; endDate?: Date; warehouseId?: number }): Promise<{
+    totalExpenses: number;
+    byCategory: { categoryId: number; categoryName: string; total: number; count: number }[];
+    byMonth: { month: string; total: number }[];
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1933,6 +1958,127 @@ export class DatabaseStorage implements IStorage {
       },
       breakdown: breakdown.sort((a, b) => b.profit - a.profit), // Sort by profit descending
     };
+  }
+
+  // Expense Categories - فئات المصاريف
+  async getExpenseCategories(): Promise<ExpenseCategory[]> {
+    return await db.select().from(expenseCategories).orderBy(expenseCategories.name);
+  }
+
+  async getExpenseCategory(id: number): Promise<ExpenseCategory | undefined> {
+    const [category] = await db.select().from(expenseCategories).where(eq(expenseCategories.id, id));
+    return category || undefined;
+  }
+
+  async createExpenseCategory(category: InsertExpenseCategory): Promise<ExpenseCategory> {
+    const [newCategory] = await db.insert(expenseCategories).values(category).returning();
+    return newCategory;
+  }
+
+  async updateExpenseCategory(id: number, category: Partial<InsertExpenseCategory>): Promise<ExpenseCategory | undefined> {
+    const [updated] = await db.update(expenseCategories).set(category).where(eq(expenseCategories.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async deleteExpenseCategory(id: number): Promise<void> {
+    await db.delete(expenseCategories).where(eq(expenseCategories.id, id));
+  }
+
+  // Expenses - المصاريف
+  async getExpenses(filters?: { categoryId?: number; warehouseId?: number; startDate?: Date; endDate?: Date }): Promise<(Expense & { category: ExpenseCategory; warehouse?: { id: number; name: string } })[]> {
+    const conditions = [];
+    if (filters?.categoryId) conditions.push(eq(expenses.categoryId, filters.categoryId));
+    if (filters?.warehouseId) conditions.push(eq(expenses.warehouseId, filters.warehouseId));
+    if (filters?.startDate) conditions.push(gte(expenses.expenseDate, filters.startDate));
+    if (filters?.endDate) conditions.push(lte(expenses.expenseDate, filters.endDate));
+
+    const expensesList = conditions.length > 0
+      ? await db.select().from(expenses).where(and(...conditions)).orderBy(desc(expenses.expenseDate))
+      : await db.select().from(expenses).orderBy(desc(expenses.expenseDate));
+
+    const result = [];
+    for (const expense of expensesList) {
+      const [category] = await db.select().from(expenseCategories).where(eq(expenseCategories.id, expense.categoryId));
+      let warehouse: { id: number; name: string } | undefined;
+      if (expense.warehouseId) {
+        const [wh] = await db.select({ id: warehouses.id, name: warehouses.name }).from(warehouses).where(eq(warehouses.id, expense.warehouseId));
+        warehouse = wh;
+      }
+      result.push({ ...expense, category, warehouse });
+    }
+    return result;
+  }
+
+  async getExpense(id: number): Promise<Expense | undefined> {
+    const [expense] = await db.select().from(expenses).where(eq(expenses.id, id));
+    return expense || undefined;
+  }
+
+  async createExpense(expense: InsertExpense): Promise<Expense> {
+    const [newExpense] = await db.insert(expenses).values(expense).returning();
+    return newExpense;
+  }
+
+  async updateExpense(id: number, expense: Partial<InsertExpense>): Promise<Expense | undefined> {
+    const [updated] = await db.update(expenses).set(expense).where(eq(expenses.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async deleteExpense(id: number): Promise<void> {
+    await db.delete(expenses).where(eq(expenses.id, id));
+  }
+
+  async getExpenseSummary(filters?: { startDate?: Date; endDate?: Date; warehouseId?: number }): Promise<{
+    totalExpenses: number;
+    byCategory: { categoryId: number; categoryName: string; total: number; count: number }[];
+    byMonth: { month: string; total: number }[];
+  }> {
+    const conditions = [];
+    if (filters?.warehouseId) conditions.push(eq(expenses.warehouseId, filters.warehouseId));
+    if (filters?.startDate) conditions.push(gte(expenses.expenseDate, filters.startDate));
+    if (filters?.endDate) conditions.push(lte(expenses.expenseDate, filters.endDate));
+
+    const expensesList = conditions.length > 0
+      ? await db.select().from(expenses).where(and(...conditions))
+      : await db.select().from(expenses);
+
+    const allCategories = await db.select().from(expenseCategories);
+    const categoryMap = new Map(allCategories.map(c => [c.id, c.name]));
+
+    // Calculate totals by category
+    const byCategoryMap = new Map<number, { total: number; count: number }>();
+    let totalExpenses = 0;
+
+    for (const exp of expensesList) {
+      const amount = parseFloat(exp.amount);
+      totalExpenses += amount;
+      
+      const current = byCategoryMap.get(exp.categoryId) || { total: 0, count: 0 };
+      current.total += amount;
+      current.count += 1;
+      byCategoryMap.set(exp.categoryId, current);
+    }
+
+    const byCategory = Array.from(byCategoryMap.entries()).map(([categoryId, data]) => ({
+      categoryId,
+      categoryName: categoryMap.get(categoryId) || 'غير محدد',
+      total: data.total,
+      count: data.count,
+    }));
+
+    // Calculate totals by month
+    const byMonthMap = new Map<string, number>();
+    for (const exp of expensesList) {
+      const date = new Date(exp.expenseDate);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      byMonthMap.set(monthKey, (byMonthMap.get(monthKey) || 0) + parseFloat(exp.amount));
+    }
+
+    const byMonth = Array.from(byMonthMap.entries())
+      .map(([month, total]) => ({ month, total }))
+      .sort((a, b) => a.month.localeCompare(b.month));
+
+    return { totalExpenses, byCategory, byMonth };
   }
 }
 

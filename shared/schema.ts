@@ -757,3 +757,37 @@ export const bannerProducts = pgTable("banner_products", {
 export const insertBannerProductSchema = createInsertSchema(bannerProducts).omit({ id: true, createdAt: true });
 export type InsertBannerProduct = z.infer<typeof insertBannerProductSchema>;
 export type BannerProduct = typeof bannerProducts.$inferSelect;
+
+// Expense Categories table - فئات المصاريف
+export const expenseCategories = pgTable("expense_categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  icon: text("icon").default("Receipt"),
+  color: text("color").default("#6366f1"),
+  description: text("description"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertExpenseCategorySchema = createInsertSchema(expenseCategories).omit({ id: true, createdAt: true });
+export type InsertExpenseCategory = z.infer<typeof insertExpenseCategorySchema>;
+export type ExpenseCategory = typeof expenseCategories.$inferSelect;
+
+// Expenses table - المصاريف
+export const expenses = pgTable("expenses", {
+  id: serial("id").primaryKey(),
+  categoryId: integer("category_id").notNull().references(() => expenseCategories.id),
+  warehouseId: integer("warehouse_id").references(() => warehouses.id),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  description: text("description").notNull(),
+  notes: text("notes"),
+  paymentMethod: text("payment_method").default("cash"), // cash, bank_transfer, check
+  reference: text("reference"), // رقم مرجعي (شيك، حوالة، إلخ)
+  expenseDate: timestamp("expense_date").defaultNow().notNull(),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertExpenseSchema = createInsertSchema(expenses).omit({ id: true, createdAt: true });
+export type InsertExpense = z.infer<typeof insertExpenseSchema>;
+export type Expense = typeof expenses.$inferSelect;
