@@ -31,7 +31,7 @@ import {
   GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight, LogOut, MousePointer, EyeOff
 } from 'lucide-react';
 import { Link } from 'wouter';
-import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI, bannersAPI, segmentsAPI, suppliersAPI, reportsAPI, expensesAPI, expenseCategoriesAPI, deliverySettingsAPI } from '@/lib/api';
+import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI, bannersAPI, segmentsAPI, suppliersAPI, reportsAPI, expensesAPI, expenseCategoriesAPI, deliverySettingsAPI, staffAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart, Line, Legend, ComposedChart, RadialBarChart, RadialBar, Treemap, FunnelChart, Funnel, LabelList } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -134,6 +134,20 @@ interface ReturnRequest {
   processedAt?: string;
 }
 
+interface Staff {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  role: string;
+  department?: string | null;
+  permissions?: string[] | null;
+  status: string;
+  avatar?: string | null;
+  createdAt: string;
+}
+
 const salesData = [
   { name: 'يناير', sales: 45000, orders: 240, customers: 180, returns: 12 },
   { name: 'فبراير', sales: 52000, orders: 280, customers: 210, returns: 15 },
@@ -166,13 +180,6 @@ const funnelData = [
   { name: 'طلب مكتمل', value: 5000, fill: '#ef4444' },
 ];
 
-const mockStaff = [
-  { id: 1, name: 'أحمد محمد', email: 'ahmed@sary.sa', phone: '0501234567', role: 'admin', department: 'الإدارة', status: 'active', permissions: ['all'], lastActive: 'الآن' },
-  { id: 2, name: 'سارة علي', email: 'sara@sary.sa', phone: '0559876543', role: 'manager', department: 'المبيعات', status: 'active', permissions: ['orders', 'products'], lastActive: '5 دقائق' },
-  { id: 3, name: 'محمد خالد', email: 'mohammed@sary.sa', phone: '0543216789', role: 'support', department: 'الدعم الفني', status: 'active', permissions: ['support', 'customers'], lastActive: '15 دقيقة' },
-  { id: 4, name: 'فاطمة أحمد', email: 'fatima@sary.sa', phone: '0567891234', role: 'warehouse', department: 'المستودعات', status: 'active', permissions: ['inventory'], lastActive: '1 ساعة' },
-  { id: 5, name: 'عبدالله سعود', email: 'abdullah@sary.sa', phone: '0512345678', role: 'sales', department: 'المبيعات', status: 'inactive', permissions: ['orders'], lastActive: '3 أيام' },
-];
 
 const mockTickets = [
   { id: 1, ticketNumber: 'TKT-001', customer: 'سوبر ماركت الفيصل', subject: 'مشكلة في الطلب #1024', category: 'order', priority: 'high', status: 'open', assignedTo: 'محمد خالد', createdAt: '10 دقائق', messages: 3 },
@@ -611,6 +618,22 @@ export default function Admin() {
     capacity: '', fuelType: 'ديزل', driverId: '', warehouseId: '', status: 'available', mileage: '0', notes: '',
   });
 
+  // Staff management state
+  const [staffSearch, setStaffSearch] = useState('');
+  const [staffRoleFilter, setStaffRoleFilter] = useState('all');
+  const [staffDepartmentFilter, setStaffDepartmentFilter] = useState('all');
+  const [staffStatusFilter, setStaffStatusFilter] = useState('all');
+  const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
+  const [isEditStaffOpen, setIsEditStaffOpen] = useState(false);
+  const [isDeleteStaffOpen, setIsDeleteStaffOpen] = useState(false);
+  const [staffToDelete, setStaffToDelete] = useState<Staff | null>(null);
+  const [isPermissionsOpen, setIsPermissionsOpen] = useState(false);
+  const [permissionsStaff, setPermissionsStaff] = useState<Staff | null>(null);
+  const [newStaff, setNewStaff] = useState({
+    name: '', email: '', phone: '', password: '', role: 'sales', department: 'المبيعات',
+    permissions: [] as string[], status: 'active', avatar: ''
+  });
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -727,6 +750,52 @@ export default function Admin() {
   const { data: expenseSummary = { totalExpenses: 0, byCategory: [], byMonth: [] }, refetch: refetchExpenseSummary } = useQuery<{ totalExpenses: number; byCategory: any[]; byMonth: any[] }>({
     queryKey: ['expenseSummary'],
     queryFn: () => expensesAPI.getSummary() as Promise<{ totalExpenses: number; byCategory: any[]; byMonth: any[] }>,
+  });
+
+  // Staff Query
+  const { data: staffList = [], isLoading: staffLoading, refetch: refetchStaff } = useQuery<Staff[]>({
+    queryKey: ['staff'],
+    queryFn: () => staffAPI.getAll() as Promise<Staff[]>,
+  });
+
+  // Staff Mutations
+  const createStaffMutation = useMutation({
+    mutationFn: (data: any) => staffAPI.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['staff'] });
+      setIsAddStaffOpen(false);
+      setNewStaff({ name: '', email: '', phone: '', password: '', role: 'sales', department: 'المبيعات', permissions: [], status: 'active', avatar: '' });
+      toast({ title: 'تم إضافة الموظف بنجاح' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'خطأ', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const updateStaffMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) => staffAPI.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['staff'] });
+      setIsEditStaffOpen(false);
+      setEditingStaff(null);
+      toast({ title: 'تم تحديث الموظف بنجاح' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'خطأ', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const deleteStaffMutation = useMutation({
+    mutationFn: (id: number) => staffAPI.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['staff'] });
+      setIsDeleteStaffOpen(false);
+      setStaffToDelete(null);
+      toast({ title: 'تم حذف الموظف بنجاح' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'خطأ', description: error.message, variant: 'destructive' });
+    },
   });
 
   // Customer Stats Queries
@@ -4770,32 +4839,225 @@ export default function Admin() {
 
           {/* Staff Management Tab */}
           <TabsContent value="staff">
-            <Card className="p-6 border-none shadow-lg rounded-2xl">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="font-bold text-xl">إدارة الموظفين والصلاحيات</h3>
-                  <p className="text-gray-500 text-sm mt-1">{mockStaff.length} موظف مسجل</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input className="pr-10 w-64 bg-gray-50 border-none rounded-xl" placeholder="بحث عن موظف..." />
+            <div className="space-y-6">
+              {/* World-Class Header with Gradient */}
+              <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 p-6 text-white"
+              >
+                <div className="absolute inset-0 bg-black/10"></div>
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold flex items-center gap-3">
+                        <UserCog className="w-8 h-8" />
+                        إدارة الموظفين والصلاحيات
+                      </h2>
+                      <p className="text-white/80 mt-1">إدارة فريق العمل وتحديد صلاحيات الوصول</p>
+                    </div>
+                    <Button 
+                      onClick={() => refetchStaff()}
+                      variant="secondary" 
+                      className="rounded-xl gap-2 bg-white/20 hover:bg-white/30 text-white border-none"
+                      data-testid="refresh-staff"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      تحديث
+                    </Button>
                   </div>
+                </div>
+                <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+              </motion.div>
+
+              {/* KPI Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}>
+                  <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center text-white">
+                        <Users className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-blue-700">{staffList.length}</p>
+                        <p className="text-xs text-blue-600">إجمالي الموظفين</p>
+                      </div>
+                    </div>
+                  </Card>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.15 }}>
+                  <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-green-50 to-green-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center text-white">
+                        <CheckCircle className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-green-700">{staffList.filter(s => s.status === 'active').length}</p>
+                        <p className="text-xs text-green-600">نشط</p>
+                      </div>
+                    </div>
+                  </Card>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
+                  <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-gray-500 flex items-center justify-center text-white">
+                        <XCircle className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-gray-700">{staffList.filter(s => s.status === 'inactive').length}</p>
+                        <p className="text-xs text-gray-600">غير نشط</p>
+                      </div>
+                    </div>
+                  </Card>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.25 }}>
+                  <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-purple-500 flex items-center justify-center text-white">
+                        <Shield className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-purple-700">{staffList.filter(s => s.role === 'admin').length}</p>
+                        <p className="text-xs text-purple-600">مدراء النظام</p>
+                      </div>
+                    </div>
+                  </Card>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}>
+                  <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-orange-50 to-orange-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-orange-500 flex items-center justify-center text-white">
+                        <Warehouse className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-orange-700">{staffList.filter(s => s.role === 'warehouse').length}</p>
+                        <p className="text-xs text-orange-600">مستودعات</p>
+                      </div>
+                    </div>
+                  </Card>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.35 }}>
+                  <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-cyan-50 to-cyan-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-cyan-500 flex items-center justify-center text-white">
+                        <Headphones className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-cyan-700">{staffList.filter(s => s.role === 'support').length}</p>
+                        <p className="text-xs text-cyan-600">دعم فني</p>
+                      </div>
+                    </div>
+                  </Card>
+                </motion.div>
+              </div>
+
+              {/* Filters and Actions */}
+              <Card className="p-4 border-none shadow-lg rounded-2xl">
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="relative flex-1 min-w-[200px]">
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input 
+                      className="pr-10 bg-gray-50 border-none rounded-xl" 
+                      placeholder="بحث بالاسم أو البريد أو الهاتف..." 
+                      value={staffSearch}
+                      onChange={(e) => setStaffSearch(e.target.value)}
+                      data-testid="staff-search"
+                    />
+                  </div>
+                  <Select value={staffRoleFilter} onValueChange={setStaffRoleFilter}>
+                    <SelectTrigger className="w-40 rounded-xl border-none bg-gray-50" data-testid="staff-role-filter">
+                      <SelectValue placeholder="الدور" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">كل الأدوار</SelectItem>
+                      <SelectItem value="admin">مدير النظام</SelectItem>
+                      <SelectItem value="manager">مدير</SelectItem>
+                      <SelectItem value="sales">مبيعات</SelectItem>
+                      <SelectItem value="support">دعم فني</SelectItem>
+                      <SelectItem value="warehouse">مستودعات</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={staffStatusFilter} onValueChange={setStaffStatusFilter}>
+                    <SelectTrigger className="w-32 rounded-xl border-none bg-gray-50" data-testid="staff-status-filter">
+                      <SelectValue placeholder="الحالة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">الكل</SelectItem>
+                      <SelectItem value="active">نشط</SelectItem>
+                      <SelectItem value="inactive">غير نشط</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <Dialog open={isAddStaffOpen} onOpenChange={setIsAddStaffOpen}>
                     <DialogTrigger asChild>
-                      <Button className="rounded-xl gap-2"><UserPlus className="w-4 h-4" />إضافة موظف</Button>
+                      <Button className="rounded-xl gap-2 bg-gradient-to-r from-primary to-purple-600" data-testid="add-staff-btn">
+                        <UserPlus className="w-4 h-4" />إضافة موظف
+                      </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-lg">
-                      <DialogHeader><DialogTitle>إضافة موظف جديد</DialogTitle></DialogHeader>
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                          <UserPlus className="w-5 h-5 text-primary" />
+                          إضافة موظف جديد
+                        </DialogTitle>
+                        <DialogDescription>أدخل بيانات الموظف الجديد</DialogDescription>
+                      </DialogHeader>
                       <div className="space-y-4 mt-4">
                         <div className="grid grid-cols-2 gap-4">
-                          <div><Label>الاسم الكامل</Label><Input className="rounded-xl mt-1" placeholder="أحمد محمد" /></div>
-                          <div><Label>البريد الإلكتروني</Label><Input className="rounded-xl mt-1" placeholder="ahmed@sary.sa" /></div>
-                          <div><Label>رقم الجوال</Label><Input className="rounded-xl mt-1" placeholder="0501234567" /></div>
                           <div>
-                            <Label>الدور الوظيفي</Label>
-                            <Select>
-                              <SelectTrigger className="rounded-xl mt-1"><SelectValue placeholder="اختر" /></SelectTrigger>
+                            <Label>الاسم الكامل *</Label>
+                            <Input 
+                              className="rounded-xl mt-1" 
+                              placeholder="أحمد محمد"
+                              value={newStaff.name}
+                              onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
+                              data-testid="new-staff-name"
+                            />
+                          </div>
+                          <div>
+                            <Label>البريد الإلكتروني *</Label>
+                            <Input 
+                              className="rounded-xl mt-1" 
+                              placeholder="ahmed@sary.sa"
+                              type="email"
+                              value={newStaff.email}
+                              onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
+                              data-testid="new-staff-email"
+                            />
+                          </div>
+                          <div>
+                            <Label>رقم الجوال *</Label>
+                            <Input 
+                              className="rounded-xl mt-1" 
+                              placeholder="0501234567"
+                              value={newStaff.phone}
+                              onChange={(e) => setNewStaff({ ...newStaff, phone: e.target.value })}
+                              data-testid="new-staff-phone"
+                            />
+                          </div>
+                          <div>
+                            <Label>كلمة المرور *</Label>
+                            <Input 
+                              className="rounded-xl mt-1" 
+                              placeholder="••••••••"
+                              type="password"
+                              value={newStaff.password}
+                              onChange={(e) => setNewStaff({ ...newStaff, password: e.target.value })}
+                              data-testid="new-staff-password"
+                            />
+                          </div>
+                          <div>
+                            <Label>الدور الوظيفي *</Label>
+                            <Select value={newStaff.role} onValueChange={(v) => setNewStaff({ ...newStaff, role: v })}>
+                              <SelectTrigger className="rounded-xl mt-1" data-testid="new-staff-role">
+                                <SelectValue placeholder="اختر" />
+                              </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="admin">مدير النظام</SelectItem>
                                 <SelectItem value="manager">مدير</SelectItem>
@@ -4805,61 +5067,402 @@ export default function Admin() {
                               </SelectContent>
                             </Select>
                           </div>
+                          <div>
+                            <Label>القسم</Label>
+                            <Select value={newStaff.department} onValueChange={(v) => setNewStaff({ ...newStaff, department: v })}>
+                              <SelectTrigger className="rounded-xl mt-1" data-testid="new-staff-department">
+                                <SelectValue placeholder="اختر" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="الإدارة">الإدارة</SelectItem>
+                                <SelectItem value="المبيعات">المبيعات</SelectItem>
+                                <SelectItem value="الدعم الفني">الدعم الفني</SelectItem>
+                                <SelectItem value="المستودعات">المستودعات</SelectItem>
+                                <SelectItem value="المحاسبة">المحاسبة</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
-                        <Button className="w-full rounded-xl">إضافة الموظف</Button>
+                        <div>
+                          <Label className="mb-2 block">الصلاحيات</Label>
+                          <div className="grid grid-cols-3 gap-2">
+                            {['orders', 'products', 'customers', 'reports', 'support', 'inventory'].map((perm) => (
+                              <div key={perm} className="flex items-center gap-2">
+                                <Checkbox 
+                                  id={`perm-${perm}`}
+                                  checked={newStaff.permissions.includes(perm)}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setNewStaff({ ...newStaff, permissions: [...newStaff.permissions, perm] });
+                                    } else {
+                                      setNewStaff({ ...newStaff, permissions: newStaff.permissions.filter(p => p !== perm) });
+                                    }
+                                  }}
+                                />
+                                <Label htmlFor={`perm-${perm}`} className="text-sm">
+                                  {perm === 'orders' ? 'الطلبات' : perm === 'products' ? 'المنتجات' : perm === 'customers' ? 'العملاء' : perm === 'reports' ? 'التقارير' : perm === 'support' ? 'الدعم' : 'المخزون'}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <Button 
+                          className="w-full rounded-xl bg-gradient-to-r from-primary to-purple-600"
+                          onClick={() => createStaffMutation.mutate(newStaff)}
+                          disabled={createStaffMutation.isPending || !newStaff.name || !newStaff.email || !newStaff.phone || !newStaff.password}
+                          data-testid="submit-new-staff"
+                        >
+                          {createStaffMutation.isPending ? 'جاري الإضافة...' : 'إضافة الموظف'}
+                        </Button>
                       </div>
                     </DialogContent>
                   </Dialog>
                 </div>
-              </div>
+              </Card>
 
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="text-right border-b border-gray-100">
-                      <th className="pb-4 font-bold text-gray-600">الموظف</th>
-                      <th className="pb-4 font-bold text-gray-600">الدور</th>
-                      <th className="pb-4 font-bold text-gray-600">القسم</th>
-                      <th className="pb-4 font-bold text-gray-600">آخر نشاط</th>
-                      <th className="pb-4 font-bold text-gray-600">الحالة</th>
-                      <th className="pb-4 font-bold text-gray-600">الإجراءات</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mockStaff.map((member) => (
-                      <tr key={member.id} className="border-b border-gray-50 hover:bg-gray-50">
-                        <td className="py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white font-bold">{member.name.charAt(0)}</div>
-                            <div>
-                              <p className="font-bold">{member.name}</p>
-                              <p className="text-xs text-gray-500">{member.email}</p>
+              {/* Staff Table */}
+              <Card className="border-none shadow-lg rounded-2xl overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-gray-50">
+                    <TableRow>
+                      <TableHead className="text-right font-bold">الموظف</TableHead>
+                      <TableHead className="text-right font-bold">الدور</TableHead>
+                      <TableHead className="text-right font-bold">القسم</TableHead>
+                      <TableHead className="text-right font-bold">الهاتف</TableHead>
+                      <TableHead className="text-right font-bold">الحالة</TableHead>
+                      <TableHead className="text-right font-bold">تاريخ الإنضمام</TableHead>
+                      <TableHead className="text-right font-bold">الإجراءات</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {staffLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-12">
+                          <div className="flex items-center justify-center gap-2">
+                            <RefreshCw className="w-5 h-5 animate-spin text-primary" />
+                            <span>جاري التحميل...</span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : staffList
+                        .filter(member => {
+                          const matchesSearch = staffSearch === '' || 
+                            member.name.toLowerCase().includes(staffSearch.toLowerCase()) ||
+                            member.email.toLowerCase().includes(staffSearch.toLowerCase()) ||
+                            member.phone.includes(staffSearch);
+                          const matchesRole = staffRoleFilter === 'all' || member.role === staffRoleFilter;
+                          const matchesStatus = staffStatusFilter === 'all' || member.status === staffStatusFilter;
+                          return matchesSearch && matchesRole && matchesStatus;
+                        })
+                        .length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-12">
+                          <div className="flex flex-col items-center gap-2 text-gray-500">
+                            <Users className="w-12 h-12 text-gray-300" />
+                            <p>لا يوجد موظفين</p>
+                            <Button 
+                              variant="outline" 
+                              className="rounded-xl mt-2"
+                              onClick={() => setIsAddStaffOpen(true)}
+                            >
+                              <UserPlus className="w-4 h-4 ml-2" />
+                              إضافة موظف جديد
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      staffList
+                        .filter(member => {
+                          const matchesSearch = staffSearch === '' || 
+                            member.name.toLowerCase().includes(staffSearch.toLowerCase()) ||
+                            member.email.toLowerCase().includes(staffSearch.toLowerCase()) ||
+                            member.phone.includes(staffSearch);
+                          const matchesRole = staffRoleFilter === 'all' || member.role === staffRoleFilter;
+                          const matchesStatus = staffStatusFilter === 'all' || member.status === staffStatusFilter;
+                          return matchesSearch && matchesRole && matchesStatus;
+                        })
+                        .map((member) => (
+                          <TableRow key={member.id} className="hover:bg-gray-50/50" data-testid={`staff-row-${member.id}`}>
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${
+                                  member.role === 'admin' ? 'from-purple-500 to-pink-500' :
+                                  member.role === 'manager' ? 'from-blue-500 to-cyan-500' :
+                                  member.role === 'support' ? 'from-green-500 to-emerald-500' :
+                                  member.role === 'warehouse' ? 'from-orange-500 to-amber-500' :
+                                  'from-gray-500 to-slate-500'
+                                } flex items-center justify-center text-white font-bold text-lg shadow-lg`}>
+                                  {member.name.charAt(0)}
+                                </div>
+                                <div>
+                                  <p className="font-bold">{member.name}</p>
+                                  <p className="text-xs text-gray-500">{member.email}</p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={`rounded-lg ${
+                                member.role === 'admin' ? 'bg-purple-100 text-purple-700' :
+                                member.role === 'manager' ? 'bg-blue-100 text-blue-700' :
+                                member.role === 'support' ? 'bg-green-100 text-green-700' :
+                                member.role === 'warehouse' ? 'bg-orange-100 text-orange-700' :
+                                'bg-gray-100 text-gray-700'
+                              }`}>
+                                {member.role === 'admin' ? 'مدير النظام' : 
+                                 member.role === 'manager' ? 'مدير' : 
+                                 member.role === 'support' ? 'دعم فني' : 
+                                 member.role === 'warehouse' ? 'مستودعات' : 'مبيعات'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm">{member.department || '-'}</span>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm font-mono">{member.phone}</span>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={`rounded-lg ${member.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                                {member.status === 'active' ? 'نشط' : 'غير نشط'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm text-gray-500">
+                                {new Date(member.createdAt).toLocaleDateString('ar-SY')}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <Button 
+                                  size="icon" 
+                                  variant="ghost" 
+                                  className="h-9 w-9 rounded-lg hover:bg-blue-50 hover:text-blue-600"
+                                  onClick={() => {
+                                    setEditingStaff(member);
+                                    setIsEditStaffOpen(true);
+                                  }}
+                                  data-testid={`edit-staff-${member.id}`}
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button 
+                                  size="icon" 
+                                  variant="ghost" 
+                                  className="h-9 w-9 rounded-lg hover:bg-purple-50 hover:text-purple-600"
+                                  onClick={() => {
+                                    setPermissionsStaff(member);
+                                    setIsPermissionsOpen(true);
+                                  }}
+                                  data-testid={`permissions-staff-${member.id}`}
+                                >
+                                  <Key className="w-4 h-4" />
+                                </Button>
+                                <Button 
+                                  size="icon" 
+                                  variant="ghost" 
+                                  className="h-9 w-9 rounded-lg hover:bg-red-50 hover:text-red-600"
+                                  onClick={() => {
+                                    setStaffToDelete(member);
+                                    setIsDeleteStaffOpen(true);
+                                  }}
+                                  data-testid={`delete-staff-${member.id}`}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                    )}
+                  </TableBody>
+                </Table>
+              </Card>
+
+              {/* Edit Staff Dialog */}
+              <Dialog open={isEditStaffOpen} onOpenChange={setIsEditStaffOpen}>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Edit className="w-5 h-5 text-primary" />
+                      تعديل بيانات الموظف
+                    </DialogTitle>
+                  </DialogHeader>
+                  {editingStaff && (
+                    <div className="space-y-4 mt-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>الاسم الكامل</Label>
+                          <Input 
+                            className="rounded-xl mt-1" 
+                            value={editingStaff.name}
+                            onChange={(e) => setEditingStaff({ ...editingStaff, name: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <Label>البريد الإلكتروني</Label>
+                          <Input 
+                            className="rounded-xl mt-1" 
+                            value={editingStaff.email}
+                            onChange={(e) => setEditingStaff({ ...editingStaff, email: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <Label>رقم الجوال</Label>
+                          <Input 
+                            className="rounded-xl mt-1" 
+                            value={editingStaff.phone}
+                            onChange={(e) => setEditingStaff({ ...editingStaff, phone: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <Label>الدور الوظيفي</Label>
+                          <Select value={editingStaff.role} onValueChange={(v) => setEditingStaff({ ...editingStaff, role: v })}>
+                            <SelectTrigger className="rounded-xl mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="admin">مدير النظام</SelectItem>
+                              <SelectItem value="manager">مدير</SelectItem>
+                              <SelectItem value="sales">مبيعات</SelectItem>
+                              <SelectItem value="support">دعم فني</SelectItem>
+                              <SelectItem value="warehouse">مستودعات</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>القسم</Label>
+                          <Select value={editingStaff.department || ''} onValueChange={(v) => setEditingStaff({ ...editingStaff, department: v })}>
+                            <SelectTrigger className="rounded-xl mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="الإدارة">الإدارة</SelectItem>
+                              <SelectItem value="المبيعات">المبيعات</SelectItem>
+                              <SelectItem value="الدعم الفني">الدعم الفني</SelectItem>
+                              <SelectItem value="المستودعات">المستودعات</SelectItem>
+                              <SelectItem value="المحاسبة">المحاسبة</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>الحالة</Label>
+                          <Select value={editingStaff.status} onValueChange={(v) => setEditingStaff({ ...editingStaff, status: v })}>
+                            <SelectTrigger className="rounded-xl mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="active">نشط</SelectItem>
+                              <SelectItem value="inactive">غير نشط</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <Button 
+                        className="w-full rounded-xl"
+                        onClick={() => updateStaffMutation.mutate({ id: editingStaff.id, data: editingStaff })}
+                        disabled={updateStaffMutation.isPending}
+                      >
+                        {updateStaffMutation.isPending ? 'جاري الحفظ...' : 'حفظ التغييرات'}
+                      </Button>
+                    </div>
+                  )}
+                </DialogContent>
+              </Dialog>
+
+              {/* Permissions Dialog */}
+              <Dialog open={isPermissionsOpen} onOpenChange={setIsPermissionsOpen}>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Key className="w-5 h-5 text-purple-600" />
+                      إدارة الصلاحيات
+                    </DialogTitle>
+                    <DialogDescription>
+                      {permissionsStaff?.name}
+                    </DialogDescription>
+                  </DialogHeader>
+                  {permissionsStaff && (
+                    <div className="space-y-4 mt-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        {[
+                          { key: 'orders', label: 'الطلبات', icon: ShoppingCart },
+                          { key: 'products', label: 'المنتجات', icon: Package },
+                          { key: 'customers', label: 'العملاء', icon: Users },
+                          { key: 'reports', label: 'التقارير', icon: BarChart3 },
+                          { key: 'support', label: 'الدعم الفني', icon: Headphones },
+                          { key: 'inventory', label: 'المخزون', icon: Warehouse },
+                          { key: 'finance', label: 'المالية', icon: DollarSign },
+                          { key: 'settings', label: 'الإعدادات', icon: Settings },
+                        ].map(({ key, label, icon: Icon }) => (
+                          <div 
+                            key={key} 
+                            className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                              (permissionsStaff.permissions || []).includes(key) 
+                                ? 'border-purple-500 bg-purple-50' 
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                            onClick={() => {
+                              const currentPerms = permissionsStaff.permissions || [];
+                              const newPerms = currentPerms.includes(key) 
+                                ? currentPerms.filter(p => p !== key)
+                                : [...currentPerms, key];
+                              setPermissionsStaff({ ...permissionsStaff, permissions: newPerms });
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Icon className={`w-5 h-5 ${(permissionsStaff.permissions || []).includes(key) ? 'text-purple-600' : 'text-gray-400'}`} />
+                              <span className={`font-medium ${(permissionsStaff.permissions || []).includes(key) ? 'text-purple-700' : 'text-gray-600'}`}>{label}</span>
                             </div>
                           </div>
-                        </td>
-                        <td className="py-4">
-                          <Badge variant="outline" className="capitalize">
-                            {member.role === 'admin' ? 'مدير النظام' : member.role === 'manager' ? 'مدير' : member.role === 'support' ? 'دعم فني' : member.role === 'warehouse' ? 'مستودعات' : 'مبيعات'}
-                          </Badge>
-                        </td>
-                        <td className="py-4"><span className="text-sm">{member.department}</span></td>
-                        <td className="py-4 text-sm text-gray-500">{member.lastActive}</td>
-                        <td className="py-4">
-                          <Badge className={member.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>{member.status === 'active' ? 'نشط' : 'غير نشط'}</Badge>
-                        </td>
-                        <td className="py-4">
-                          <div className="flex items-center gap-1">
-                            <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg hover:bg-blue-50 hover:text-blue-600"><Eye className="w-4 h-4" /></Button>
-                            <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg hover:bg-green-50 hover:text-green-600"><Edit className="w-4 h-4" /></Button>
-                            <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg hover:bg-purple-50 hover:text-purple-600"><Key className="w-4 h-4" /></Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
+                        ))}
+                      </div>
+                      <Button 
+                        className="w-full rounded-xl bg-gradient-to-r from-purple-600 to-pink-600"
+                        onClick={() => updateStaffMutation.mutate({ id: permissionsStaff.id, data: { permissions: permissionsStaff.permissions } })}
+                        disabled={updateStaffMutation.isPending}
+                      >
+                        {updateStaffMutation.isPending ? 'جاري الحفظ...' : 'حفظ الصلاحيات'}
+                      </Button>
+                    </div>
+                  )}
+                </DialogContent>
+              </Dialog>
+
+              {/* Delete Confirmation Dialog */}
+              <Dialog open={isDeleteStaffOpen} onOpenChange={setIsDeleteStaffOpen}>
+                <DialogContent className="max-w-sm">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-red-600">
+                      <Trash2 className="w-5 h-5" />
+                      تأكيد الحذف
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="py-4">
+                    <p className="text-gray-600">
+                      هل أنت متأكد من حذف الموظف <span className="font-bold">{staffToDelete?.name}</span>؟
+                    </p>
+                    <p className="text-sm text-gray-500 mt-2">لا يمكن التراجع عن هذا الإجراء.</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <Button 
+                      variant="outline" 
+                      className="flex-1 rounded-xl"
+                      onClick={() => setIsDeleteStaffOpen(false)}
+                    >
+                      إلغاء
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      className="flex-1 rounded-xl"
+                      onClick={() => staffToDelete && deleteStaffMutation.mutate(staffToDelete.id)}
+                      disabled={deleteStaffMutation.isPending}
+                    >
+                      {deleteStaffMutation.isPending ? 'جاري الحذف...' : 'حذف'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
           </TabsContent>
 
           {/* Support Tickets Tab */}

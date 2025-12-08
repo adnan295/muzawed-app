@@ -297,6 +297,9 @@ export const staffAPI = {
     method: "PUT",
     body: JSON.stringify(data),
   }),
+  delete: (id: number) => request(`/staff/${id}`, {
+    method: "DELETE",
+  }),
 };
 
 // Support Tickets API

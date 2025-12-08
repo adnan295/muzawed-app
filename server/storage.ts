@@ -1091,6 +1091,10 @@ export class DatabaseStorage implements IStorage {
     return updated || undefined;
   }
 
+  async deleteStaff(id: number): Promise<void> {
+    await db.delete(staff).where(eq(staff.id, id));
+  }
+
   // Support Tickets
   async getSupportTickets(): Promise<SupportTicket[]> {
     return await db.select().from(supportTickets).orderBy(desc(supportTickets.createdAt));

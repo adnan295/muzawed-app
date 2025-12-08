@@ -1052,6 +1052,15 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/staff/:id", async (req, res) => {
+    try {
+      await storage.deleteStaff(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ==================== Support Tickets Routes ====================
   
   app.get("/api/tickets", async (req, res) => {
