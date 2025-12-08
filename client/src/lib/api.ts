@@ -517,3 +517,51 @@ export const bannersAPI = {
     body: JSON.stringify({ ids }),
   }),
 };
+
+export const expenseCategoriesAPI = {
+  getAll: () => request("/expense-categories"),
+  getById: (id: number) => request(`/expense-categories/${id}`),
+  create: (data: { name: string; icon?: string; color?: string; description?: string }) => request("/expense-categories", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+  update: (id: number, data: Partial<{ name: string; icon: string; color: string; description: string; isActive: boolean }>) => request(`/expense-categories/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }),
+  delete: (id: number) => request(`/expense-categories/${id}`, {
+    method: "DELETE",
+  }),
+};
+
+export const expensesAPI = {
+  getAll: (filters?: { categoryId?: number; warehouseId?: number; startDate?: string; endDate?: string }) => {
+    const params = new URLSearchParams();
+    if (filters?.categoryId) params.append("categoryId", filters.categoryId.toString());
+    if (filters?.warehouseId) params.append("warehouseId", filters.warehouseId.toString());
+    if (filters?.startDate) params.append("startDate", filters.startDate);
+    if (filters?.endDate) params.append("endDate", filters.endDate);
+    const queryString = params.toString();
+    return request(`/expenses${queryString ? `?${queryString}` : ""}`);
+  },
+  getById: (id: number) => request(`/expenses/${id}`),
+  getSummary: (filters?: { warehouseId?: number; startDate?: string; endDate?: string }) => {
+    const params = new URLSearchParams();
+    if (filters?.warehouseId) params.append("warehouseId", filters.warehouseId.toString());
+    if (filters?.startDate) params.append("startDate", filters.startDate);
+    if (filters?.endDate) params.append("endDate", filters.endDate);
+    const queryString = params.toString();
+    return request(`/expenses/summary${queryString ? `?${queryString}` : ""}`);
+  },
+  create: (data: { categoryId: number; warehouseId?: number; amount: string; description: string; notes?: string; paymentMethod?: string; reference?: string; expenseDate?: string }) => request("/expenses", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+  update: (id: number, data: Partial<{ categoryId: number; warehouseId: number; amount: string; description: string; notes: string; paymentMethod: string; reference: string; expenseDate: string }>) => request(`/expenses/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }),
+  delete: (id: number) => request(`/expenses/${id}`, {
+    method: "DELETE",
+  }),
+};

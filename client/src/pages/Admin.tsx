@@ -30,7 +30,7 @@ import {
   GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight, LogOut, MousePointer, EyeOff
 } from 'lucide-react';
 import { Link } from 'wouter';
-import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI, bannersAPI, segmentsAPI, suppliersAPI, reportsAPI } from '@/lib/api';
+import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI, bannersAPI, segmentsAPI, suppliersAPI, reportsAPI, expensesAPI, expenseCategoriesAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart, Line, Legend, ComposedChart, RadialBarChart, RadialBar, Treemap, FunnelChart, Funnel, LabelList } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -380,9 +380,9 @@ export default function Admin() {
   });
 
   // Banners Query
-  const { data: bannersList = [], refetch: refetchBanners } = useQuery({
+  const { data: bannersList = [], refetch: refetchBanners } = useQuery<any[]>({
     queryKey: ['banners'],
-    queryFn: () => bannersAPI.getAll(),
+    queryFn: () => bannersAPI.getAll() as Promise<any[]>,
   });
 
   // Customer Segments Query
@@ -403,20 +403,36 @@ export default function Admin() {
     queryFn: () => reportsAPI.getProductProfit(),
   });
 
+  // Expenses Queries
+  const { data: expensesList = [], isLoading: expensesLoading, refetch: refetchExpenses } = useQuery<any[]>({
+    queryKey: ['expenses'],
+    queryFn: () => expensesAPI.getAll() as Promise<any[]>,
+  });
+
+  const { data: expenseCategoriesList = [], refetch: refetchExpenseCategories } = useQuery<any[]>({
+    queryKey: ['expenseCategories'],
+    queryFn: () => expenseCategoriesAPI.getAll() as Promise<any[]>,
+  });
+
+  const { data: expenseSummary = { totalExpenses: 0, byCategory: [], byMonth: [] }, refetch: refetchExpenseSummary } = useQuery<{ totalExpenses: number; byCategory: any[]; byMonth: any[] }>({
+    queryKey: ['expenseSummary'],
+    queryFn: () => expensesAPI.getSummary() as Promise<{ totalExpenses: number; byCategory: any[]; byMonth: any[] }>,
+  });
+
   // Customer Stats Queries
-  const { data: customerStats } = useQuery({
+  const { data: customerStats = { total: 0, newThisMonth: 0, vipCount: 0, activeCount: 0, inactiveCount: 0, avgCustomerValue: 0, retentionRate: 0, reorderRate: 0, satisfactionRate: 0, conversionRate: 0 } } = useQuery<any>({
     queryKey: ['customerStats'],
     queryFn: () => customersAPI.getStats(),
   });
 
-  const { data: topCustomers = [] } = useQuery({
+  const { data: topCustomers = [] } = useQuery<any[]>({
     queryKey: ['topCustomers'],
-    queryFn: () => customersAPI.getTopCustomers(5),
+    queryFn: () => customersAPI.getTopCustomers(5) as Promise<any[]>,
   });
 
-  const { data: customerGrowthData = [] } = useQuery({
+  const { data: customerGrowthData = [] } = useQuery<any[]>({
     queryKey: ['customerGrowth'],
-    queryFn: () => customersAPI.getGrowthData(),
+    queryFn: () => customersAPI.getGrowthData() as Promise<any[]>,
   });
 
   // Customer search and filter state
@@ -444,7 +460,7 @@ export default function Admin() {
     targetCityId: null as number | null,
   });
 
-  const { data: bannerStats } = useQuery({
+  const { data: bannerStats = { totalViews: 0, totalClicks: 0, avgCtr: 0 } } = useQuery<any>({
     queryKey: ['bannerStats'],
     queryFn: () => bannersAPI.getStats(),
   });
@@ -502,6 +518,26 @@ export default function Admin() {
     paymentMethod: 'cash',
     referenceNumber: '',
     notes: '',
+  });
+
+  // Expenses State
+  const [showExpenseDialog, setShowExpenseDialog] = useState(false);
+  const [showExpenseCategoryDialog, setShowExpenseCategoryDialog] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<any>(null);
+  const [editingExpenseCategory, setEditingExpenseCategory] = useState<any>(null);
+  const [expenseForm, setExpenseForm] = useState({
+    categoryId: undefined as number | undefined,
+    amount: '',
+    description: '',
+    warehouseId: undefined as number | undefined,
+    paymentMethod: 'cash',
+    reference: '',
+    notes: '',
+  });
+  const [expenseCategoryForm, setExpenseCategoryForm] = useState({
+    name: '',
+    description: '',
+    color: '#6366f1',
   });
 
   const handleViewSupplierDashboard = async (supplier: any) => {
@@ -670,6 +706,91 @@ export default function Admin() {
       await fetch(`/api/banner-products/${bannerProductId}`, { method: 'DELETE' });
       await fetchBannerProducts(managingBanner.id);
       toast({ title: 'تم إزالة المنتج من الباقة', className: 'bg-green-600 text-white' });
+    } catch (error) {
+      toast({ title: 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  // Expense Handlers
+  const handleSaveExpense = async () => {
+    try {
+      if (editingExpense) {
+        await expensesAPI.update(editingExpense.id, {
+          categoryId: expenseForm.categoryId,
+          warehouseId: expenseForm.warehouseId,
+          amount: expenseForm.amount,
+          description: expenseForm.description,
+          notes: expenseForm.notes,
+          paymentMethod: expenseForm.paymentMethod,
+          reference: expenseForm.reference,
+        });
+        toast({ title: 'تم تحديث المصروف', className: 'bg-green-600 text-white' });
+      } else {
+        await expensesAPI.create({
+          categoryId: expenseForm.categoryId!,
+          warehouseId: expenseForm.warehouseId,
+          amount: expenseForm.amount,
+          description: expenseForm.description,
+          notes: expenseForm.notes,
+          paymentMethod: expenseForm.paymentMethod,
+          reference: expenseForm.reference,
+        });
+        toast({ title: 'تم إضافة المصروف', className: 'bg-green-600 text-white' });
+      }
+      setShowExpenseDialog(false);
+      setEditingExpense(null);
+      setExpenseForm({ categoryId: undefined, amount: '', description: '', warehouseId: undefined, paymentMethod: 'cash', reference: '', notes: '' });
+      refetchExpenses();
+      refetchExpenseSummary();
+    } catch (error) {
+      toast({ title: 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteExpense = async (id: number) => {
+    if (!confirm('هل أنت متأكد من حذف هذا المصروف؟')) return;
+    try {
+      await expensesAPI.delete(id);
+      toast({ title: 'تم حذف المصروف', className: 'bg-green-600 text-white' });
+      refetchExpenses();
+      refetchExpenseSummary();
+    } catch (error) {
+      toast({ title: 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const handleSaveExpenseCategory = async () => {
+    try {
+      if (editingExpenseCategory) {
+        await expenseCategoriesAPI.update(editingExpenseCategory.id, {
+          name: expenseCategoryForm.name,
+          description: expenseCategoryForm.description,
+          color: expenseCategoryForm.color,
+        });
+        toast({ title: 'تم تحديث الفئة', className: 'bg-green-600 text-white' });
+      } else {
+        await expenseCategoriesAPI.create({
+          name: expenseCategoryForm.name,
+          description: expenseCategoryForm.description,
+          color: expenseCategoryForm.color,
+        });
+        toast({ title: 'تم إضافة الفئة', className: 'bg-green-600 text-white' });
+      }
+      setShowExpenseCategoryDialog(false);
+      setEditingExpenseCategory(null);
+      setExpenseCategoryForm({ name: '', description: '', color: '#6366f1' });
+      refetchExpenseCategories();
+    } catch (error) {
+      toast({ title: 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteExpenseCategory = async (id: number) => {
+    if (!confirm('هل أنت متأكد من حذف هذه الفئة؟')) return;
+    try {
+      await expenseCategoriesAPI.delete(id);
+      toast({ title: 'تم حذف الفئة', className: 'bg-green-600 text-white' });
+      refetchExpenseCategories();
     } catch (error) {
       toast({ title: 'حدث خطأ', variant: 'destructive' });
     }
@@ -1400,6 +1521,9 @@ export default function Admin() {
               </TabsTrigger>
               <TabsTrigger value="reports" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
                 <FileText className="w-4 h-4 ml-2" />التقارير
+              </TabsTrigger>
+              <TabsTrigger value="expenses" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
+                <Receipt className="w-4 h-4 ml-2" />المصاريف
               </TabsTrigger>
               <TabsTrigger value="analytics" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
                 <BarChart3 className="w-4 h-4 ml-2" />التحليلات
@@ -3552,7 +3676,7 @@ export default function Admin() {
                           }}
                           data-testid={`edit-segment-${segment.id}`}
                         >
-                          <Pencil className="w-4 h-4 ml-2" />تعديل
+                          <Edit className="w-4 h-4 ml-2" />تعديل
                         </Button>
                         <Button 
                           variant="outline" 
@@ -7044,6 +7168,485 @@ export default function Admin() {
                   )}
                 </DialogContent>
               </Dialog>
+            </div>
+          </TabsContent>
+
+          {/* Expenses Tab */}
+          <TabsContent value="expenses">
+            <div className="space-y-6">
+              {/* Header */}
+              <Card className="p-6 border-none shadow-lg rounded-2xl bg-gradient-to-br from-orange-600 via-red-500 to-pink-600 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-2xl flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                        <Receipt className="w-6 h-6" />
+                      </div>
+                      إدارة المصاريف
+                    </h3>
+                    <p className="text-orange-200 mt-2">تسجيل ومتابعة جميع المصاريف التشغيلية</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <Button 
+                      variant="outline" 
+                      className="rounded-xl gap-2 bg-white/10 border-white/30 text-white hover:bg-white/20"
+                      onClick={() => {
+                        refetchExpenses();
+                        refetchExpenseCategories();
+                        refetchExpenseSummary();
+                      }}
+                      data-testid="button-refresh-expenses"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      تحديث
+                    </Button>
+                    <Dialog open={showExpenseDialog} onOpenChange={setShowExpenseDialog}>
+                      <DialogTrigger asChild>
+                        <Button className="rounded-xl gap-2 bg-white text-orange-600 hover:bg-orange-50" data-testid="button-add-expense">
+                          <Plus className="w-4 h-4" />إضافة مصروف
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-lg">
+                        <DialogHeader>
+                          <DialogTitle className="text-xl">
+                            {editingExpense ? 'تعديل المصروف' : 'إضافة مصروف جديد'}
+                          </DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 mt-4">
+                          <div>
+                            <Label>فئة المصروف</Label>
+                            <Select value={expenseForm.categoryId?.toString() || ''} onValueChange={(val) => setExpenseForm({ ...expenseForm, categoryId: parseInt(val) })}>
+                              <SelectTrigger className="rounded-xl mt-1" data-testid="select-expense-category">
+                                <SelectValue placeholder="اختر الفئة" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {expenseCategoriesList?.map((cat: any) => (
+                                  <SelectItem key={cat.id} value={cat.id.toString()}>{cat.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label>المبلغ (ل.س)</Label>
+                            <Input 
+                              type="number" 
+                              className="rounded-xl mt-1" 
+                              placeholder="أدخل المبلغ"
+                              value={expenseForm.amount}
+                              onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+                              data-testid="input-expense-amount"
+                            />
+                          </div>
+                          <div>
+                            <Label>الوصف</Label>
+                            <Input 
+                              className="rounded-xl mt-1" 
+                              placeholder="وصف المصروف"
+                              value={expenseForm.description}
+                              onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
+                              data-testid="input-expense-description"
+                            />
+                          </div>
+                          <div>
+                            <Label>المستودع (اختياري)</Label>
+                            <Select value={expenseForm.warehouseId?.toString() || 'none'} onValueChange={(val) => setExpenseForm({ ...expenseForm, warehouseId: val === 'none' ? undefined : parseInt(val) })}>
+                              <SelectTrigger className="rounded-xl mt-1" data-testid="select-expense-warehouse">
+                                <SelectValue placeholder="اختر المستودع" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">بدون مستودع</SelectItem>
+                                {warehousesList?.map((wh: any) => (
+                                  <SelectItem key={wh.id} value={wh.id.toString()}>{wh.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label>طريقة الدفع</Label>
+                            <Select value={expenseForm.paymentMethod || 'cash'} onValueChange={(val) => setExpenseForm({ ...expenseForm, paymentMethod: val })}>
+                              <SelectTrigger className="rounded-xl mt-1" data-testid="select-expense-payment">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="cash">نقداً</SelectItem>
+                                <SelectItem value="bank_transfer">تحويل بنكي</SelectItem>
+                                <SelectItem value="check">شيك</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label>رقم مرجعي (اختياري)</Label>
+                            <Input 
+                              className="rounded-xl mt-1" 
+                              placeholder="رقم الشيك أو الحوالة"
+                              value={expenseForm.reference || ''}
+                              onChange={(e) => setExpenseForm({ ...expenseForm, reference: e.target.value })}
+                              data-testid="input-expense-reference"
+                            />
+                          </div>
+                          <div>
+                            <Label>ملاحظات (اختياري)</Label>
+                            <Input 
+                              className="rounded-xl mt-1" 
+                              placeholder="ملاحظات إضافية"
+                              value={expenseForm.notes || ''}
+                              onChange={(e) => setExpenseForm({ ...expenseForm, notes: e.target.value })}
+                              data-testid="input-expense-notes"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex gap-3 mt-6">
+                          <Button 
+                            className="flex-1 rounded-xl" 
+                            onClick={handleSaveExpense}
+                            disabled={!expenseForm.categoryId || !expenseForm.amount || !expenseForm.description}
+                            data-testid="button-save-expense"
+                          >
+                            حفظ
+                          </Button>
+                          <Button variant="outline" className="flex-1 rounded-xl" onClick={() => {
+                            setShowExpenseDialog(false);
+                            setEditingExpense(null);
+                            setExpenseForm({ categoryId: undefined, amount: '', description: '', warehouseId: undefined, paymentMethod: 'cash', reference: '', notes: '' });
+                          }}>
+                            إلغاء
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </div>
+              </Card>
+
+              {/* KPI Summary */}
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="p-5 border-none shadow-lg rounded-2xl bg-gradient-to-br from-red-50 to-orange-50 border-l-4 border-l-red-500">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center">
+                      <DollarSign className="w-6 h-6 text-red-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">إجمالي المصاريف</p>
+                      <p className="text-2xl font-bold text-red-700" data-testid="text-total-expenses">
+                        {expenseSummary?.totalExpenses?.toLocaleString('ar-SY') || 0} ل.س
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-5 border-none shadow-lg rounded-2xl bg-gradient-to-br from-blue-50 to-cyan-50 border-l-4 border-l-blue-500">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+                      <Tag className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">عدد الفئات</p>
+                      <p className="text-2xl font-bold text-blue-700">
+                        {expenseCategoriesList?.length || 0}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-5 border-none shadow-lg rounded-2xl bg-gradient-to-br from-purple-50 to-violet-50 border-l-4 border-l-purple-500">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
+                      <FileText className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">عدد المصاريف</p>
+                      <p className="text-2xl font-bold text-purple-700">
+                        {expensesList?.length || 0}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-5 border-none shadow-lg rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 border-l-4 border-l-green-500">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
+                      <TrendingUp className="w-6 h-6 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">هذا الشهر</p>
+                      <p className="text-2xl font-bold text-green-700">
+                        {expenseSummary?.byMonth?.slice(-1)[0]?.total?.toLocaleString('ar-SY') || 0} ل.س
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Expense Categories Management */}
+              <Card className="p-6 border-none shadow-lg rounded-2xl">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-bold text-lg flex items-center gap-2">
+                    <Tag className="w-5 h-5 text-orange-500" />
+                    فئات المصاريف
+                  </h4>
+                  <Dialog open={showExpenseCategoryDialog} onOpenChange={setShowExpenseCategoryDialog}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="rounded-xl gap-2" data-testid="button-add-expense-category">
+                        <Plus className="w-4 h-4" />إضافة فئة
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>{editingExpenseCategory ? 'تعديل الفئة' : 'إضافة فئة جديدة'}</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 mt-4">
+                        <div>
+                          <Label>اسم الفئة</Label>
+                          <Input 
+                            className="rounded-xl mt-1" 
+                            placeholder="مثال: إيجارات"
+                            value={expenseCategoryForm.name}
+                            onChange={(e) => setExpenseCategoryForm({ ...expenseCategoryForm, name: e.target.value })}
+                            data-testid="input-expense-category-name"
+                          />
+                        </div>
+                        <div>
+                          <Label>الوصف (اختياري)</Label>
+                          <Input 
+                            className="rounded-xl mt-1" 
+                            placeholder="وصف الفئة"
+                            value={expenseCategoryForm.description || ''}
+                            onChange={(e) => setExpenseCategoryForm({ ...expenseCategoryForm, description: e.target.value })}
+                            data-testid="input-expense-category-description"
+                          />
+                        </div>
+                        <div>
+                          <Label>اللون</Label>
+                          <Input 
+                            type="color" 
+                            className="rounded-xl mt-1 h-12 w-full"
+                            value={expenseCategoryForm.color || '#6366f1'}
+                            onChange={(e) => setExpenseCategoryForm({ ...expenseCategoryForm, color: e.target.value })}
+                            data-testid="input-expense-category-color"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-3 mt-6">
+                        <Button 
+                          className="flex-1 rounded-xl" 
+                          onClick={handleSaveExpenseCategory}
+                          disabled={!expenseCategoryForm.name}
+                          data-testid="button-save-expense-category"
+                        >
+                          حفظ
+                        </Button>
+                        <Button variant="outline" className="flex-1 rounded-xl" onClick={() => {
+                          setShowExpenseCategoryDialog(false);
+                          setEditingExpenseCategory(null);
+                          setExpenseCategoryForm({ name: '', description: '', color: '#6366f1' });
+                        }}>
+                          إلغاء
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {expenseCategoriesList?.map((cat: any) => (
+                    <div 
+                      key={cat.id} 
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors group"
+                      data-testid={`expense-category-${cat.id}`}
+                    >
+                      <div className="w-4 h-4 rounded-full" style={{ backgroundColor: cat.color || '#6366f1' }}></div>
+                      <span className="font-medium">{cat.name}</span>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-6 w-6 p-0"
+                          onClick={() => {
+                            setEditingExpenseCategory(cat);
+                            setExpenseCategoryForm({ name: cat.name, description: cat.description || '', color: cat.color || '#6366f1' });
+                            setShowExpenseCategoryDialog(true);
+                          }}
+                        >
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-6 w-6 p-0 text-red-500"
+                          onClick={() => handleDeleteExpenseCategory(cat.id)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {(!expenseCategoriesList || expenseCategoriesList.length === 0) && (
+                    <p className="text-gray-500 text-sm">لا توجد فئات بعد. أضف فئة لبدء تسجيل المصاريف.</p>
+                  )}
+                </div>
+              </Card>
+
+              {/* Expenses Table */}
+              <Card className="p-6 border-none shadow-lg rounded-2xl">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h4 className="font-bold text-xl flex items-center gap-2">
+                      <Receipt className="w-5 h-5 text-orange-500" />
+                      سجل المصاريف
+                    </h4>
+                    <p className="text-gray-500 text-sm mt-1">{expensesList?.length || 0} مصروف</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="relative">
+                      <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Input className="pr-10 w-64 bg-gray-50 border-none rounded-xl" placeholder="بحث..." data-testid="input-search-expenses" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-right border-b border-gray-200 bg-gray-50">
+                        <th className="p-4 font-bold text-gray-600 rounded-tr-xl">التاريخ</th>
+                        <th className="p-4 font-bold text-gray-600">الفئة</th>
+                        <th className="p-4 font-bold text-gray-600">الوصف</th>
+                        <th className="p-4 font-bold text-gray-600">المستودع</th>
+                        <th className="p-4 font-bold text-gray-600">طريقة الدفع</th>
+                        <th className="p-4 font-bold text-gray-600">المبلغ</th>
+                        <th className="p-4 font-bold text-gray-600 rounded-tl-xl">إجراءات</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {expensesLoading ? (
+                        <tr>
+                          <td colSpan={7} className="p-8 text-center">
+                            <RefreshCw className="w-8 h-8 animate-spin mx-auto text-orange-500" />
+                            <p className="text-gray-500 mt-2">جاري تحميل البيانات...</p>
+                          </td>
+                        </tr>
+                      ) : expensesList?.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="p-8 text-center text-gray-500">
+                            لا توجد مصاريف مسجلة بعد
+                          </td>
+                        </tr>
+                      ) : (
+                        expensesList?.map((expense: any) => (
+                          <tr key={expense.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors" data-testid={`row-expense-${expense.id}`}>
+                            <td className="p-4 font-medium">
+                              {new Date(expense.expenseDate).toLocaleDateString('ar-SY')}
+                            </td>
+                            <td className="p-4">
+                              <Badge 
+                                className="rounded-lg" 
+                                style={{ backgroundColor: expense.category?.color || '#6366f1', color: 'white' }}
+                              >
+                                {expense.category?.name || '-'}
+                              </Badge>
+                            </td>
+                            <td className="p-4">
+                              <span className="font-medium">{expense.description}</span>
+                              {expense.notes && <p className="text-sm text-gray-500">{expense.notes}</p>}
+                            </td>
+                            <td className="p-4">
+                              {expense.warehouse?.name || '-'}
+                            </td>
+                            <td className="p-4">
+                              <Badge variant="outline" className="rounded-lg">
+                                {expense.paymentMethod === 'cash' ? 'نقداً' : expense.paymentMethod === 'bank_transfer' ? 'تحويل بنكي' : 'شيك'}
+                              </Badge>
+                            </td>
+                            <td className="p-4">
+                              <span className="font-bold text-red-600">
+                                {parseFloat(expense.amount).toLocaleString('ar-SY')} ل.س
+                              </span>
+                            </td>
+                            <td className="p-4">
+                              <div className="flex gap-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="rounded-lg"
+                                  onClick={() => {
+                                    setEditingExpense(expense);
+                                    setExpenseForm({
+                                      categoryId: expense.categoryId,
+                                      amount: expense.amount,
+                                      description: expense.description,
+                                      warehouseId: expense.warehouseId,
+                                      paymentMethod: expense.paymentMethod || 'cash',
+                                      reference: expense.reference || '',
+                                      notes: expense.notes || '',
+                                    });
+                                    setShowExpenseDialog(true);
+                                  }}
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="rounded-lg text-red-500"
+                                  onClick={() => handleDeleteExpense(expense.id)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+
+              {/* Expense Charts */}
+              <div className="grid lg:grid-cols-2 gap-6">
+                <Card className="p-6 border-none shadow-lg rounded-2xl">
+                  <h4 className="font-bold flex items-center gap-2 mb-4"><PieChart className="w-5 h-5 text-orange-500" />المصاريف حسب الفئة</h4>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartsPie>
+                        <Pie 
+                          data={expenseSummary?.byCategory?.map((cat: any) => ({
+                            name: cat.categoryName,
+                            value: cat.total,
+                          })) || []} 
+                          cx="50%" 
+                          cy="50%" 
+                          innerRadius={60} 
+                          outerRadius={100} 
+                          paddingAngle={5} 
+                          dataKey="value" 
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        >
+                          {expenseSummary?.byCategory?.map((cat: any, index: number) => (
+                            <Cell key={`cell-${index}`} fill={['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899'][index % 7]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value: number) => `${value.toLocaleString('ar-SY')} ل.س`} />
+                        <Legend />
+                      </RechartsPie>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
+
+                <Card className="p-6 border-none shadow-lg rounded-2xl">
+                  <h4 className="font-bold flex items-center gap-2 mb-4"><BarChart3 className="w-5 h-5 text-orange-500" />المصاريف الشهرية</h4>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={expenseSummary?.byMonth || []}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis dataKey="month" stroke="#888" fontSize={10} />
+                        <YAxis stroke="#888" fontSize={10} />
+                        <Tooltip 
+                          contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                          formatter={(value: number) => `${value.toLocaleString('ar-SY')} ل.س`}
+                        />
+                        <Bar dataKey="total" name="المصاريف" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
+              </div>
             </div>
           </TabsContent>
 
