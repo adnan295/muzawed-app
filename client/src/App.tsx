@@ -29,6 +29,7 @@ import OrderDetails from "@/pages/OrderDetails";
 import Cards from "@/pages/Cards";
 import Referral from "@/pages/Referral";
 import Invoice from "@/pages/Invoice";
+import Admin from "@/pages/Admin";
 
 function Router() {
   return (
@@ -57,6 +58,7 @@ function Router() {
       <Route path="/addresses" component={Addresses} />
       <Route path="/facility" component={FacilityDetails} />
       <Route path="/settings" component={Settings} />
+      <Route path="/admin" component={Admin} />
       <Route component={NotFound} />
     </Switch>
   );
