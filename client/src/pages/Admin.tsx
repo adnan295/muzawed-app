@@ -22,7 +22,7 @@ import {
   Gift, Warehouse, Receipt, Copy, ExternalLink, Shield, Lock, Key, UserPlus, TicketIcon,
   MessageCircle, Send, Archive, Printer, QrCode, Barcode, PackageCheck, PackageX, Timer,
   Banknote, PiggyBank, Coins, Crown, Medal, Trophy, Repeat, RotateCcw, Navigation,
-  TruckIcon, MapPinned, Factory, ShoppingBag, FileSpreadsheet, FilePdf, MailCheck,
+  TruckIcon, MapPinned, Factory, ShoppingBag, FileSpreadsheet, File, MailCheck,
   Sparkles, Flame, ThumbsUp, ThumbsDown, AlertCircle, Info, HelpCircle, CircleDollarSign,
   BadgePercent, Gauge, ArrowUpRight, ArrowDownRight, Hash, Split, Merge,
   GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight
@@ -1017,7 +1017,7 @@ export default function Admin() {
                     </div>
                     <h4 className="font-bold">{report.title}</h4>
                     <div className="flex gap-2 mt-3">
-                      <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1"><FilePdf className="w-3 h-3" />PDF</Button>
+                      <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1"><File className="w-3 h-3" />PDF</Button>
                       <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1"><FileSpreadsheet className="w-3 h-3" />Excel</Button>
                     </div>
                   </div>
