@@ -29,7 +29,7 @@ import {
   GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight, LogOut
 } from 'lucide-react';
 import { Link } from 'wouter';
-import { productsAPI, categoriesAPI, brandsAPI } from '@/lib/api';
+import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart, Line, Legend, ComposedChart, RadialBarChart, RadialBar, Treemap, FunnelChart, Funnel, LabelList } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -215,6 +215,31 @@ export default function Admin() {
     queryFn: () => brandsAPI.getAll() as Promise<Brand[]>,
   });
 
+  const { data: notifications = [] } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: async () => (await notificationsAPI.getAll()) as any[],
+  });
+
+  const { data: unreadCount = { count: 0 } } = useQuery({
+    queryKey: ['unreadNotifications'],
+    queryFn: async () => (await notificationsAPI.getUnreadCount()) as { count: number },
+  });
+
+  const { data: activityLogs = [] } = useQuery({
+    queryKey: ['activityLogs'],
+    queryFn: async () => (await activityLogsAPI.getAll(20)) as any[],
+  });
+
+  const { data: lowStockProductsData = [] } = useQuery({
+    queryKey: ['lowStockProducts'],
+    queryFn: async () => (await inventoryAPI.getLowStock(30)) as any[],
+  });
+
+  const { data: dashboardStats } = useQuery({
+    queryKey: ['dashboardStats'],
+    queryFn: async () => (await adminAPI.getStats()) as any,
+  });
+
   useEffect(() => {
     const adminAuth = localStorage.getItem('adminAuth');
     if (adminAuth) {
@@ -310,10 +335,10 @@ export default function Admin() {
   };
 
   const stats = [
-    { title: 'إجمالي المبيعات', value: '542,580', suffix: 'ر.س', icon: DollarSign, color: 'from-emerald-500 to-emerald-600', change: '+18%', changeType: 'up' },
-    { title: 'الطلبات النشطة', value: '1,256', suffix: 'طلب', icon: ShoppingCart, color: 'from-blue-500 to-blue-600', change: '+24%', changeType: 'up' },
-    { title: 'العملاء المسجلين', value: '10,450', suffix: 'عميل', icon: Users, color: 'from-purple-500 to-purple-600', change: '+12%', changeType: 'up' },
-    { title: 'تذاكر الدعم', value: '23', suffix: 'مفتوحة', icon: Headphones, color: 'from-orange-500 to-orange-600', change: '-8%', changeType: 'down' },
+    { title: 'إجمالي المبيعات', value: dashboardStats?.totalRevenue?.toLocaleString('ar-SA') || '0', suffix: 'ر.س', icon: DollarSign, color: 'from-emerald-500 to-emerald-600', change: '+18%', changeType: 'up' },
+    { title: 'الطلبات النشطة', value: dashboardStats?.totalOrders?.toLocaleString('ar-SA') || '0', suffix: 'طلب', icon: ShoppingCart, color: 'from-blue-500 to-blue-600', change: '+24%', changeType: 'up' },
+    { title: 'العملاء المسجلين', value: dashboardStats?.totalCustomers?.toLocaleString('ar-SA') || '0', suffix: 'عميل', icon: Users, color: 'from-purple-500 to-purple-600', change: '+12%', changeType: 'up' },
+    { title: 'منتجات منخفضة المخزون', value: dashboardStats?.lowStockProducts?.toString() || lowStockProductsData.length.toString(), suffix: 'منتج', icon: AlertTriangle, color: 'from-orange-500 to-orange-600', change: lowStockProductsData.length > 10 ? 'تنبيه!' : 'طبيعي', changeType: lowStockProductsData.length > 10 ? 'down' : 'up' },
   ];
 
   const handleAddProduct = async () => {
@@ -367,29 +392,37 @@ export default function Admin() {
               <div className="relative">
                 <Button size="icon" variant="ghost" className="text-white hover:bg-white/10 relative" onClick={() => setShowNotifications(!showNotifications)}>
                   <Bell className="w-5 h-5" />
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-[10px] flex items-center justify-center font-bold animate-pulse">12</span>
+                  {unreadCount.count > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-[10px] flex items-center justify-center font-bold animate-pulse">{unreadCount.count}</span>
+                  )}
                 </Button>
                 <AnimatePresence>
                   {showNotifications && (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute left-0 top-12 w-96 bg-white rounded-2xl shadow-2xl border z-50">
                       <div className="p-4 border-b bg-gray-50 rounded-t-2xl flex items-center justify-between">
                         <h4 className="font-bold text-gray-800">الإشعارات</h4>
-                        <Badge>12 جديد</Badge>
+                        {unreadCount.count > 0 && <Badge>{unreadCount.count} جديد</Badge>}
                       </div>
                       <ScrollArea className="h-80">
-                        {recentActivities.map((activity) => (
-                          <div key={activity.id} className="p-3 border-b hover:bg-gray-50 cursor-pointer">
+                        {notifications.length > 0 ? notifications.map((notification: any) => (
+                          <div key={notification.id} className={`p-3 border-b hover:bg-gray-50 cursor-pointer ${!notification.isRead ? 'bg-blue-50' : ''}`}>
                             <div className="flex items-start gap-3">
-                              <div className={`w-10 h-10 rounded-xl ${activity.color} flex items-center justify-center`}>
-                                <activity.icon className="w-5 h-5" />
+                              <div className={`w-10 h-10 rounded-xl ${notification.type === 'order' ? 'bg-blue-100 text-blue-600' : notification.type === 'stock' ? 'bg-yellow-100 text-yellow-600' : 'bg-purple-100 text-purple-600'} flex items-center justify-center`}>
+                                {notification.type === 'order' ? <ShoppingCart className="w-5 h-5" /> : notification.type === 'stock' ? <AlertTriangle className="w-5 h-5" /> : <Bell className="w-5 h-5" />}
                               </div>
                               <div className="flex-1">
-                                <p className="text-sm text-gray-700">{activity.message}</p>
-                                <p className="text-xs text-gray-400 mt-1">منذ {activity.time}</p>
+                                <p className="text-sm font-bold text-gray-800">{notification.title}</p>
+                                <p className="text-sm text-gray-600">{notification.message}</p>
+                                <p className="text-xs text-gray-400 mt-1">{new Date(notification.createdAt).toLocaleDateString('ar-SA')}</p>
                               </div>
                             </div>
                           </div>
-                        ))}
+                        )) : (
+                          <div className="p-8 text-center text-gray-500">
+                            <Bell className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                            <p>لا توجد إشعارات</p>
+                          </div>
+                        )}
                       </ScrollArea>
                       <div className="p-3 bg-gray-50 rounded-b-2xl text-center">
                         <Button variant="link" className="text-primary text-sm">عرض جميع الإشعارات</Button>
@@ -550,7 +583,36 @@ export default function Admin() {
               <Card className="p-6 border-none shadow-lg rounded-2xl">
                 <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Activity className="w-5 h-5 text-blue-500" />النشاط الأخير</h3>
                 <div className="space-y-4">
-                  {recentActivities.map((activity) => (
+                  {activityLogs.length > 0 ? activityLogs.slice(0, 6).map((log: any) => {
+                    const getActivityColor = (entity: string) => {
+                      switch(entity) {
+                        case 'order': return 'bg-blue-100 text-blue-600';
+                        case 'product': return 'bg-green-100 text-green-600';
+                        case 'user': return 'bg-purple-100 text-purple-600';
+                        default: return 'bg-gray-100 text-gray-600';
+                      }
+                    };
+                    const getActivityIcon = (entity: string) => {
+                      switch(entity) {
+                        case 'order': return <ShoppingCart className="w-5 h-5" />;
+                        case 'product': return <Package className="w-5 h-5" />;
+                        case 'user': return <Users className="w-5 h-5" />;
+                        default: return <Activity className="w-5 h-5" />;
+                      }
+                    };
+                    return (
+                      <motion.div key={log.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 cursor-pointer">
+                        <div className={`w-10 h-10 rounded-xl ${getActivityColor(log.entity)} flex items-center justify-center`}>
+                          {getActivityIcon(log.entity)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-gray-800">{log.action}</p>
+                          <p className="text-sm text-gray-600 line-clamp-2">{log.details}</p>
+                          <p className="text-xs text-gray-400 mt-1">{new Date(log.createdAt).toLocaleDateString('ar-SA')}</p>
+                        </div>
+                      </motion.div>
+                    );
+                  }) : recentActivities.map((activity) => (
                     <motion.div key={activity.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 cursor-pointer">
                       <div className={`w-10 h-10 rounded-xl ${activity.color} flex items-center justify-center`}>
                         <activity.icon className="w-5 h-5" />
