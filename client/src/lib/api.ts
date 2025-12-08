@@ -124,3 +124,155 @@ export const walletAPI = {
     body: JSON.stringify(data),
   }),
 };
+
+// Admin Stats API
+export const adminAPI = {
+  getStats: () => request("/admin/stats"),
+  getOrders: () => request("/admin/orders"),
+  getUsers: () => request("/admin/users"),
+};
+
+// Promotions API
+export const promotionsAPI = {
+  getAll: () => request("/promotions"),
+  getById: (id: number) => request(`/promotions/${id}`),
+  create: (data: any) => request("/promotions", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+  update: (id: number, data: any) => request(`/promotions/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }),
+  delete: (id: number) => request(`/promotions/${id}`, {
+    method: "DELETE",
+  }),
+};
+
+// Suppliers API
+export const suppliersAPI = {
+  getAll: () => request("/suppliers"),
+  getById: (id: number) => request(`/suppliers/${id}`),
+  create: (data: any) => request("/suppliers", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+  update: (id: number, data: any) => request(`/suppliers/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }),
+  delete: (id: number) => request(`/suppliers/${id}`, {
+    method: "DELETE",
+  }),
+};
+
+// Returns API
+export const returnsAPI = {
+  getAll: () => request("/returns"),
+  getById: (id: number) => request(`/returns/${id}`),
+  create: (data: any) => request("/returns", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+  update: (id: number, data: any) => request(`/returns/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }),
+};
+
+// Shipments API
+export const shipmentsAPI = {
+  getAll: () => request("/shipments"),
+  getById: (id: number) => request(`/shipments/${id}`),
+  getByOrder: (orderId: number) => request(`/shipments/order/${orderId}`),
+  create: (data: any) => request("/shipments", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+  update: (id: number, data: any) => request(`/shipments/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }),
+};
+
+// Customer Segments API
+export const segmentsAPI = {
+  getAll: () => request("/segments"),
+  create: (data: any) => request("/segments", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+  update: (id: number, data: any) => request(`/segments/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }),
+};
+
+// Reports API
+export const reportsAPI = {
+  getAll: () => request("/reports"),
+  create: (data: any) => request("/reports", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+};
+
+// Staff API
+export const staffAPI = {
+  getAll: () => request("/staff"),
+  getById: (id: number) => request(`/staff/${id}`),
+  create: (data: any) => request("/staff", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+  update: (id: number, data: any) => request(`/staff/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }),
+};
+
+// Support Tickets API
+export const ticketsAPI = {
+  getAll: () => request("/tickets"),
+  getById: (id: number) => request(`/tickets/${id}`),
+  create: (data: any) => request("/tickets", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+  update: (id: number, data: any) => request(`/tickets/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }),
+};
+
+// Coupons API
+export const couponsAPI = {
+  getAll: () => request("/coupons"),
+  getById: (id: number) => request(`/coupons/${id}`),
+  getByCode: (code: string) => request(`/coupons/code/${code}`),
+  create: (data: any) => request("/coupons", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+  update: (id: number, data: any) => request(`/coupons/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }),
+  delete: (id: number) => request(`/coupons/${id}`, {
+    method: "DELETE",
+  }),
+};
+
+// Warehouses API
+export const warehousesAPI = {
+  getAll: () => request("/warehouses"),
+  getById: (id: number) => request(`/warehouses/${id}`),
+  create: (data: any) => request("/warehouses", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+  update: (id: number, data: any) => request(`/warehouses/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }),
+};
