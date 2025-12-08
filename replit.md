@@ -1,13 +1,13 @@
 # Overview
 
-This is a wholesale e-commerce mobile application called "Sary" (ساري) built for the **Syrian market**. The application is designed for businesses and facilities to purchase bulk products at wholesale prices. It features a complete e-commerce flow including product browsing, shopping cart, checkout, order management, wallet system, and user authentication.
+This project is a wholesale e-commerce mobile application named "Sary" (ساري), specifically designed for the Syrian market. It enables businesses and facilities to purchase products in bulk at wholesale prices. The application offers a comprehensive e-commerce experience, including product browsing, shopping cart functionality, secure checkout, order management, a wallet system for prepayments, and robust user authentication.
 
-The application is built as a full-stack TypeScript application with a React frontend (using Vite) and an Express.js backend, with PostgreSQL as the database layer managed through Drizzle ORM. The UI is styled with Tailwind CSS and uses shadcn/ui components, with right-to-left (RTL) Arabic language support throughout.
+The application is a full-stack TypeScript project, featuring a React frontend (built with Vite) and an Express.js backend. It uses PostgreSQL as its database, managed through Drizzle ORM. The UI is styled with Tailwind CSS and leverages shadcn/ui components, providing full right-to-left (RTL) support for the Arabic language.
 
-**Localization:**
-- Currency: Syrian Pound (ل.س - SYP)
-- Locale: ar-SY
-- Regions: Syrian governorates (محافظات سورية)
+Key regional considerations include:
+- **Currency:** Syrian Pound (ل.س - SYP)
+- **Locale:** ar-SY
+- **Regions:** Supports various Syrian governorates (محافظات سورية)
 
 # User Preferences
 
@@ -16,249 +16,52 @@ Preferred communication style: Simple, everyday language.
 # System Architecture
 
 ## Frontend Architecture
-
-**Framework & Build System**
-- React 18 with TypeScript for type-safe component development
-- Vite as the build tool and development server for fast hot module replacement
-- Right-to-left (RTL) layout support with Arabic language as the primary language
-- Mobile-first responsive design targeting phone form factors (max-width: 768px)
-
-**Routing & State Management**
-- Wouter for lightweight client-side routing without React Router overhead
-- TanStack Query (React Query) for server state management, caching, and data fetching
-- Local storage-based authentication context for user session persistence
-- Custom AuthContext provider wrapping the application for authentication state
-
-**UI Component System**
-- shadcn/ui component library (New York style variant) with Radix UI primitives
-- Tailwind CSS v4 with custom design tokens aligned to a purple/blue brand palette
-- Class Variance Authority (CVA) for component variant management
-- Lucide icons for consistent iconography
-- Framer Motion for animations and transitions
-
-**Key Design Decisions**
-- Mobile-only layout with bottom navigation bar for core sections (Home, Categories, Cart, Profile)
-- Path aliases configured for clean imports (`@/` for client code, `@shared/` for shared schemas)
-- Custom Vite plugin for meta image URL updates in Replit deployment environments
-- Replit-specific development tooling (cartographer, dev banner) enabled only in development
+- **Framework & Build:** React 18 with TypeScript, Vite for fast development and bundling. Mobile-first responsive design targeting phone form factors (max-width: 768px), with RTL layout support for Arabic.
+- **Routing & State Management:** Wouter for client-side routing. TanStack Query for server state management, caching, and data fetching. Local storage-based AuthContext for user session persistence.
+- **UI Component System:** shadcn/ui (New York style) built on Radix UI primitives. Tailwind CSS v4 with a purple/blue brand palette. Class Variance Authority (CVA) for component variants, Lucide icons, and Framer Motion for animations.
+- **Key Design Decisions:** Mobile-only layout with a bottom navigation bar. Path aliases (`@/`, `@shared/`). Custom Vite plugin and Replit-specific tooling for development environments.
 
 ## Backend Architecture
-
-**Server Framework**
-- Express.js as the HTTP server framework
-- Node.js HTTP server for WebSocket support capability
-- Middleware stack includes JSON body parsing with raw body preservation for webhook handling
-- Custom logging middleware for API request tracking with timestamps
-
-**API Design**
-- RESTful API structure under `/api` prefix
-- Route organization in `server/routes.ts` with grouped endpoints by resource
-- Error handling with Zod validation error formatting using `zod-validation-error`
-- Session-based authentication approach (infrastructure for sessions visible but not fully implemented)
-
-**Database Layer**
-- Drizzle ORM as the type-safe query builder and schema manager
-- PostgreSQL as the relational database (configured via `DATABASE_URL` environment variable)
-- node-postgres (pg) driver with connection pooling
-- Database schema defined in shared TypeScript files for type safety across client/server
-
-**Storage Abstraction**
-- Storage interface pattern (`server/storage.ts`) abstracting database operations
-- Methods for CRUD operations on all major entities (users, products, categories, orders, etc.)
-- Transaction support for complex operations like order creation
-
-**Key Design Decisions**
-- Separation of database connection (`db.ts`) from storage operations for testability
-- Schema-first approach with Drizzle schemas driving both database migrations and TypeScript types
-- Build process bundles select dependencies while externalizing most for faster cold starts
-- Static file serving from `dist/public` in production with SPA fallback routing
+- **Server Framework:** Express.js with Node.js HTTP server. Middleware for JSON parsing and custom logging.
+- **API Design:** RESTful API under `/api` prefix, organized by resource. Zod for validation error handling. Infrastructure for session-based authentication is present.
+- **Database Layer:** Drizzle ORM for type-safe queries with PostgreSQL (via `DATABASE_URL`). Node-postgres (pg) driver with connection pooling. Shared TypeScript schemas ensure type safety across client and server.
+- **Storage Abstraction:** A storage interface (`server/storage.ts`) abstracts database operations, supporting CRUD on major entities and transactions.
+- **Key Design Decisions:** Separation of database connection from storage logic. Schema-first approach with Drizzle. Production build externalizes most dependencies for faster cold starts. Static file serving with SPA fallback.
 
 ## Data Model
-
-**Core Entities**
-
-Users & Authentication:
-- `users`: Phone-based authentication with facility information (commercial register, tax number)
-- `addresses`: Multiple delivery addresses per user with default flag
-- `wallets`: Per-user wallet for prepayment and credit
-- `walletTransactions`: Transaction history for wallet operations
-- `paymentCards`: Saved payment methods for users
-
-Product Catalog:
-- `products`: Product inventory with pricing, images, minimum order quantities, and stock levels
-- `categories`: Product categorization with icons and color themes
-- `brands`: Brand information for product attribution
-
-Shopping & Orders:
-- `cartItems`: Session shopping cart items linked to users
-- `orders`: Order records with status, totals, and delivery information
-- `orderItems`: Line items for each order with quantity and pricing snapshots
-
-**Schema Design Decisions**
-- Serial primary keys for all tables
-- Timestamps (`createdAt`) on transactional tables
-- Decimal type for monetary values to avoid floating-point precision issues
-- Foreign key cascades for dependent data (e.g., cart items delete when user is deleted)
-- Drizzle Zod integration for runtime validation of insert operations
-
-## External Dependencies
-
-**Database**
-- PostgreSQL (provisioned via `DATABASE_URL` environment variable)
-- Drizzle Kit for schema migrations to `/migrations` directory
-
-**UI Libraries**
-- @radix-ui/* primitives for accessible UI components (17+ packages)
-- Tailwind CSS for utility-first styling with postcss and autoprefixer
-- Google Fonts (Almarai) for Arabic typography
-- Embla Carousel for promotional image carousels
-
-**Development Tools**
-- @replit/* plugins for Replit-specific development features
-- tsx for TypeScript execution in development
-- esbuild for production server bundling
-- Vite for client bundling
-
-**Authentication & Session Management**
-- connect-pg-simple for PostgreSQL session store (infrastructure present)
-- Passport.js architecture visible but authentication currently implemented with direct password comparison
-
-**Utilities**
-- zod for schema validation
-- date-fns for date manipulation
-- nanoid for unique ID generation
-- class-variance-authority and clsx for className management
-
-**Notable Absence**
-- Payment gateway integration intentionally not implemented per user preference - uses wallet/cash on delivery only
-- No email service integration (nodemailer present but unused)
-- No file upload handling beyond multer dependency
-- No WebSocket implementation despite server infrastructure
+- **Core Entities:** `users` (phone-based auth, facility info), `addresses`, `wallets`, `walletTransactions`, `paymentCards`. `products` (inventory, pricing, MOQ, stock), `categories`, `brands`. `cartItems`, `orders`, `orderItems`.
+- **Schema Design Decisions:** Serial primary keys, `createdAt` timestamps, Decimal type for monetary values. Foreign key cascades. Drizzle Zod integration for runtime validation.
 
 ## Multi-Warehouse Architecture
-
-**Database Tables**
-- `cities`: Syrian cities with governorate (محافظة) and active status (14 governorates)
-- `warehouses`: Warehouse details linked to cities (one warehouse per city)
-- `productInventory`: Join table linking products to warehouses with per-warehouse stock levels
-
-**Key Features**
-- Each city has ONE warehouse, ensuring customers see only products from their city's warehouse
-- Products can be assigned to multiple warehouses with different stock levels
-- Admin dashboard includes full CRUD for cities and warehouses management
-- API endpoints for filtering products by city (`/api/products/by-city/:cityId`)
+- **Tables:** `cities` (Syrian cities with governorates), `warehouses` (one per city), `productInventory` (product-warehouse stock levels).
+- **Features:** Products are displayed based on the user's selected city and its associated warehouse. Admin CRUD for cities and warehouses. API for filtering products by city.
 
 ## Supplier Ledger System
-
-**Database Tables**
-- `supplier_transactions`: Records all supplier movements (imports, exports, payments) with type, amounts, quantities, and references
-- `supplier_stock_positions`: Tracks current inventory levels per supplier/product/warehouse with average cost
-- `supplier_balances`: Materialized balance summary per supplier (total imports, exports, payments, outstanding balance)
-
-**Key Features**
-- Record imports: When goods arrive from supplier, creates transaction and updates stock position
-- Record exports: When goods return to supplier, creates transaction and decreases stock
-- Record payments: Tracks payments made to suppliers, reduces outstanding balance
-- Balance recalculation: Automatic balance updates after each transaction
-- Supplier dashboard: Unified view showing balance summary, stock positions, and transaction history
-
-**API Endpoints**
-- `GET /api/suppliers/:id/dashboard` - Full supplier dashboard with balance, stock, and recent transactions
-- `GET /api/suppliers/:id/transactions` - Transaction history for a supplier
-- `GET /api/suppliers/:id/stock` - Current stock positions per warehouse
-- `GET /api/suppliers/:id/balance` - Financial balance summary
-- `POST /api/suppliers/:id/import` - Record goods received from supplier
-- `POST /api/suppliers/:id/export` - Record goods returned to supplier
-- `POST /api/suppliers/:id/payment` - Record payment made to supplier
-- `POST /api/suppliers/:id/recalculate` - Force balance recalculation
-
-**Balance Calculation Logic**
-- Outstanding Balance = Total Imports - Total Exports - Total Payments
-- Positive balance = amount owed to supplier
-- Stock value calculated from quantity × average cost
+- **Tables:** `supplier_transactions` (imports, exports, payments), `supplier_stock_positions` (inventory levels per supplier/product/warehouse), `supplier_balances` (materialized balance summary).
+- **Features:** Records goods imports/exports, payments to suppliers. Automatic balance recalculation. Supplier dashboard with balance, stock, and transaction history.
+- **Balance Calculation:** Outstanding Balance = Total Imports - Total Exports - Total Payments.
 
 ## Product Profit/Loss Report System
+- **API Endpoint:** `GET /api/reports/product-profit` for comprehensive profit/loss analysis.
+- **Report Summary Data:** Includes `totalRevenue`, `totalCost`, `totalProfit`, `avgMargin`, `totalSoldQty`, `totalStockQty`.
+- **Product Breakdown Data:** Detailed metrics per product: `stockQty`, `soldQty`, `revenue`, `cost`, `profit`, `margin`, `salePrice`, `avgCostPrice`.
+- **Automatic Sales Allocation:** Uses FIFO to allocate sales to supplier accounts based on original cost price for accurate profit calculation.
+- **Admin Dashboard:** Features a UI with KPIs, interactive charts (Top 10 products by profit, Revenue vs Cost), and a detailed product-by-product breakdown table with color-coded profit margins.
 
-**API Endpoint**
-- `GET /api/reports/product-profit` - Returns comprehensive profit/loss analysis for all products
+## Other Key Features
+- **Notifications System:** Full CRUD API for managing user notifications.
+- **Activity Logs:** System for tracking user and system activities.
+- **Inventory Management:** API for low-stock alerts and inventory adjustments.
+- **Banners/Slides Management:** `banners` table with scheduling, view/click tracking, target audience. Full CRUD API, duplicate, reorder, bulk-delete, stats. Admin dashboard "الشرائح" tab with KPIs, search/filter, bulk actions, scheduling, target audience, templates, live preview. `AdsCarousel` component with analytics.
+- **Configurable Delivery Fee System:** `deliverySettings` table with per-warehouse base fees, free thresholds (amount or quantity). `orders.deliveryFee` field. Admin dashboard "الإعدادات" tab for CRUD on delivery settings. Checkout page integrates automatic delivery fee calculation.
+- **Staff Management:** `staff` table with employee data. Full CRUD API for staff. Admin dashboard "الموظفين" tab with KPIs, advanced filtering, add/edit/delete staff dialogs, and comprehensive permissions management for various modules (orders, products, customers, etc.).
 
-**Report Summary Data**
-- `totalRevenue`: Sum of all sales revenue (sale price × quantity sold)
-- `totalCost`: Sum of all supplier costs (cost price × quantity sold)
-- `totalProfit`: Net profit (revenue - cost)
-- `avgMargin`: Average profit margin percentage
-- `totalSoldQty`: Total quantity of products sold
-- `totalStockQty`: Total products in stock
+# External Dependencies
 
-**Product Breakdown Data (per product)**
-- `productId`, `productName`, `productImage`, `categoryName`
-- `stockQty`: Current stock quantity
-- `soldQty`: Total quantity sold
-- `remainingQty`: Current remaining stock
-- `revenue`: Total revenue from this product
-- `cost`: Total supplier cost for sold units
-- `profit`: Net profit (revenue - cost)
-- `margin`: Profit margin percentage
-- `salePrice`: Current sale price
-- `avgCostPrice`: Average supplier cost price
-
-**Automatic Sales Allocation**
-- When an order is created, the system automatically allocates sales to supplier accounts
-- Uses FIFO (First In, First Out) approach to select supplier stock positions
-- Records 'sale' transactions in supplier_transactions using the **supplier's original cost price** (avgCost), not the sale price
-- This enables accurate profit margin calculation
-
-**Admin Dashboard Reports Tab**
-- World-class UI with gradient header and 6 real-time KPI cards
-- Interactive charts: Top 10 products by profit (bar chart), Revenue vs Cost pie chart
-- Detailed product-by-product breakdown table with all profit metrics
-- Color-coded profit margins: green (≥20%), yellow (≥10%), orange (<10%)
-- Refresh button to update data in real-time
-
-## Recent Updates
-
-**December 2024**
-- Added Product Profit/Loss Report with real-time data from supplier transactions
-- Automatic sales allocation to supplier accounts when orders are placed
-- World-class Reports tab UI with KPIs, charts, and detailed breakdown table
-- Added multi-warehouse architecture with cities and warehouses management
-- Admin dashboard: Cities and Warehouses tab with real data CRUD operations
-- Customer city selection: Users can select their city in Profile, products filter by city's warehouse
-- AuthContext extended with cityId field and updateUser function
-- Home page shows only products from user's selected city warehouse
-- Product creation with warehouse inventory: When adding a product, admin can select warehouses and specify stock quantities per warehouse
-- Transactional product+inventory creation using database transactions for data integrity
-- Added notifications system with full CRUD API endpoints
-- Added activity logs tracking system
-- Added inventory management with low-stock alerts API
-- Enhanced reports tab with advanced charts (composed charts, pie charts, funnel charts, area charts)
-- Added scheduled reports management UI
-- Added comprehensive banners/slides management system:
-  * `banners` table with advanced fields: scheduling (startDate, endDate), view/click tracking, target audience
-  * Full CRUD API for banners with additional endpoints: duplicate, reorder, bulk-delete, stats, view/click tracking
-  * Admin dashboard "الشرائح" tab with:
-    - 6 KPIs: total, active, inactive, views, clicks, CTR (click-through rate)
-    - Search and filter (by status: all/active/inactive)
-    - Bulk selection and delete for multiple banners
-    - Duplicate banner functionality
-    - Drag-free reordering with up/down buttons
-    - Scheduling support: set start and end dates for time-limited campaigns
-    - Target audience selection: all customers, VIP, new, or returning
-    - 4 ready-to-use banner templates
-    - Live preview in add/edit dialog
-  * AdsCarousel component with view/click analytics tracking
-  * Automatic view tracking when banner is displayed, click tracking on button click
-- Added configurable delivery fee system:
-  * `deliverySettings` table with per-warehouse settings (baseFee, freeThresholdAmount, freeThresholdQuantity)
-  * `orders.deliveryFee` field to track delivery charges per order
-  * Admin dashboard "الإعدادات" tab with full CRUD for delivery settings:
-    - 4 KPIs: total settings, enabled, with free shipping threshold, average fee
-    - Add/Edit/Delete delivery settings per warehouse
-    - Configure base fee in Syrian Pounds (ل.س)
-    - Set free shipping thresholds based on order amount OR quantity
-    - Enable/disable delivery fees per warehouse
-  * Checkout page integration:
-    - Automatic delivery fee calculation based on user's city warehouse
-    - Free shipping when order exceeds threshold (amount or quantity)
-    - Dynamic display of delivery fee in order summary
-    - Delivery fee included in order total
+- **Database:** PostgreSQL, Drizzle Kit (for migrations).
+- **UI Libraries:** @radix-ui/*, Tailwind CSS, Google Fonts (Almarai), Embla Carousel.
+- **Development Tools:** @replit/* plugins, tsx, esbuild, Vite.
+- **Authentication & Session:** connect-pg-simple (for PostgreSQL session store).
+- **Utilities:** zod, date-fns, nanoid, class-variance-authority, clsx.
+- **Notably Absent Integrations (by design/current scope):** Payment gateway integration, dedicated email service, WebSocket implementation (despite infrastructure), advanced file upload handling.
+```
