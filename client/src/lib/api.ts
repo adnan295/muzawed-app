@@ -276,3 +276,52 @@ export const warehousesAPI = {
     body: JSON.stringify(data),
   }),
 };
+
+// Notifications API
+export const notificationsAPI = {
+  getAll: (userId?: number, staffId?: number) => {
+    const params = new URLSearchParams();
+    if (userId) params.append('userId', userId.toString());
+    if (staffId) params.append('staffId', staffId.toString());
+    return request(`/notifications?${params.toString()}`);
+  },
+  getUnreadCount: (userId?: number, staffId?: number) => {
+    const params = new URLSearchParams();
+    if (userId) params.append('userId', userId.toString());
+    if (staffId) params.append('staffId', staffId.toString());
+    return request(`/notifications/unread/count?${params.toString()}`);
+  },
+  create: (data: any) => request("/notifications", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+  markRead: (id: number) => request(`/notifications/${id}/read`, {
+    method: "PUT",
+  }),
+  markAllRead: (userId?: number, staffId?: number) => {
+    const params = new URLSearchParams();
+    if (userId) params.append('userId', userId.toString());
+    if (staffId) params.append('staffId', staffId.toString());
+    return request(`/notifications/read-all?${params.toString()}`, {
+      method: "PUT",
+    });
+  },
+};
+
+// Activity Logs API
+export const activityLogsAPI = {
+  getAll: (limit?: number) => request(`/activity-logs${limit ? `?limit=${limit}` : ''}`),
+  create: (data: any) => request("/activity-logs", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+};
+
+// Inventory API
+export const inventoryAPI = {
+  getLowStock: (threshold?: number) => request(`/inventory/low-stock${threshold ? `?threshold=${threshold}` : ''}`),
+  updateStock: (id: number, quantity: number) => request(`/inventory/${id}/stock`, {
+    method: "PUT",
+    body: JSON.stringify({ quantity }),
+  }),
+};

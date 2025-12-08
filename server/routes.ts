@@ -6,7 +6,7 @@ import {
   insertPaymentCardSchema, insertWalletTransactionSchema, insertPromotionSchema,
   insertSupplierSchema, insertReturnSchema, insertShipmentSchema, insertCustomerSegmentSchema,
   insertReportSchema, insertStaffSchema, insertSupportTicketSchema, insertCouponSchema,
-  insertWarehouseSchema
+  insertWarehouseSchema, insertNotificationSchema, insertActivityLogSchema
 } from "@shared/schema";
 import { fromError } from "zod-validation-error";
 
@@ -872,6 +872,107 @@ export async function registerRoutes(
     try {
       const allUsers = await storage.getAllUsers();
       res.json(allUsers);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== Notifications Routes ====================
+  
+  app.get("/api/notifications", async (req, res) => {
+    try {
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
+      const staffId = req.query.staffId ? parseInt(req.query.staffId as string) : undefined;
+      const notificationList = await storage.getNotifications(userId, staffId);
+      res.json(notificationList);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/notifications/unread/count", async (req, res) => {
+    try {
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
+      const staffId = req.query.staffId ? parseInt(req.query.staffId as string) : undefined;
+      const count = await storage.getUnreadNotificationsCount(userId, staffId);
+      res.json({ count });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/notifications", async (req, res) => {
+    try {
+      const validData = insertNotificationSchema.parse(req.body);
+      const notification = await storage.createNotification(validData);
+      res.status(201).json(notification);
+    } catch (error: any) {
+      if (error.name === "ZodError") return res.status(400).json({ error: fromError(error).toString() });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/notifications/:id/read", async (req, res) => {
+    try {
+      await storage.markNotificationRead(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/notifications/read-all", async (req, res) => {
+    try {
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
+      const staffId = req.query.staffId ? parseInt(req.query.staffId as string) : undefined;
+      await storage.markAllNotificationsRead(userId, staffId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== Activity Logs Routes ====================
+  
+  app.get("/api/activity-logs", async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
+      const logs = await storage.getActivityLogs(limit);
+      res.json(logs);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/activity-logs", async (req, res) => {
+    try {
+      const validData = insertActivityLogSchema.parse(req.body);
+      const log = await storage.createActivityLog(validData);
+      res.status(201).json(log);
+    } catch (error: any) {
+      if (error.name === "ZodError") return res.status(400).json({ error: fromError(error).toString() });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== Inventory Routes ====================
+  
+  app.get("/api/inventory/low-stock", async (req, res) => {
+    try {
+      const threshold = req.query.threshold ? parseInt(req.query.threshold as string) : 30;
+      const products = await storage.getLowStockProducts(threshold);
+      res.json(products);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/inventory/:id/stock", async (req, res) => {
+    try {
+      const { quantity } = req.body;
+      const product = await storage.updateProductStock(parseInt(req.params.id), quantity);
+      if (!product) return res.status(404).json({ error: "المنتج غير موجود" });
+      res.json(product);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

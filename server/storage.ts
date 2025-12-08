@@ -60,9 +60,15 @@ import {
   type Warehouse,
   type InsertWarehouse,
   warehouses,
+  type Notification,
+  type InsertNotification,
+  notifications,
+  type ActivityLog,
+  type InsertActivityLog,
+  activityLogs,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql, gte, lte, count } from "drizzle-orm";
+import { eq, and, desc, sql, gte, lte, count, or } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -195,6 +201,21 @@ export interface IStorage {
   }>;
   getAllOrders(): Promise<Order[]>;
   getAllUsers(): Promise<User[]>;
+
+  // Notifications
+  getNotifications(userId?: number, staffId?: number): Promise<Notification[]>;
+  getUnreadNotificationsCount(userId?: number, staffId?: number): Promise<number>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  markNotificationRead(id: number): Promise<void>;
+  markAllNotificationsRead(userId?: number, staffId?: number): Promise<void>;
+
+  // Activity Logs
+  getActivityLogs(limit?: number): Promise<ActivityLog[]>;
+  createActivityLog(log: InsertActivityLog): Promise<ActivityLog>;
+
+  // Inventory
+  getLowStockProducts(threshold?: number): Promise<Product[]>;
+  updateProductStock(id: number, quantity: number): Promise<Product | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -665,6 +686,67 @@ export class DatabaseStorage implements IStorage {
 
   async getAllUsers(): Promise<User[]> {
     return await db.select().from(users).orderBy(desc(users.createdAt));
+  }
+
+  // Notifications
+  async getNotifications(userId?: number, staffId?: number): Promise<Notification[]> {
+    if (userId) {
+      return await db.select().from(notifications).where(eq(notifications.userId, userId)).orderBy(desc(notifications.createdAt));
+    }
+    if (staffId) {
+      return await db.select().from(notifications).where(eq(notifications.staffId, staffId)).orderBy(desc(notifications.createdAt));
+    }
+    return await db.select().from(notifications).orderBy(desc(notifications.createdAt));
+  }
+
+  async getUnreadNotificationsCount(userId?: number, staffId?: number): Promise<number> {
+    if (userId) {
+      const [result] = await db.select({ count: count() }).from(notifications).where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+      return result.count;
+    }
+    if (staffId) {
+      const [result] = await db.select({ count: count() }).from(notifications).where(and(eq(notifications.staffId, staffId), eq(notifications.isRead, false)));
+      return result.count;
+    }
+    const [result] = await db.select({ count: count() }).from(notifications).where(eq(notifications.isRead, false));
+    return result.count;
+  }
+
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const [newNotification] = await db.insert(notifications).values(notification).returning();
+    return newNotification;
+  }
+
+  async markNotificationRead(id: number): Promise<void> {
+    await db.update(notifications).set({ isRead: true }).where(eq(notifications.id, id));
+  }
+
+  async markAllNotificationsRead(userId?: number, staffId?: number): Promise<void> {
+    if (userId) {
+      await db.update(notifications).set({ isRead: true }).where(eq(notifications.userId, userId));
+    } else if (staffId) {
+      await db.update(notifications).set({ isRead: true }).where(eq(notifications.staffId, staffId));
+    }
+  }
+
+  // Activity Logs
+  async getActivityLogs(limit: number = 100): Promise<ActivityLog[]> {
+    return await db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt)).limit(limit);
+  }
+
+  async createActivityLog(log: InsertActivityLog): Promise<ActivityLog> {
+    const [newLog] = await db.insert(activityLogs).values(log).returning();
+    return newLog;
+  }
+
+  // Inventory
+  async getLowStockProducts(threshold: number = 30): Promise<Product[]> {
+    return await db.select().from(products).where(lte(products.stock, threshold)).orderBy(products.stock);
+  }
+
+  async updateProductStock(id: number, quantity: number): Promise<Product | undefined> {
+    const [updated] = await db.update(products).set({ stock: quantity }).where(eq(products.id, id)).returning();
+    return updated || undefined;
   }
 }
 
