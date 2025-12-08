@@ -30,7 +30,7 @@ import {
   GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight, LogOut, MousePointer, EyeOff
 } from 'lucide-react';
 import { Link } from 'wouter';
-import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI, bannersAPI } from '@/lib/api';
+import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI, bannersAPI, segmentsAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart, Line, Legend, ComposedChart, RadialBarChart, RadialBar, Treemap, FunnelChart, Funnel, LabelList } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -219,13 +219,6 @@ const mockReturns = [
   { id: 3, returnNumber: 'RET-003', orderId: 1015, customer: 'مركز الخير', reason: 'تاريخ انتهاء قريب', status: 'refunded', amount: 420, date: '2024-05-08' },
 ];
 
-const mockCustomerSegments = [
-  { id: 1, name: 'عملاء VIP', count: 500, avgOrder: 2500, retention: 95, growth: 12 },
-  { id: 2, name: 'عملاء نشطين', count: 3500, avgOrder: 850, retention: 78, growth: 8 },
-  { id: 3, name: 'عملاء جدد (30 يوم)', count: 1200, avgOrder: 450, retention: 45, growth: 25 },
-  { id: 4, name: 'عملاء خاملين', count: 2800, avgOrder: 320, retention: 15, growth: -5 },
-  { id: 5, name: 'عملاء مهددين بالمغادرة', count: 450, avgOrder: 280, retention: 25, growth: -12 },
-];
 
 const recentActivities = [
   { id: 1, type: 'order', message: 'طلب جديد #1024 من سوبر ماركت النور', time: '5 دقائق', icon: ShoppingCart, color: 'bg-blue-100 text-blue-600' },
@@ -392,6 +385,12 @@ export default function Admin() {
     queryFn: () => bannersAPI.getAll(),
   });
 
+  // Customer Segments Query
+  const { data: segmentsList = [], refetch: refetchSegments } = useQuery<any[]>({
+    queryKey: ['segments'],
+    queryFn: () => segmentsAPI.getAll(),
+  });
+
   // Customer Stats Queries
   const { data: customerStats } = useQuery({
     queryKey: ['customerStats'],
@@ -452,6 +451,16 @@ export default function Admin() {
   const [viewingBanner, setViewingBanner] = useState<any>(null);
   const [bannerViewers, setBannerViewers] = useState<any[]>([]);
   const [loadingBannerViewers, setLoadingBannerViewers] = useState(false);
+
+  // Customer Segments State
+  const [showAddSegmentDialog, setShowAddSegmentDialog] = useState(false);
+  const [editingSegment, setEditingSegment] = useState<any>(null);
+  const [newSegment, setNewSegment] = useState({
+    name: '',
+    description: '',
+    criteria: '',
+    isActive: true,
+  });
 
   const fetchBannerProducts = async (bannerId: number) => {
     setLoadingBannerProducts(true);
@@ -3306,45 +3315,193 @@ export default function Admin() {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h3 className="font-bold text-xl flex items-center gap-2"><Split className="w-5 h-5 text-indigo-500" />شرائح العملاء والتحليلات</h3>
-                  <p className="text-gray-500 text-sm mt-1">تقسيم العملاء لاستهداف أفضل</p>
+                  <p className="text-gray-500 text-sm mt-1">{segmentsList.length} شريحة</p>
                 </div>
-                <Button className="rounded-xl gap-2"><Plus className="w-4 h-4" />إنشاء شريحة</Button>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    className="rounded-xl gap-2"
+                    onClick={async () => {
+                      try {
+                        await segmentsAPI.recalculate();
+                        toast({ title: 'تم تحديث أعداد العملاء' });
+                        refetchSegments();
+                      } catch (error) {
+                        toast({ title: 'خطأ في التحديث', variant: 'destructive' });
+                      }
+                    }}
+                  >
+                    <RefreshCw className="w-4 h-4" />تحديث الأعداد
+                  </Button>
+                  <Button 
+                    className="rounded-xl gap-2"
+                    onClick={() => {
+                      setEditingSegment(null);
+                      setNewSegment({ name: '', description: '', criteria: '', isActive: true });
+                      setShowAddSegmentDialog(true);
+                    }}
+                    data-testid="add-segment-btn"
+                  >
+                    <Plus className="w-4 h-4" />إنشاء شريحة
+                  </Button>
+                </div>
               </div>
 
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {mockCustomerSegments.map((segment) => (
-                  <div key={segment.id} className="bg-gray-50 rounded-2xl p-5 border border-gray-100 hover:shadow-md transition-all">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-bold text-lg">{segment.name}</h4>
-                      <div className={`flex items-center gap-1 text-xs font-bold ${segment.growth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        {segment.growth >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                        {segment.growth}%
+              {segmentsList.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-2xl">
+                  <Split className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h4 className="text-lg font-bold text-gray-600 mb-2">لا توجد شرائح عملاء</h4>
+                  <p className="text-gray-500 mb-4">أنشئ شرائح لتقسيم عملائك واستهدافهم بشكل أفضل</p>
+                  <Button 
+                    className="rounded-xl gap-2"
+                    onClick={() => {
+                      setEditingSegment(null);
+                      setNewSegment({ name: '', description: '', criteria: '', isActive: true });
+                      setShowAddSegmentDialog(true);
+                    }}
+                  >
+                    <Plus className="w-4 h-4" />إنشاء أول شريحة
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {segmentsList.map((segment: any) => (
+                    <div key={segment.id} className="bg-gray-50 rounded-2xl p-5 border border-gray-100 hover:shadow-md transition-all" data-testid={`segment-card-${segment.id}`}>
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="font-bold text-lg">{segment.name}</h4>
+                        <Badge className={segment.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}>
+                          {segment.isActive ? 'نشط' : 'غير نشط'}
+                        </Badge>
                       </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-xs text-gray-500">عدد العملاء</p>
-                        <p className="text-xl font-bold">{segment.count.toLocaleString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">متوسط الطلب</p>
-                        <p className="text-xl font-bold">{segment.avgOrder} ل.س</p>
-                      </div>
-                      <div className="col-span-2">
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="text-gray-500">معدل الاحتفاظ</span>
-                          <span className="font-bold">{segment.retention}%</span>
+                      {segment.description && (
+                        <p className="text-sm text-gray-500 mb-4">{segment.description}</p>
+                      )}
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <p className="text-xs text-gray-500">عدد العملاء</p>
+                          <p className="text-xl font-bold">{(segment.customerCount || 0).toLocaleString()}</p>
                         </div>
-                        <Progress value={segment.retention} className="h-2" />
+                        <div>
+                          <p className="text-xs text-gray-500">تاريخ الإنشاء</p>
+                          <p className="text-sm font-medium">{new Date(segment.createdAt).toLocaleDateString('ar-SY')}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          className="flex-1 rounded-xl text-sm"
+                          onClick={() => {
+                            setEditingSegment(segment);
+                            setNewSegment({
+                              name: segment.name,
+                              description: segment.description || '',
+                              criteria: segment.criteria || '',
+                              isActive: segment.isActive,
+                            });
+                            setShowAddSegmentDialog(true);
+                          }}
+                          data-testid={`edit-segment-${segment.id}`}
+                        >
+                          <Pencil className="w-4 h-4 ml-2" />تعديل
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          className="rounded-xl text-sm text-red-500 hover:bg-red-50"
+                          onClick={async () => {
+                            if (confirm('هل أنت متأكد من حذف هذه الشريحة؟')) {
+                              try {
+                                await segmentsAPI.delete(segment.id);
+                                toast({ title: 'تم حذف الشريحة بنجاح' });
+                                refetchSegments();
+                              } catch (error) {
+                                toast({ title: 'خطأ في الحذف', variant: 'destructive' });
+                              }
+                            }
+                          }}
+                          data-testid={`delete-segment-${segment.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex gap-2 mt-4">
-                      <Button variant="outline" className="flex-1 rounded-xl text-sm">عرض العملاء</Button>
-                      <Button variant="outline" className="rounded-xl text-sm"><Megaphone className="w-4 h-4" /></Button>
+                  ))}
+                </div>
+              )}
+
+              {/* Add/Edit Segment Dialog */}
+              <Dialog open={showAddSegmentDialog} onOpenChange={setShowAddSegmentDialog}>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle>{editingSegment ? 'تعديل الشريحة' : 'إنشاء شريحة جديدة'}</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 mt-4">
+                    <div>
+                      <Label>اسم الشريحة *</Label>
+                      <Input 
+                        className="rounded-xl mt-1" 
+                        placeholder="مثال: عملاء VIP"
+                        value={newSegment.name}
+                        onChange={(e) => setNewSegment({ ...newSegment, name: e.target.value })}
+                        data-testid="input-segment-name"
+                      />
                     </div>
+                    <div>
+                      <Label>الوصف</Label>
+                      <Input 
+                        className="rounded-xl mt-1" 
+                        placeholder="وصف الشريحة..."
+                        value={newSegment.description}
+                        onChange={(e) => setNewSegment({ ...newSegment, description: e.target.value })}
+                        data-testid="input-segment-description"
+                      />
+                    </div>
+                    <div>
+                      <Label>معايير التصنيف (JSON)</Label>
+                      <Input 
+                        className="rounded-xl mt-1" 
+                        placeholder='{"isVip": true}'
+                        value={newSegment.criteria}
+                        onChange={(e) => setNewSegment({ ...newSegment, criteria: e.target.value })}
+                        data-testid="input-segment-criteria"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">المعايير المدعومة: isVip, cityId, minOrders</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={newSegment.isActive}
+                        onCheckedChange={(checked) => setNewSegment({ ...newSegment, isActive: checked })}
+                        data-testid="switch-segment-active"
+                      />
+                      <Label>شريحة نشطة</Label>
+                    </div>
+                    <Button 
+                      className="w-full rounded-xl"
+                      onClick={async () => {
+                        if (!newSegment.name.trim()) {
+                          toast({ title: 'يرجى إدخال اسم الشريحة', variant: 'destructive' });
+                          return;
+                        }
+                        try {
+                          if (editingSegment) {
+                            await segmentsAPI.update(editingSegment.id, newSegment);
+                            toast({ title: 'تم تحديث الشريحة بنجاح' });
+                          } else {
+                            await segmentsAPI.create(newSegment);
+                            toast({ title: 'تم إنشاء الشريحة بنجاح' });
+                          }
+                          setShowAddSegmentDialog(false);
+                          refetchSegments();
+                        } catch (error) {
+                          toast({ title: 'حدث خطأ', variant: 'destructive' });
+                        }
+                      }}
+                      data-testid="btn-save-segment"
+                    >
+                      {editingSegment ? 'حفظ التغييرات' : 'إنشاء الشريحة'}
+                    </Button>
                   </div>
-                ))}
-              </div>
+                </DialogContent>
+              </Dialog>
             </Card>
           </TabsContent>
 

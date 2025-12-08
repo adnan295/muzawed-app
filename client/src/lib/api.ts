@@ -223,6 +223,7 @@ export const shipmentsAPI = {
 // Customer Segments API
 export const segmentsAPI = {
   getAll: () => request("/segments"),
+  getById: (id: number) => request(`/segments/${id}`),
   create: (data: any) => request("/segments", {
     method: "POST",
     body: JSON.stringify(data),
@@ -230,6 +231,12 @@ export const segmentsAPI = {
   update: (id: number, data: any) => request(`/segments/${id}`, {
     method: "PUT",
     body: JSON.stringify(data),
+  }),
+  delete: (id: number) => request(`/segments/${id}`, {
+    method: "DELETE",
+  }),
+  recalculate: () => request("/segments/recalculate", {
+    method: "POST",
   }),
 };
 
