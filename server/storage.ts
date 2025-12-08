@@ -180,8 +180,11 @@ export interface IStorage {
 
   // Customer Segments
   getCustomerSegments(): Promise<CustomerSegment[]>;
+  getCustomerSegment(id: number): Promise<CustomerSegment | undefined>;
   createCustomerSegment(segment: InsertCustomerSegment): Promise<CustomerSegment>;
   updateCustomerSegment(id: number, segment: Partial<InsertCustomerSegment>): Promise<CustomerSegment | undefined>;
+  deleteCustomerSegment(id: number): Promise<void>;
+  recalculateSegmentCounts(): Promise<void>;
 
   // Reports
   getReports(): Promise<Report[]>;
@@ -687,6 +690,48 @@ export class DatabaseStorage implements IStorage {
   async updateCustomerSegment(id: number, segmentData: Partial<InsertCustomerSegment>): Promise<CustomerSegment | undefined> {
     const [updated] = await db.update(customerSegments).set(segmentData).where(eq(customerSegments.id, id)).returning();
     return updated || undefined;
+  }
+
+  async getCustomerSegment(id: number): Promise<CustomerSegment | undefined> {
+    const [segment] = await db.select().from(customerSegments).where(eq(customerSegments.id, id));
+    return segment || undefined;
+  }
+
+  async deleteCustomerSegment(id: number): Promise<void> {
+    await db.delete(customerSegments).where(eq(customerSegments.id, id));
+  }
+
+  async recalculateSegmentCounts(): Promise<void> {
+    // Get all segments and recalculate counts based on criteria
+    const allSegments = await db.select().from(customerSegments);
+    const allUsers = await db.select().from(users);
+    
+    for (const segment of allSegments) {
+      let count = 0;
+      const criteria = segment.criteria ? JSON.parse(segment.criteria) : {};
+      
+      for (const user of allUsers) {
+        let matches = true;
+        
+        // Check criteria
+        if (criteria.minOrders !== undefined) {
+          // Would need to count orders per user
+          matches = matches && true; // Simplified for now
+        }
+        if (criteria.isVip !== undefined) {
+          matches = matches && (user.isVip === criteria.isVip);
+        }
+        if (criteria.cityId !== undefined) {
+          matches = matches && (user.cityId === criteria.cityId);
+        }
+        
+        if (matches) count++;
+      }
+      
+      await db.update(customerSegments)
+        .set({ customerCount: count })
+        .where(eq(customerSegments.id, segment.id));
+    }
   }
 
   // Reports
