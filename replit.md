@@ -248,3 +248,17 @@ Shopping & Orders:
     - Live preview in add/edit dialog
   * AdsCarousel component with view/click analytics tracking
   * Automatic view tracking when banner is displayed, click tracking on button click
+- Added configurable delivery fee system:
+  * `deliverySettings` table with per-warehouse settings (baseFee, freeThresholdAmount, freeThresholdQuantity)
+  * `orders.deliveryFee` field to track delivery charges per order
+  * Admin dashboard "الإعدادات" tab with full CRUD for delivery settings:
+    - 4 KPIs: total settings, enabled, with free shipping threshold, average fee
+    - Add/Edit/Delete delivery settings per warehouse
+    - Configure base fee in Syrian Pounds (ل.س)
+    - Set free shipping thresholds based on order amount OR quantity
+    - Enable/disable delivery fees per warehouse
+  * Checkout page integration:
+    - Automatic delivery fee calculation based on user's city warehouse
+    - Free shipping when order exceeds threshold (amount or quantity)
+    - Dynamic display of delivery fee in order summary
+    - Delivery fee included in order total

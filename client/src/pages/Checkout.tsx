@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { useLocation, Link } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { cartAPI, addressesAPI, ordersAPI } from '@/lib/api';
+import { cartAPI, addressesAPI, ordersAPI, deliverySettingsAPI, warehousesAPI } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import {
   Dialog,
@@ -59,12 +59,37 @@ export default function Checkout() {
     enabled: !!user?.id,
   });
 
+  const { data: warehouses = [] } = useQuery<any[]>({
+    queryKey: ['warehouses'],
+    queryFn: async () => {
+      const data = await warehousesAPI.getAll();
+      return data as any[];
+    }
+  });
+
   const defaultAddress = addresses.find(a => a.isDefault) || addresses[0];
 
   const subtotal = cartItems.reduce((acc, item) => 
     acc + (parseFloat(item.product?.price || '0') * item.quantity), 0);
+  const totalQuantity = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+
+  const userWarehouse = warehouses.find((w: any) => w.cityId === user?.cityId);
+  
+  const { data: deliveryInfo } = useQuery<{ fee: number; isFree: boolean; reason?: string }>({
+    queryKey: ['delivery-fee', userWarehouse?.id, subtotal, totalQuantity],
+    queryFn: async () => {
+      if (!userWarehouse) return { fee: 0, isFree: true, reason: 'no_warehouse' };
+      const data = await deliverySettingsAPI.resolve(userWarehouse.id, subtotal, totalQuantity);
+      return data as { fee: number; isFree: boolean; reason?: string };
+    },
+    enabled: !!userWarehouse?.id && subtotal > 0,
+    initialData: { fee: 0, isFree: true }
+  });
+
+  const deliveryFee = deliveryInfo?.fee || 0;
+  const isDeliveryFree = deliveryInfo?.isFree || deliveryFee === 0;
   const tax = subtotal * 0.15;
-  const total = subtotal + tax;
+  const total = subtotal + tax + deliveryFee;
 
   const createOrderMutation = useMutation({
     mutationFn: async () => {
@@ -76,6 +101,7 @@ export default function Checkout() {
         status: 'pending',
         subtotal: subtotal.toFixed(2),
         tax: tax.toFixed(2),
+        deliveryFee: deliveryFee.toFixed(2),
         total: total.toFixed(2),
         paymentMethod: paymentMethod === 'card' ? 'card' : paymentMethod === 'cod' ? 'cash' : 'wallet',
       };
@@ -265,9 +291,11 @@ export default function Checkout() {
               <span className="text-muted-foreground">الضريبة (15%)</span>
               <span>{tax.toFixed(2)} ل.س</span>
             </div>
-            <div className="flex justify-between text-sm text-green-600">
+            <div className={`flex justify-between text-sm ${isDeliveryFree ? 'text-green-600' : ''}`}>
               <span className="text-muted-foreground">التوصيل</span>
-              <span className="font-bold">مجاني</span>
+              <span className="font-bold" data-testid="text-delivery-fee">
+                {isDeliveryFree ? 'مجاني' : `${deliveryFee.toFixed(2)} ل.س`}
+              </span>
             </div>
             <Separator />
             <div className="flex justify-between text-lg font-bold">

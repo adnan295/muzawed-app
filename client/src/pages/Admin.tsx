@@ -14,6 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   Package, ShoppingCart, Users, TrendingUp, Plus, Search, Edit, Trash2, ArrowRight,
   LayoutDashboard, Box, ClipboardList, Settings, DollarSign, Eye, CheckCircle, Clock,
@@ -30,7 +31,7 @@ import {
   GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight, LogOut, MousePointer, EyeOff
 } from 'lucide-react';
 import { Link } from 'wouter';
-import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI, bannersAPI, segmentsAPI, suppliersAPI, reportsAPI, expensesAPI, expenseCategoriesAPI } from '@/lib/api';
+import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI, bannersAPI, segmentsAPI, suppliersAPI, reportsAPI, expensesAPI, expenseCategoriesAPI, deliverySettingsAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart, Line, Legend, ComposedChart, RadialBarChart, RadialBar, Treemap, FunnelChart, Funnel, LabelList } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -237,6 +238,315 @@ const kpiData = [
   { name: 'رضا العملاء', value: 4.6, target: 4.8, unit: '/5', trend: 'up', change: 0.2 },
   { name: 'معدل الإلغاء', value: 3.2, target: 2, unit: '%', trend: 'down', change: -0.5 },
 ];
+
+function DeliverySettingsSection({ warehouses }: { warehouses: any[] }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [formData, setFormData] = useState({
+    warehouseId: '',
+    baseFee: '',
+    freeThresholdAmount: '',
+    freeThresholdQuantity: '',
+    isEnabled: true,
+    notes: ''
+  });
+
+  const { data: deliverySettings = [], refetch } = useQuery<any[]>({
+    queryKey: ['delivery-settings'],
+    queryFn: async () => {
+      const data = await deliverySettingsAPI.getAll();
+      return data as any[];
+    }
+  });
+
+  const resetForm = () => {
+    setFormData({ warehouseId: '', baseFee: '', freeThresholdAmount: '', freeThresholdQuantity: '', isEnabled: true, notes: '' });
+    setEditingId(null);
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.warehouseId || !formData.baseFee) {
+      toast({ title: 'يرجى ملء الحقول المطلوبة', variant: 'destructive' });
+      return;
+    }
+    try {
+      const data = {
+        warehouseId: parseInt(formData.warehouseId),
+        baseFee: formData.baseFee,
+        freeThresholdAmount: formData.freeThresholdAmount || undefined,
+        freeThresholdQuantity: formData.freeThresholdQuantity ? parseInt(formData.freeThresholdQuantity) : undefined,
+        isEnabled: formData.isEnabled,
+        notes: formData.notes || undefined
+      };
+      if (editingId) {
+        await deliverySettingsAPI.update(editingId, data);
+        toast({ title: 'تم تحديث إعدادات التوصيل بنجاح', className: 'bg-green-600 text-white' });
+      } else {
+        await deliverySettingsAPI.create(data);
+        toast({ title: 'تم إضافة إعدادات التوصيل بنجاح', className: 'bg-green-600 text-white' });
+      }
+      refetch();
+      setIsAddOpen(false);
+      resetForm();
+    } catch (error: any) {
+      toast({ title: error.message || 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('هل أنت متأكد من حذف إعدادات التوصيل هذه؟')) return;
+    try {
+      await deliverySettingsAPI.delete(id);
+      toast({ title: 'تم حذف إعدادات التوصيل', className: 'bg-green-600 text-white' });
+      refetch();
+    } catch (error: any) {
+      toast({ title: error.message || 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const getWarehouseName = (warehouseId: number) => {
+    const wh = warehouses.find((w: any) => w.id === warehouseId);
+    return wh?.name || `مستودع ${warehouseId}`;
+  };
+
+  const formatCurrency = (value: string | number) => {
+    return parseFloat(value?.toString() || '0').toLocaleString('ar-SY') + ' ل.س';
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card className="p-6 border-none shadow-lg rounded-2xl bg-gradient-to-l from-blue-600 to-indigo-700 text-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <Truck className="w-6 h-6" />
+              إعدادات رسوم التوصيل
+            </h2>
+            <p className="text-blue-100 mt-1">إدارة رسوم التوصيل لكل مستودع مع إمكانية تحديد حد الشحن المجاني</p>
+          </div>
+          <Dialog open={isAddOpen} onOpenChange={(open) => { setIsAddOpen(open); if (!open) resetForm(); }}>
+            <DialogTrigger asChild>
+              <Button className="bg-white text-blue-600 hover:bg-blue-50 rounded-xl gap-2" data-testid="button-add-delivery-setting">
+                <Plus className="w-4 h-4" />إضافة إعدادات
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>{editingId ? 'تعديل إعدادات التوصيل' : 'إضافة إعدادات توصيل جديدة'}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 mt-4">
+                <div>
+                  <Label>المستودع *</Label>
+                  <Select value={formData.warehouseId} onValueChange={(v) => setFormData({ ...formData, warehouseId: v })}>
+                    <SelectTrigger className="rounded-xl mt-1" data-testid="select-warehouse">
+                      <SelectValue placeholder="اختر المستودع" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {warehouses.map((wh: any) => (
+                        <SelectItem key={wh.id} value={wh.id.toString()}>{wh.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>رسوم التوصيل الأساسية (ل.س) *</Label>
+                  <Input 
+                    className="rounded-xl mt-1" 
+                    type="number" 
+                    placeholder="مثال: 5000" 
+                    value={formData.baseFee}
+                    onChange={(e) => setFormData({ ...formData, baseFee: e.target.value })}
+                    data-testid="input-base-fee"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>حد الشحن المجاني (المبلغ)</Label>
+                    <Input 
+                      className="rounded-xl mt-1" 
+                      type="number" 
+                      placeholder="مثال: 100000"
+                      value={formData.freeThresholdAmount}
+                      onChange={(e) => setFormData({ ...formData, freeThresholdAmount: e.target.value })}
+                      data-testid="input-free-threshold-amount"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">الطلبات أكثر من هذا المبلغ = شحن مجاني</p>
+                  </div>
+                  <div>
+                    <Label>حد الشحن المجاني (الكمية)</Label>
+                    <Input 
+                      className="rounded-xl mt-1" 
+                      type="number" 
+                      placeholder="مثال: 10"
+                      value={formData.freeThresholdQuantity}
+                      onChange={(e) => setFormData({ ...formData, freeThresholdQuantity: e.target.value })}
+                      data-testid="input-free-threshold-quantity"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">الطلبات أكثر من هذه الكمية = شحن مجاني</p>
+                  </div>
+                </div>
+                <div>
+                  <Label>ملاحظات</Label>
+                  <Textarea 
+                    className="rounded-xl mt-1" 
+                    placeholder="ملاحظات إضافية..."
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch 
+                    checked={formData.isEnabled}
+                    onCheckedChange={(checked) => setFormData({ ...formData, isEnabled: checked })}
+                    data-testid="switch-is-enabled"
+                  />
+                  <Label>تفعيل رسوم التوصيل</Label>
+                </div>
+                <div className="flex gap-2 pt-4">
+                  <Button className="flex-1 rounded-xl" onClick={handleSubmit} data-testid="button-save-delivery-setting">
+                    {editingId ? 'تحديث' : 'إضافة'}
+                  </Button>
+                  <Button variant="outline" className="rounded-xl" onClick={() => { setIsAddOpen(false); resetForm(); }}>
+                    إلغاء
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </Card>
+
+      <div className="grid md:grid-cols-4 gap-4">
+        <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center">
+              <Warehouse className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-blue-700">{deliverySettings.length}</p>
+              <p className="text-sm text-blue-600">إعدادات مستودع</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-green-50 to-green-100">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center">
+              <CheckCircle className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-green-700">{deliverySettings.filter((s: any) => s.isEnabled).length}</p>
+              <p className="text-sm text-green-600">مفعّلة</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-purple-500 flex items-center justify-center">
+              <Gift className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-purple-700">{deliverySettings.filter((s: any) => s.freeThresholdAmount || s.freeThresholdQuantity).length}</p>
+              <p className="text-sm text-purple-600">بشحن مجاني</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-orange-50 to-orange-100">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-orange-500 flex items-center justify-center">
+              <DollarSign className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-orange-700">
+                {deliverySettings.length > 0 ? formatCurrency(Math.round(deliverySettings.reduce((sum: number, s: any) => sum + parseFloat(s.baseFee || '0'), 0) / deliverySettings.length)) : '0 ل.س'}
+              </p>
+              <p className="text-sm text-orange-600">متوسط الرسوم</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <Card className="p-6 border-none shadow-lg rounded-2xl">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-right">المستودع</TableHead>
+              <TableHead className="text-right">رسوم التوصيل</TableHead>
+              <TableHead className="text-right">حد الشحن المجاني (المبلغ)</TableHead>
+              <TableHead className="text-right">حد الشحن المجاني (الكمية)</TableHead>
+              <TableHead className="text-right">الحالة</TableHead>
+              <TableHead className="text-right">ملاحظات</TableHead>
+              <TableHead className="text-right">إجراءات</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {deliverySettings.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                  لا توجد إعدادات توصيل. اضغط على "إضافة إعدادات" لإنشاء أول إعداد.
+                </TableCell>
+              </TableRow>
+            ) : (
+              deliverySettings.map((setting: any) => (
+                <TableRow key={setting.id} data-testid={`row-delivery-setting-${setting.id}`}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <Warehouse className="w-4 h-4 text-blue-500" />
+                      {getWarehouseName(setting.warehouseId)}
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-bold text-blue-600">{formatCurrency(setting.baseFee)}</TableCell>
+                  <TableCell>{setting.freeThresholdAmount ? formatCurrency(setting.freeThresholdAmount) : <span className="text-gray-400">-</span>}</TableCell>
+                  <TableCell>{setting.freeThresholdQuantity ? `${setting.freeThresholdQuantity} قطعة` : <span className="text-gray-400">-</span>}</TableCell>
+                  <TableCell>
+                    <Badge className={setting.isEnabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>
+                      {setting.isEnabled ? 'مفعّل' : 'معطّل'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="max-w-[200px] truncate">{setting.notes || <span className="text-gray-400">-</span>}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-lg"
+                        onClick={() => {
+                          setEditingId(setting.id);
+                          setFormData({
+                            warehouseId: setting.warehouseId.toString(),
+                            baseFee: setting.baseFee,
+                            freeThresholdAmount: setting.freeThresholdAmount || '',
+                            freeThresholdQuantity: setting.freeThresholdQuantity?.toString() || '',
+                            isEnabled: setting.isEnabled,
+                            notes: setting.notes || ''
+                          });
+                          setIsAddOpen(true);
+                        }}
+                        data-testid={`edit-delivery-setting-${setting.id}`}
+                      >
+                        <Edit className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-lg text-red-600 hover:bg-red-50"
+                        onClick={() => handleDelete(setting.id)}
+                        data-testid={`delete-delivery-setting-${setting.id}`}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+    </div>
+  );
+}
 
 export default function Admin() {
   const [, setLocation] = useLocation();
@@ -7693,21 +8003,7 @@ export default function Admin() {
 
           {/* Settings Tab */}
           <TabsContent value="settings">
-            <Card className="p-6 border-none shadow-lg rounded-2xl">
-              <h3 className="font-bold text-xl mb-6">إعدادات النظام</h3>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div><Label>اسم المتجر</Label><Input className="rounded-xl mt-1" defaultValue="ساري" /></div>
-                  <div><Label>البريد الإلكتروني</Label><Input className="rounded-xl mt-1" defaultValue="admin@sary.sa" /></div>
-                  <div><Label>نسبة الضريبة (%)</Label><Input className="rounded-xl mt-1" type="number" defaultValue="15" /></div>
-                </div>
-                <div className="space-y-4">
-                  <div><Label>الحد الأدنى للطلب</Label><Input className="rounded-xl mt-1" type="number" defaultValue="200" /></div>
-                  <div><Label>رسوم التوصيل</Label><Input className="rounded-xl mt-1" type="number" defaultValue="0" /></div>
-                </div>
-              </div>
-              <Button className="mt-6 rounded-xl">حفظ التغييرات</Button>
-            </Card>
+            <DeliverySettingsSection warehouses={warehousesList} />
           </TabsContent>
         </Tabs>
       </div>
