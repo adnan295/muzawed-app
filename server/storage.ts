@@ -102,6 +102,9 @@ import {
   type Expense,
   type InsertExpense,
   expenses,
+  type DeliverySetting,
+  type InsertDeliverySetting,
+  deliverySettings,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte, count, or } from "drizzle-orm";
@@ -396,6 +399,15 @@ export interface IStorage {
     byCategory: { categoryId: number; categoryName: string; total: number; count: number }[];
     byMonth: { month: string; total: number }[];
   }>;
+
+  // Delivery Settings - إعدادات التوصيل
+  getDeliverySettings(): Promise<DeliverySetting[]>;
+  getDeliverySetting(id: number): Promise<DeliverySetting | undefined>;
+  getDeliverySettingByWarehouse(warehouseId: number): Promise<DeliverySetting | undefined>;
+  createDeliverySetting(setting: InsertDeliverySetting): Promise<DeliverySetting>;
+  updateDeliverySetting(id: number, setting: Partial<InsertDeliverySetting>): Promise<DeliverySetting | undefined>;
+  deleteDeliverySetting(id: number): Promise<void>;
+  resolveDeliveryFee(warehouseId: number, subtotal: number, quantity: number): Promise<{ fee: number; isFree: boolean; reason?: string }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2079,6 +2091,61 @@ export class DatabaseStorage implements IStorage {
       .sort((a, b) => a.month.localeCompare(b.month));
 
     return { totalExpenses, byCategory, byMonth };
+  }
+
+  // Delivery Settings - إعدادات التوصيل
+  async getDeliverySettings(): Promise<DeliverySetting[]> {
+    return await db.select().from(deliverySettings).orderBy(desc(deliverySettings.createdAt));
+  }
+
+  async getDeliverySetting(id: number): Promise<DeliverySetting | undefined> {
+    const [setting] = await db.select().from(deliverySettings).where(eq(deliverySettings.id, id));
+    return setting || undefined;
+  }
+
+  async getDeliverySettingByWarehouse(warehouseId: number): Promise<DeliverySetting | undefined> {
+    const [setting] = await db.select().from(deliverySettings).where(eq(deliverySettings.warehouseId, warehouseId));
+    return setting || undefined;
+  }
+
+  async createDeliverySetting(setting: InsertDeliverySetting): Promise<DeliverySetting> {
+    const [newSetting] = await db.insert(deliverySettings).values(setting).returning();
+    return newSetting;
+  }
+
+  async updateDeliverySetting(id: number, setting: Partial<InsertDeliverySetting>): Promise<DeliverySetting | undefined> {
+    const [updated] = await db.update(deliverySettings)
+      .set({ ...setting, updatedAt: new Date() })
+      .where(eq(deliverySettings.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteDeliverySetting(id: number): Promise<void> {
+    await db.delete(deliverySettings).where(eq(deliverySettings.id, id));
+  }
+
+  async resolveDeliveryFee(warehouseId: number, subtotal: number, quantity: number): Promise<{ fee: number; isFree: boolean; reason?: string }> {
+    const setting = await this.getDeliverySettingByWarehouse(warehouseId);
+    
+    if (!setting || !setting.isEnabled) {
+      return { fee: 0, isFree: true, reason: 'التوصيل مجاني' };
+    }
+
+    const baseFee = parseFloat(setting.baseFee);
+    const freeThresholdAmount = setting.freeThresholdAmount ? parseFloat(setting.freeThresholdAmount) : null;
+    const freeThresholdQuantity = setting.freeThresholdQuantity;
+
+    // Check if free delivery threshold is met
+    if (freeThresholdAmount !== null && subtotal >= freeThresholdAmount) {
+      return { fee: 0, isFree: true, reason: `التوصيل مجاني للطلبات أكثر من ${freeThresholdAmount.toLocaleString('ar-SY')} ل.س` };
+    }
+
+    if (freeThresholdQuantity !== null && quantity >= freeThresholdQuantity) {
+      return { fee: 0, isFree: true, reason: `التوصيل مجاني للطلبات أكثر من ${freeThresholdQuantity} قطعة` };
+    }
+
+    return { fee: baseFee, isFree: false };
   }
 }
 
