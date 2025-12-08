@@ -13,6 +13,9 @@ import Checkout from "@/pages/Checkout";
 import Orders from "@/pages/Orders";
 import Wallet from "@/pages/Wallet";
 import SearchResults from "@/pages/SearchResults";
+import Offers from "@/pages/Offers";
+import Notifications from "@/pages/Notifications";
+import Support from "@/pages/Support";
 
 function Router() {
   return (
@@ -26,6 +29,9 @@ function Router() {
       <Route path="/orders" component={Orders} />
       <Route path="/wallet" component={Wallet} />
       <Route path="/search/:query" component={SearchResults} />
+      <Route path="/offers" component={Offers} />
+      <Route path="/notifications" component={Notifications} />
+      <Route path="/support" component={Support} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -12,7 +12,7 @@ export default function Profile() {
     { icon: MapPin, label: 'عناويني', desc: 'إدارة مواقع التوصيل' },
     { icon: CreditCard, label: 'المحفظة والمدفوعات', desc: 'طرق الدفع والرصيد', href: '/wallet' },
     { icon: Store, label: 'تفاصيل المنشأة', desc: 'معلومات السجل التجاري والضريبة' },
-    { icon: Phone, label: 'المساعدة والدعم', desc: 'تواصل مع خدمة العملاء' },
+    { icon: Phone, label: 'المساعدة والدعم', desc: 'تواصل مع خدمة العملاء', href: '/support' },
     { icon: Settings, label: 'الإعدادات', desc: 'اللغة والإشعارات' },
   ];
 
