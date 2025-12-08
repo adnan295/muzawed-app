@@ -1,7 +1,13 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertCartItemSchema, insertOrderSchema, insertAddressSchema, insertPaymentCardSchema, insertWalletTransactionSchema } from "@shared/schema";
+import { 
+  insertUserSchema, insertCartItemSchema, insertOrderSchema, insertAddressSchema, 
+  insertPaymentCardSchema, insertWalletTransactionSchema, insertPromotionSchema,
+  insertSupplierSchema, insertReturnSchema, insertShipmentSchema, insertCustomerSegmentSchema,
+  insertReportSchema, insertStaffSchema, insertSupportTicketSchema, insertCouponSchema,
+  insertWarehouseSchema
+} from "@shared/schema";
 import { fromError } from "zod-validation-error";
 
 export async function registerRoutes(
@@ -402,6 +408,471 @@ export async function registerRoutes(
       if (error.name === "ZodError") {
         return res.status(400).json({ error: fromError(error).toString() });
       }
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== Promotions Routes ====================
+  
+  app.get("/api/promotions", async (req, res) => {
+    try {
+      const promos = await storage.getPromotions();
+      res.json(promos);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/promotions/:id", async (req, res) => {
+    try {
+      const promo = await storage.getPromotion(parseInt(req.params.id));
+      if (!promo) return res.status(404).json({ error: "العرض غير موجود" });
+      res.json(promo);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/promotions", async (req, res) => {
+    try {
+      const validData = insertPromotionSchema.parse(req.body);
+      const promo = await storage.createPromotion(validData);
+      res.status(201).json(promo);
+    } catch (error: any) {
+      if (error.name === "ZodError") return res.status(400).json({ error: fromError(error).toString() });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/promotions/:id", async (req, res) => {
+    try {
+      const promo = await storage.updatePromotion(parseInt(req.params.id), req.body);
+      if (!promo) return res.status(404).json({ error: "العرض غير موجود" });
+      res.json(promo);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/promotions/:id", async (req, res) => {
+    try {
+      await storage.deletePromotion(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== Suppliers Routes ====================
+  
+  app.get("/api/suppliers", async (req, res) => {
+    try {
+      const supplierList = await storage.getSuppliers();
+      res.json(supplierList);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/suppliers/:id", async (req, res) => {
+    try {
+      const supplier = await storage.getSupplier(parseInt(req.params.id));
+      if (!supplier) return res.status(404).json({ error: "المورد غير موجود" });
+      res.json(supplier);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/suppliers", async (req, res) => {
+    try {
+      const validData = insertSupplierSchema.parse(req.body);
+      const supplier = await storage.createSupplier(validData);
+      res.status(201).json(supplier);
+    } catch (error: any) {
+      if (error.name === "ZodError") return res.status(400).json({ error: fromError(error).toString() });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/suppliers/:id", async (req, res) => {
+    try {
+      const supplier = await storage.updateSupplier(parseInt(req.params.id), req.body);
+      if (!supplier) return res.status(404).json({ error: "المورد غير موجود" });
+      res.json(supplier);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/suppliers/:id", async (req, res) => {
+    try {
+      await storage.deleteSupplier(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== Returns Routes ====================
+  
+  app.get("/api/returns", async (req, res) => {
+    try {
+      const returnList = await storage.getReturns();
+      res.json(returnList);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/returns/:id", async (req, res) => {
+    try {
+      const ret = await storage.getReturn(parseInt(req.params.id));
+      if (!ret) return res.status(404).json({ error: "طلب الاسترجاع غير موجود" });
+      res.json(ret);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/returns", async (req, res) => {
+    try {
+      const validData = insertReturnSchema.parse(req.body);
+      const ret = await storage.createReturn(validData);
+      res.status(201).json(ret);
+    } catch (error: any) {
+      if (error.name === "ZodError") return res.status(400).json({ error: fromError(error).toString() });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/returns/:id", async (req, res) => {
+    try {
+      const ret = await storage.updateReturn(parseInt(req.params.id), req.body);
+      if (!ret) return res.status(404).json({ error: "طلب الاسترجاع غير موجود" });
+      res.json(ret);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== Shipments Routes ====================
+  
+  app.get("/api/shipments", async (req, res) => {
+    try {
+      const shipmentList = await storage.getShipments();
+      res.json(shipmentList);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/shipments/:id", async (req, res) => {
+    try {
+      const shipment = await storage.getShipment(parseInt(req.params.id));
+      if (!shipment) return res.status(404).json({ error: "الشحنة غير موجودة" });
+      res.json(shipment);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/shipments/order/:orderId", async (req, res) => {
+    try {
+      const shipment = await storage.getShipmentByOrder(parseInt(req.params.orderId));
+      res.json(shipment || null);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/shipments", async (req, res) => {
+    try {
+      const validData = insertShipmentSchema.parse(req.body);
+      const shipment = await storage.createShipment(validData);
+      res.status(201).json(shipment);
+    } catch (error: any) {
+      if (error.name === "ZodError") return res.status(400).json({ error: fromError(error).toString() });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/shipments/:id", async (req, res) => {
+    try {
+      const shipment = await storage.updateShipment(parseInt(req.params.id), req.body);
+      if (!shipment) return res.status(404).json({ error: "الشحنة غير موجودة" });
+      res.json(shipment);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== Customer Segments Routes ====================
+  
+  app.get("/api/segments", async (req, res) => {
+    try {
+      const segments = await storage.getCustomerSegments();
+      res.json(segments);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/segments", async (req, res) => {
+    try {
+      const validData = insertCustomerSegmentSchema.parse(req.body);
+      const segment = await storage.createCustomerSegment(validData);
+      res.status(201).json(segment);
+    } catch (error: any) {
+      if (error.name === "ZodError") return res.status(400).json({ error: fromError(error).toString() });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/segments/:id", async (req, res) => {
+    try {
+      const segment = await storage.updateCustomerSegment(parseInt(req.params.id), req.body);
+      if (!segment) return res.status(404).json({ error: "الشريحة غير موجودة" });
+      res.json(segment);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== Reports Routes ====================
+  
+  app.get("/api/reports", async (req, res) => {
+    try {
+      const reportList = await storage.getReports();
+      res.json(reportList);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/reports", async (req, res) => {
+    try {
+      const validData = insertReportSchema.parse(req.body);
+      const report = await storage.createReport(validData);
+      res.status(201).json(report);
+    } catch (error: any) {
+      if (error.name === "ZodError") return res.status(400).json({ error: fromError(error).toString() });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== Staff Routes ====================
+  
+  app.get("/api/staff", async (req, res) => {
+    try {
+      const staffList = await storage.getStaff();
+      res.json(staffList);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/staff/:id", async (req, res) => {
+    try {
+      const member = await storage.getStaffMember(parseInt(req.params.id));
+      if (!member) return res.status(404).json({ error: "الموظف غير موجود" });
+      res.json(member);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/staff", async (req, res) => {
+    try {
+      const validData = insertStaffSchema.parse(req.body);
+      const member = await storage.createStaff(validData);
+      res.status(201).json(member);
+    } catch (error: any) {
+      if (error.name === "ZodError") return res.status(400).json({ error: fromError(error).toString() });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/staff/:id", async (req, res) => {
+    try {
+      const member = await storage.updateStaff(parseInt(req.params.id), req.body);
+      if (!member) return res.status(404).json({ error: "الموظف غير موجود" });
+      res.json(member);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== Support Tickets Routes ====================
+  
+  app.get("/api/tickets", async (req, res) => {
+    try {
+      const tickets = await storage.getSupportTickets();
+      res.json(tickets);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/tickets/:id", async (req, res) => {
+    try {
+      const ticket = await storage.getSupportTicket(parseInt(req.params.id));
+      if (!ticket) return res.status(404).json({ error: "التذكرة غير موجودة" });
+      res.json(ticket);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tickets", async (req, res) => {
+    try {
+      const validData = insertSupportTicketSchema.parse(req.body);
+      const ticket = await storage.createSupportTicket(validData);
+      res.status(201).json(ticket);
+    } catch (error: any) {
+      if (error.name === "ZodError") return res.status(400).json({ error: fromError(error).toString() });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/tickets/:id", async (req, res) => {
+    try {
+      const ticket = await storage.updateSupportTicket(parseInt(req.params.id), req.body);
+      if (!ticket) return res.status(404).json({ error: "التذكرة غير موجودة" });
+      res.json(ticket);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== Coupons Routes ====================
+  
+  app.get("/api/coupons", async (req, res) => {
+    try {
+      const couponList = await storage.getCoupons();
+      res.json(couponList);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/coupons/:id", async (req, res) => {
+    try {
+      const coupon = await storage.getCoupon(parseInt(req.params.id));
+      if (!coupon) return res.status(404).json({ error: "الكوبون غير موجود" });
+      res.json(coupon);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/coupons/code/:code", async (req, res) => {
+    try {
+      const coupon = await storage.getCouponByCode(req.params.code);
+      if (!coupon) return res.status(404).json({ error: "الكوبون غير موجود" });
+      res.json(coupon);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/coupons", async (req, res) => {
+    try {
+      const validData = insertCouponSchema.parse(req.body);
+      const coupon = await storage.createCoupon(validData);
+      res.status(201).json(coupon);
+    } catch (error: any) {
+      if (error.name === "ZodError") return res.status(400).json({ error: fromError(error).toString() });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/coupons/:id", async (req, res) => {
+    try {
+      const coupon = await storage.updateCoupon(parseInt(req.params.id), req.body);
+      if (!coupon) return res.status(404).json({ error: "الكوبون غير موجود" });
+      res.json(coupon);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/coupons/:id", async (req, res) => {
+    try {
+      await storage.deleteCoupon(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== Warehouses Routes ====================
+  
+  app.get("/api/warehouses", async (req, res) => {
+    try {
+      const warehouseList = await storage.getWarehouses();
+      res.json(warehouseList);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/warehouses/:id", async (req, res) => {
+    try {
+      const warehouse = await storage.getWarehouse(parseInt(req.params.id));
+      if (!warehouse) return res.status(404).json({ error: "المستودع غير موجود" });
+      res.json(warehouse);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/warehouses", async (req, res) => {
+    try {
+      const validData = insertWarehouseSchema.parse(req.body);
+      const warehouse = await storage.createWarehouse(validData);
+      res.status(201).json(warehouse);
+    } catch (error: any) {
+      if (error.name === "ZodError") return res.status(400).json({ error: fromError(error).toString() });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/warehouses/:id", async (req, res) => {
+    try {
+      const warehouse = await storage.updateWarehouse(parseInt(req.params.id), req.body);
+      if (!warehouse) return res.status(404).json({ error: "المستودع غير موجود" });
+      res.json(warehouse);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== Dashboard Stats Routes ====================
+  
+  app.get("/api/admin/stats", async (req, res) => {
+    try {
+      const stats = await storage.getDashboardStats();
+      res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/orders", async (req, res) => {
+    try {
+      const allOrders = await storage.getAllOrders();
+      res.json(allOrders);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/users", async (req, res) => {
+    try {
+      const allUsers = await storage.getAllUsers();
+      res.json(allUsers);
+    } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
