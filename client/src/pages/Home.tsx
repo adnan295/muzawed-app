@@ -3,31 +3,16 @@ import { ProductCard } from '@/components/ui/ProductCard';
 import { CATEGORIES, PRODUCTS } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
-import truckImg from '@assets/stock_images/grocery_delivery_tru_61152cdf.jpg';
+import { AdsCarousel } from '@/components/ui/AdsCarousel';
 
 export default function Home() {
   return (
     <MobileLayout>
       <div className="pb-8 space-y-6">
         
-        {/* Hero Banner */}
+        {/* Hero Banner Carousel */}
         <div className="px-4 mt-4">
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-primary to-purple-800 text-white shadow-xl aspect-[2/1]">
-            <div className="absolute inset-0 bg-black/10"></div>
-            <img 
-              src={truckImg} 
-              alt="Delivery Truck" 
-              className="absolute right-0 top-0 h-full w-2/3 object-cover opacity-20 mix-blend-overlay"
-            />
-            <div className="relative z-10 p-6 flex flex-col justify-center h-full items-start">
-              <span className="bg-secondary text-white text-xs font-bold px-2 py-1 rounded-md mb-2">عرض خاص</span>
-              <h2 className="text-2xl font-bold mb-1">مقاضيك واصلة<br/>لباب محلك</h2>
-              <p className="text-purple-100 text-xs mb-4">توصيل مجاني للطلبات فوق 500 ريال</p>
-              <Button size="sm" className="bg-white text-primary hover:bg-white/90 font-bold rounded-lg text-xs h-8">
-                اطلب الآن
-              </Button>
-            </div>
-          </div>
+          <AdsCarousel />
         </div>
 
         {/* Categories Horizontal Scroll */}
