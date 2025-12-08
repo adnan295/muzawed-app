@@ -168,6 +168,17 @@ export const suppliersAPI = {
   delete: (id: number) => request(`/suppliers/${id}`, {
     method: "DELETE",
   }),
+  getDashboard: (id: number) => request(`/suppliers/${id}/dashboard`),
+  getTransactions: (id: number) => request(`/suppliers/${id}/transactions`),
+  getBalance: (id: number) => request(`/suppliers/${id}/balance`),
+  getStock: (id: number) => request(`/suppliers/${id}/stock`),
+  recordImport: (id: number, data: { warehouseId: number; productId: number; quantity: number; unitPrice: string; notes?: string }) => 
+    request(`/suppliers/${id}/import`, { method: "POST", body: JSON.stringify(data) }),
+  recordExport: (id: number, data: { warehouseId: number; productId: number; quantity: number; unitPrice: string; notes?: string }) => 
+    request(`/suppliers/${id}/export`, { method: "POST", body: JSON.stringify(data) }),
+  recordPayment: (id: number, data: { amount: string; paymentMethod: string; referenceNumber?: string; notes?: string }) => 
+    request(`/suppliers/${id}/payment`, { method: "POST", body: JSON.stringify(data) }),
+  recalculateBalance: (id: number) => request(`/suppliers/${id}/recalculate`, { method: "POST" }),
 };
 
 // Returns API

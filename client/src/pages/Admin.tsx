@@ -30,7 +30,7 @@ import {
   GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight, LogOut, MousePointer, EyeOff
 } from 'lucide-react';
 import { Link } from 'wouter';
-import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI, bannersAPI, segmentsAPI } from '@/lib/api';
+import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI, bannersAPI, segmentsAPI, suppliersAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart, Line, Legend, ComposedChart, RadialBarChart, RadialBar, Treemap, FunnelChart, Funnel, LabelList } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -388,7 +388,13 @@ export default function Admin() {
   // Customer Segments Query
   const { data: segmentsList = [], refetch: refetchSegments } = useQuery<any[]>({
     queryKey: ['segments'],
-    queryFn: () => segmentsAPI.getAll(),
+    queryFn: () => segmentsAPI.getAll() as Promise<any[]>,
+  });
+
+  // Suppliers Query
+  const { data: suppliersList = [], refetch: refetchSuppliers } = useQuery<any[]>({
+    queryKey: ['suppliers'],
+    queryFn: () => suppliersAPI.getAll() as Promise<any[]>,
   });
 
   // Customer Stats Queries
@@ -461,6 +467,144 @@ export default function Admin() {
     criteria: '',
     isActive: true,
   });
+
+  // Supplier Management State
+  const [showSupplierDetailDialog, setShowSupplierDetailDialog] = useState(false);
+  const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
+  const [supplierDashboard, setSupplierDashboard] = useState<any>(null);
+  const [loadingSupplierDashboard, setLoadingSupplierDashboard] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState<any>(null);
+  const [newSupplier, setNewSupplier] = useState({
+    name: '',
+    code: '',
+    contactPerson: '',
+    phone: '',
+    email: '',
+    city: '',
+    rating: 5,
+    isActive: true,
+  });
+  const [supplierTransaction, setSupplierTransaction] = useState({
+    warehouseId: 0,
+    productId: 0,
+    quantity: 0,
+    unitPrice: '',
+    amount: '',
+    paymentMethod: 'cash',
+    referenceNumber: '',
+    notes: '',
+  });
+
+  const handleViewSupplierDashboard = async (supplier: any) => {
+    setSelectedSupplier(supplier);
+    setShowSupplierDetailDialog(true);
+    setLoadingSupplierDashboard(true);
+    try {
+      const dashboard = await suppliersAPI.getDashboard(supplier.id);
+      setSupplierDashboard(dashboard);
+    } catch (error) {
+      console.error('Error fetching supplier dashboard:', error);
+      toast({ title: 'حدث خطأ في تحميل بيانات المورد', variant: 'destructive' });
+    }
+    setLoadingSupplierDashboard(false);
+  };
+
+  const handleRecordImport = async () => {
+    if (!selectedSupplier || !supplierTransaction.warehouseId || !supplierTransaction.productId || !supplierTransaction.quantity || !supplierTransaction.unitPrice) {
+      toast({ title: 'يرجى تعبئة جميع الحقول المطلوبة', variant: 'destructive' });
+      return;
+    }
+    try {
+      await suppliersAPI.recordImport(selectedSupplier.id, {
+        warehouseId: supplierTransaction.warehouseId,
+        productId: supplierTransaction.productId,
+        quantity: supplierTransaction.quantity,
+        unitPrice: supplierTransaction.unitPrice,
+        notes: supplierTransaction.notes,
+      });
+      toast({ title: 'تم تسجيل الوارد بنجاح', className: 'bg-green-600 text-white' });
+      setShowImportDialog(false);
+      setSupplierTransaction({ warehouseId: 0, productId: 0, quantity: 0, unitPrice: '', amount: '', paymentMethod: 'cash', referenceNumber: '', notes: '' });
+      await handleViewSupplierDashboard(selectedSupplier);
+    } catch (error) {
+      toast({ title: 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const handleRecordExport = async () => {
+    if (!selectedSupplier || !supplierTransaction.warehouseId || !supplierTransaction.productId || !supplierTransaction.quantity || !supplierTransaction.unitPrice) {
+      toast({ title: 'يرجى تعبئة جميع الحقول المطلوبة', variant: 'destructive' });
+      return;
+    }
+    try {
+      await suppliersAPI.recordExport(selectedSupplier.id, {
+        warehouseId: supplierTransaction.warehouseId,
+        productId: supplierTransaction.productId,
+        quantity: supplierTransaction.quantity,
+        unitPrice: supplierTransaction.unitPrice,
+        notes: supplierTransaction.notes,
+      });
+      toast({ title: 'تم تسجيل الصادر بنجاح', className: 'bg-green-600 text-white' });
+      setShowExportDialog(false);
+      setSupplierTransaction({ warehouseId: 0, productId: 0, quantity: 0, unitPrice: '', amount: '', paymentMethod: 'cash', referenceNumber: '', notes: '' });
+      await handleViewSupplierDashboard(selectedSupplier);
+    } catch (error) {
+      toast({ title: 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const handleRecordPayment = async () => {
+    if (!selectedSupplier || !supplierTransaction.amount || !supplierTransaction.paymentMethod) {
+      toast({ title: 'يرجى تعبئة المبلغ وطريقة الدفع', variant: 'destructive' });
+      return;
+    }
+    try {
+      await suppliersAPI.recordPayment(selectedSupplier.id, {
+        amount: supplierTransaction.amount,
+        paymentMethod: supplierTransaction.paymentMethod,
+        referenceNumber: supplierTransaction.referenceNumber,
+        notes: supplierTransaction.notes,
+      });
+      toast({ title: 'تم تسجيل الدفعة بنجاح', className: 'bg-green-600 text-white' });
+      setShowPaymentDialog(false);
+      setSupplierTransaction({ warehouseId: 0, productId: 0, quantity: 0, unitPrice: '', amount: '', paymentMethod: 'cash', referenceNumber: '', notes: '' });
+      await handleViewSupplierDashboard(selectedSupplier);
+    } catch (error) {
+      toast({ title: 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const handleSaveSupplier = async () => {
+    try {
+      if (editingSupplier) {
+        await suppliersAPI.update(editingSupplier.id, newSupplier);
+        toast({ title: 'تم تحديث المورد بنجاح' });
+      } else {
+        await suppliersAPI.create(newSupplier);
+        toast({ title: 'تم إضافة المورد بنجاح' });
+      }
+      setIsAddSupplierOpen(false);
+      setEditingSupplier(null);
+      setNewSupplier({ name: '', code: '', contactPerson: '', phone: '', email: '', city: '', rating: 5, isActive: true });
+      refetchSuppliers();
+    } catch (error) {
+      toast({ title: 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteSupplier = async (id: number) => {
+    if (!confirm('هل أنت متأكد من حذف هذا المورد؟')) return;
+    try {
+      await suppliersAPI.delete(id);
+      toast({ title: 'تم حذف المورد' });
+      refetchSuppliers();
+    } catch (error) {
+      toast({ title: 'حدث خطأ', variant: 'destructive' });
+    }
+  };
 
   const fetchBannerProducts = async (bannerId: number) => {
     setLoadingBannerProducts(true);
@@ -3511,24 +3655,30 @@ export default function Admin() {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h3 className="font-bold text-xl flex items-center gap-2"><Handshake className="w-5 h-5 text-green-500" />إدارة الموردين</h3>
-                  <p className="text-gray-500 text-sm mt-1">{mockSuppliers.length} مورد</p>
+                  <p className="text-gray-500 text-sm mt-1">{suppliersList.length} مورد</p>
                 </div>
-                <Dialog open={isAddSupplierOpen} onOpenChange={setIsAddSupplierOpen}>
+                <Dialog open={isAddSupplierOpen} onOpenChange={(open) => {
+                  setIsAddSupplierOpen(open);
+                  if (!open) {
+                    setEditingSupplier(null);
+                    setNewSupplier({ name: '', code: '', contactPerson: '', phone: '', email: '', city: '', rating: 5, isActive: true });
+                  }
+                }}>
                   <DialogTrigger asChild>
-                    <Button className="rounded-xl gap-2"><Plus className="w-4 h-4" />إضافة مورد</Button>
+                    <Button className="rounded-xl gap-2" data-testid="btn-add-supplier"><Plus className="w-4 h-4" />إضافة مورد</Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-lg">
-                    <DialogHeader><DialogTitle>إضافة مورد جديد</DialogTitle></DialogHeader>
+                    <DialogHeader><DialogTitle>{editingSupplier ? 'تعديل المورد' : 'إضافة مورد جديد'}</DialogTitle></DialogHeader>
                     <div className="space-y-4 mt-4">
                       <div className="grid grid-cols-2 gap-4">
-                        <div><Label>اسم الشركة</Label><Input className="rounded-xl mt-1" placeholder="شركة..." /></div>
-                        <div><Label>الكود</Label><Input className="rounded-xl mt-1" placeholder="SUP-XXX" /></div>
-                        <div><Label>جهة الاتصال</Label><Input className="rounded-xl mt-1" placeholder="الاسم" /></div>
-                        <div><Label>رقم الهاتف</Label><Input className="rounded-xl mt-1" placeholder="05XXXXXXXX" /></div>
-                        <div><Label>البريد الإلكتروني</Label><Input className="rounded-xl mt-1" placeholder="email@company.com" /></div>
-                        <div><Label>المدينة</Label><Input className="rounded-xl mt-1" placeholder="الرياض" /></div>
+                        <div><Label>اسم الشركة</Label><Input className="rounded-xl mt-1" placeholder="شركة..." value={newSupplier.name} onChange={e => setNewSupplier({...newSupplier, name: e.target.value})} data-testid="input-supplier-name" /></div>
+                        <div><Label>الكود</Label><Input className="rounded-xl mt-1" placeholder="SUP-XXX" value={newSupplier.code} onChange={e => setNewSupplier({...newSupplier, code: e.target.value})} data-testid="input-supplier-code" /></div>
+                        <div><Label>جهة الاتصال</Label><Input className="rounded-xl mt-1" placeholder="الاسم" value={newSupplier.contactPerson} onChange={e => setNewSupplier({...newSupplier, contactPerson: e.target.value})} data-testid="input-supplier-contact" /></div>
+                        <div><Label>رقم الهاتف</Label><Input className="rounded-xl mt-1" placeholder="05XXXXXXXX" value={newSupplier.phone} onChange={e => setNewSupplier({...newSupplier, phone: e.target.value})} data-testid="input-supplier-phone" /></div>
+                        <div><Label>البريد الإلكتروني</Label><Input className="rounded-xl mt-1" placeholder="email@company.com" value={newSupplier.email} onChange={e => setNewSupplier({...newSupplier, email: e.target.value})} data-testid="input-supplier-email" /></div>
+                        <div><Label>المدينة</Label><Input className="rounded-xl mt-1" placeholder="دمشق" value={newSupplier.city} onChange={e => setNewSupplier({...newSupplier, city: e.target.value})} data-testid="input-supplier-city" /></div>
                       </div>
-                      <Button className="w-full rounded-xl">إضافة المورد</Button>
+                      <Button className="w-full rounded-xl" onClick={handleSaveSupplier} data-testid="btn-save-supplier">{editingSupplier ? 'حفظ التغييرات' : 'إضافة المورد'}</Button>
                     </div>
                   </DialogContent>
                 </Dialog>
@@ -3542,52 +3692,290 @@ export default function Admin() {
                       <th className="pb-4 font-bold text-gray-600">جهة الاتصال</th>
                       <th className="pb-4 font-bold text-gray-600">المدينة</th>
                       <th className="pb-4 font-bold text-gray-600">التقييم</th>
-                      <th className="pb-4 font-bold text-gray-600">الطلبات</th>
-                      <th className="pb-4 font-bold text-gray-600">الرصيد</th>
+                      <th className="pb-4 font-bold text-gray-600">الحالة</th>
                       <th className="pb-4 font-bold text-gray-600">الإجراءات</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {mockSuppliers.map((supplier) => (
-                      <tr key={supplier.id} className="border-b border-gray-50 hover:bg-gray-50">
-                        <td className="py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-bold">{supplier.name.charAt(0)}</div>
-                            <div>
-                              <p className="font-bold">{supplier.name}</p>
-                              <p className="text-xs text-gray-500">{supplier.code}</p>
+                    {suppliersList.length === 0 ? (
+                      <tr><td colSpan={6} className="py-8 text-center text-gray-500">لا يوجد موردون حتى الآن</td></tr>
+                    ) : (
+                      suppliersList.map((supplier: any) => (
+                        <tr key={supplier.id} className="border-b border-gray-50 hover:bg-gray-50" data-testid={`row-supplier-${supplier.id}`}>
+                          <td className="py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-bold">{supplier.name?.charAt(0) || 'م'}</div>
+                              <div>
+                                <p className="font-bold">{supplier.name}</p>
+                                <p className="text-xs text-gray-500">{supplier.code}</p>
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="py-4">
-                          <div>
-                            <p className="font-medium">{supplier.contact}</p>
-                            <p className="text-xs text-gray-500">{supplier.phone}</p>
-                          </div>
-                        </td>
-                        <td className="py-4">{supplier.city}</td>
-                        <td className="py-4">
-                          <div className="flex items-center gap-1">
-                            {Array.from({ length: supplier.rating }).map((_, i) => (
-                              <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                            ))}
-                          </div>
-                        </td>
-                        <td className="py-4 font-bold">{supplier.orders}</td>
-                        <td className="py-4 font-bold text-green-600">{supplier.balance.toLocaleString()} ل.س</td>
-                        <td className="py-4">
-                          <div className="flex items-center gap-1">
-                            <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg hover:bg-blue-50 hover:text-blue-600"><Eye className="w-4 h-4" /></Button>
-                            <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg hover:bg-green-50 hover:text-green-600"><ShoppingBag className="w-4 h-4" /></Button>
-                            <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg hover:bg-purple-50 hover:text-purple-600"><Edit className="w-4 h-4" /></Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="py-4">
+                            <div>
+                              <p className="font-medium">{supplier.contactPerson}</p>
+                              <p className="text-xs text-gray-500">{supplier.phone}</p>
+                            </div>
+                          </td>
+                          <td className="py-4">{supplier.city}</td>
+                          <td className="py-4">
+                            <div className="flex items-center gap-1">
+                              {Array.from({ length: supplier.rating || 5 }).map((_, i) => (
+                                <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                              ))}
+                            </div>
+                          </td>
+                          <td className="py-4">
+                            <Badge className={supplier.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}>
+                              {supplier.isActive ? 'نشط' : 'غير نشط'}
+                            </Badge>
+                          </td>
+                          <td className="py-4">
+                            <div className="flex items-center gap-1">
+                              <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg hover:bg-blue-50 hover:text-blue-600" onClick={() => handleViewSupplierDashboard(supplier)} data-testid={`btn-view-supplier-${supplier.id}`}><Eye className="w-4 h-4" /></Button>
+                              <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg hover:bg-purple-50 hover:text-purple-600" onClick={() => { setEditingSupplier(supplier); setNewSupplier(supplier); setIsAddSupplierOpen(true); }} data-testid={`btn-edit-supplier-${supplier.id}`}><Edit className="w-4 h-4" /></Button>
+                              <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg hover:bg-red-50 hover:text-red-600" onClick={() => handleDeleteSupplier(supplier.id)} data-testid={`btn-delete-supplier-${supplier.id}`}><Trash2 className="w-4 h-4" /></Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
             </Card>
+
+            {/* Supplier Detail Dialog */}
+            <Dialog open={showSupplierDetailDialog} onOpenChange={setShowSupplierDetailDialog}>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Handshake className="w-5 h-5 text-green-600" />
+                    تفاصيل المورد: {selectedSupplier?.name}
+                  </DialogTitle>
+                </DialogHeader>
+                {loadingSupplierDashboard ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+                  </div>
+                ) : supplierDashboard && (
+                  <div className="space-y-6 mt-4">
+                    {/* Balance Summary */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="bg-blue-50 rounded-xl p-4">
+                        <p className="text-xs text-gray-500">إجمالي الواردات</p>
+                        <p className="text-xl font-bold text-blue-700">{Number(supplierDashboard.balance?.totalImports || 0).toLocaleString()} ل.س</p>
+                      </div>
+                      <div className="bg-orange-50 rounded-xl p-4">
+                        <p className="text-xs text-gray-500">إجمالي الصادرات</p>
+                        <p className="text-xl font-bold text-orange-700">{Number(supplierDashboard.balance?.totalExports || 0).toLocaleString()} ل.س</p>
+                      </div>
+                      <div className="bg-green-50 rounded-xl p-4">
+                        <p className="text-xs text-gray-500">إجمالي المدفوعات</p>
+                        <p className="text-xl font-bold text-green-700">{Number(supplierDashboard.balance?.totalPayments || 0).toLocaleString()} ل.س</p>
+                      </div>
+                      <div className={`rounded-xl p-4 ${Number(supplierDashboard.balance?.balance || 0) >= 0 ? 'bg-red-50' : 'bg-purple-50'}`}>
+                        <p className="text-xs text-gray-500">الرصيد المستحق</p>
+                        <p className={`text-xl font-bold ${Number(supplierDashboard.balance?.balance || 0) >= 0 ? 'text-red-700' : 'text-purple-700'}`}>{Number(supplierDashboard.balance?.balance || 0).toLocaleString()} ل.س</p>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 flex-wrap">
+                      <Button className="gap-2 bg-blue-600 hover:bg-blue-700" onClick={() => setShowImportDialog(true)} data-testid="btn-record-import">
+                        <ArrowDownRight className="w-4 h-4" />تسجيل وارد
+                      </Button>
+                      <Button variant="outline" className="gap-2 border-orange-500 text-orange-600 hover:bg-orange-50" onClick={() => setShowExportDialog(true)} data-testid="btn-record-export">
+                        <ArrowUpRight className="w-4 h-4" />تسجيل صادر
+                      </Button>
+                      <Button variant="outline" className="gap-2 border-green-500 text-green-600 hover:bg-green-50" onClick={() => setShowPaymentDialog(true)} data-testid="btn-record-payment">
+                        <DollarSign className="w-4 h-4" />تسجيل دفعة
+                      </Button>
+                    </div>
+
+                    {/* Stock Positions */}
+                    <div>
+                      <h4 className="font-bold mb-3 flex items-center gap-2"><Package className="w-4 h-4" />مخزون المورد في المستودعات</h4>
+                      {supplierDashboard.stockPositions?.length > 0 ? (
+                        <div className="bg-gray-50 rounded-xl overflow-hidden">
+                          <table className="w-full text-sm">
+                            <thead className="bg-gray-100">
+                              <tr>
+                                <th className="p-3 text-right">المنتج</th>
+                                <th className="p-3 text-right">المستودع</th>
+                                <th className="p-3 text-right">الكمية</th>
+                                <th className="p-3 text-right">متوسط التكلفة</th>
+                                <th className="p-3 text-right">القيمة الإجمالية</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {supplierDashboard.stockPositions.map((pos: any) => {
+                                const prod = products.find((p: any) => p.id === pos.productId);
+                                const wh = warehousesList.find((w: any) => w.id === pos.warehouseId);
+                                return (
+                                  <tr key={pos.id} className="border-b border-gray-100">
+                                    <td className="p-3 font-medium">{prod?.name || `#${pos.productId}`}</td>
+                                    <td className="p-3">{wh?.name || `#${pos.warehouseId}`}</td>
+                                    <td className="p-3 font-bold">{pos.quantity}</td>
+                                    <td className="p-3">{Number(pos.avgCost || 0).toLocaleString()} ل.س</td>
+                                    <td className="p-3 font-bold text-green-600">{(pos.quantity * Number(pos.avgCost || 0)).toLocaleString()} ل.س</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p className="text-gray-500 text-sm">لا يوجد مخزون مسجل لهذا المورد</p>
+                      )}
+                    </div>
+
+                    {/* Recent Transactions */}
+                    <div>
+                      <h4 className="font-bold mb-3 flex items-center gap-2"><FileText className="w-4 h-4" />آخر المعاملات</h4>
+                      {supplierDashboard.recentTransactions?.length > 0 ? (
+                        <div className="bg-gray-50 rounded-xl overflow-hidden max-h-64 overflow-y-auto">
+                          <table className="w-full text-sm">
+                            <thead className="bg-gray-100 sticky top-0">
+                              <tr>
+                                <th className="p-3 text-right">النوع</th>
+                                <th className="p-3 text-right">المنتج</th>
+                                <th className="p-3 text-right">الكمية</th>
+                                <th className="p-3 text-right">المبلغ</th>
+                                <th className="p-3 text-right">التاريخ</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {supplierDashboard.recentTransactions.map((tx: any) => {
+                                const prod = products.find((p: any) => p.id === tx.productId);
+                                return (
+                                  <tr key={tx.id} className="border-b border-gray-100">
+                                    <td className="p-3">
+                                      <Badge className={
+                                        tx.type === 'import' ? 'bg-blue-100 text-blue-700' :
+                                        tx.type === 'export' ? 'bg-orange-100 text-orange-700' :
+                                        tx.type === 'payment' ? 'bg-green-100 text-green-700' :
+                                        'bg-gray-100 text-gray-700'
+                                      }>
+                                        {tx.type === 'import' ? 'وارد' : tx.type === 'export' ? 'صادر' : tx.type === 'payment' ? 'دفعة' : tx.type}
+                                      </Badge>
+                                    </td>
+                                    <td className="p-3">{prod?.name || (tx.productId ? `#${tx.productId}` : '-')}</td>
+                                    <td className="p-3 font-bold">{tx.quantity || '-'}</td>
+                                    <td className="p-3 font-bold">{Number(tx.totalAmount || 0).toLocaleString()} ل.س</td>
+                                    <td className="p-3 text-gray-500">{new Date(tx.createdAt).toLocaleDateString('ar-SY')}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p className="text-gray-500 text-sm">لا يوجد معاملات مسجلة</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+
+            {/* Import Dialog */}
+            <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+              <DialogContent className="max-w-md">
+                <DialogHeader><DialogTitle className="flex items-center gap-2"><ArrowDownRight className="w-5 h-5 text-blue-600" />تسجيل وارد من المورد</DialogTitle></DialogHeader>
+                <div className="space-y-4 mt-4">
+                  <div>
+                    <Label>المستودع</Label>
+                    <Select value={String(supplierTransaction.warehouseId)} onValueChange={v => setSupplierTransaction({...supplierTransaction, warehouseId: Number(v)})}>
+                      <SelectTrigger className="rounded-xl mt-1"><SelectValue placeholder="اختر المستودع" /></SelectTrigger>
+                      <SelectContent>
+                        {warehousesList.map((wh: any) => (
+                          <SelectItem key={wh.id} value={String(wh.id)}>{wh.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>المنتج</Label>
+                    <Select value={String(supplierTransaction.productId)} onValueChange={v => setSupplierTransaction({...supplierTransaction, productId: Number(v)})}>
+                      <SelectTrigger className="rounded-xl mt-1"><SelectValue placeholder="اختر المنتج" /></SelectTrigger>
+                      <SelectContent>
+                        {products.map((p: any) => (
+                          <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div><Label>الكمية</Label><Input type="number" className="rounded-xl mt-1" value={supplierTransaction.quantity} onChange={e => setSupplierTransaction({...supplierTransaction, quantity: Number(e.target.value)})} /></div>
+                    <div><Label>سعر الوحدة</Label><Input className="rounded-xl mt-1" value={supplierTransaction.unitPrice} onChange={e => setSupplierTransaction({...supplierTransaction, unitPrice: e.target.value})} /></div>
+                  </div>
+                  <div><Label>ملاحظات</Label><Input className="rounded-xl mt-1" value={supplierTransaction.notes} onChange={e => setSupplierTransaction({...supplierTransaction, notes: e.target.value})} /></div>
+                  <Button className="w-full rounded-xl bg-blue-600 hover:bg-blue-700" onClick={handleRecordImport}>تسجيل الوارد</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Export Dialog */}
+            <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
+              <DialogContent className="max-w-md">
+                <DialogHeader><DialogTitle className="flex items-center gap-2"><ArrowUpRight className="w-5 h-5 text-orange-600" />تسجيل صادر للمورد</DialogTitle></DialogHeader>
+                <div className="space-y-4 mt-4">
+                  <div>
+                    <Label>المستودع</Label>
+                    <Select value={String(supplierTransaction.warehouseId)} onValueChange={v => setSupplierTransaction({...supplierTransaction, warehouseId: Number(v)})}>
+                      <SelectTrigger className="rounded-xl mt-1"><SelectValue placeholder="اختر المستودع" /></SelectTrigger>
+                      <SelectContent>
+                        {warehousesList.map((wh: any) => (
+                          <SelectItem key={wh.id} value={String(wh.id)}>{wh.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>المنتج</Label>
+                    <Select value={String(supplierTransaction.productId)} onValueChange={v => setSupplierTransaction({...supplierTransaction, productId: Number(v)})}>
+                      <SelectTrigger className="rounded-xl mt-1"><SelectValue placeholder="اختر المنتج" /></SelectTrigger>
+                      <SelectContent>
+                        {products.map((p: any) => (
+                          <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div><Label>الكمية</Label><Input type="number" className="rounded-xl mt-1" value={supplierTransaction.quantity} onChange={e => setSupplierTransaction({...supplierTransaction, quantity: Number(e.target.value)})} /></div>
+                    <div><Label>سعر الوحدة</Label><Input className="rounded-xl mt-1" value={supplierTransaction.unitPrice} onChange={e => setSupplierTransaction({...supplierTransaction, unitPrice: e.target.value})} /></div>
+                  </div>
+                  <div><Label>ملاحظات</Label><Input className="rounded-xl mt-1" value={supplierTransaction.notes} onChange={e => setSupplierTransaction({...supplierTransaction, notes: e.target.value})} /></div>
+                  <Button className="w-full rounded-xl bg-orange-600 hover:bg-orange-700" onClick={handleRecordExport}>تسجيل الصادر</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Payment Dialog */}
+            <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+              <DialogContent className="max-w-md">
+                <DialogHeader><DialogTitle className="flex items-center gap-2"><DollarSign className="w-5 h-5 text-green-600" />تسجيل دفعة للمورد</DialogTitle></DialogHeader>
+                <div className="space-y-4 mt-4">
+                  <div><Label>المبلغ</Label><Input className="rounded-xl mt-1" value={supplierTransaction.amount} onChange={e => setSupplierTransaction({...supplierTransaction, amount: e.target.value})} placeholder="0" /></div>
+                  <div>
+                    <Label>طريقة الدفع</Label>
+                    <Select value={supplierTransaction.paymentMethod} onValueChange={v => setSupplierTransaction({...supplierTransaction, paymentMethod: v})}>
+                      <SelectTrigger className="rounded-xl mt-1"><SelectValue placeholder="اختر طريقة الدفع" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cash">نقداً</SelectItem>
+                        <SelectItem value="bank_transfer">تحويل بنكي</SelectItem>
+                        <SelectItem value="check">شيك</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label>رقم المرجع</Label><Input className="rounded-xl mt-1" value={supplierTransaction.referenceNumber} onChange={e => setSupplierTransaction({...supplierTransaction, referenceNumber: e.target.value})} placeholder="رقم الإيصال أو التحويل" /></div>
+                  <div><Label>ملاحظات</Label><Input className="rounded-xl mt-1" value={supplierTransaction.notes} onChange={e => setSupplierTransaction({...supplierTransaction, notes: e.target.value})} /></div>
+                  <Button className="w-full rounded-xl bg-green-600 hover:bg-green-700" onClick={handleRecordPayment}>تسجيل الدفعة</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           {/* Promotions Tab */}
