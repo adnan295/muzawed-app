@@ -2582,12 +2582,36 @@ export default function Admin() {
                         
                         {/* Banner Info */}
                         <div className="p-4 bg-white">
+                          {/* Stats Row - Enhanced Analytics */}
+                          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-3 mb-3 border border-blue-100">
+                            <div className="grid grid-cols-3 gap-2 text-center">
+                              <div>
+                                <div className="flex items-center justify-center gap-1 text-blue-600">
+                                  <Eye className="w-4 h-4" />
+                                  <span className="font-bold text-lg">{banner.viewCount || 0}</span>
+                                </div>
+                                <p className="text-xs text-gray-500">مشاهدة</p>
+                              </div>
+                              <div>
+                                <div className="flex items-center justify-center gap-1 text-green-600">
+                                  <MousePointer className="w-4 h-4" />
+                                  <span className="font-bold text-lg">{banner.clickCount || 0}</span>
+                                </div>
+                                <p className="text-xs text-gray-500">نقرة</p>
+                              </div>
+                              <div>
+                                <div className="flex items-center justify-center gap-1 text-purple-600">
+                                  <TrendingUp className="w-4 h-4" />
+                                  <span className="font-bold text-lg">
+                                    {banner.viewCount > 0 ? Math.round((banner.clickCount / banner.viewCount) * 100) : 0}%
+                                  </span>
+                                </div>
+                                <p className="text-xs text-gray-500">معدل النقر</p>
+                              </div>
+                            </div>
+                          </div>
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-xs text-gray-500">الترتيب: {banner.position + 1}</span>
-                            <div className="flex items-center gap-2 text-xs text-gray-400">
-                              <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> {banner.viewCount || 0}</span>
-                              <span className="flex items-center gap-1"><MousePointer className="w-3 h-3" /> {banner.clickCount || 0}</span>
-                            </div>
                           </div>
                           
                           {/* Reorder Buttons */}
