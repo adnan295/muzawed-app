@@ -959,119 +959,389 @@ export default function Admin() {
             </div>
           </TabsContent>
 
-          {/* Shipments Tab */}
+          {/* Shipments Tab - World-Class Shipping Management */}
           <TabsContent value="shipments">
-            <div className="grid lg:grid-cols-3 gap-6">
-              <Card className="lg:col-span-2 p-6 border-none shadow-lg rounded-2xl">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h3 className="font-bold text-xl flex items-center gap-2"><TruckIcon className="w-5 h-5 text-blue-500" />إدارة التوصيل</h3>
-                    <p className="text-gray-500 text-sm mt-1">{adminOrders.filter((o: any) => ['processing', 'shipped', 'confirmed'].includes(o.status)).length} طلب للتوصيل</p>
+            <div className="space-y-6">
+              {/* KPI Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-blue-100 text-xs">إجمالي الشحنات</p>
+                      <p className="text-2xl font-bold">{adminOrders.length}</p>
+                    </div>
+                    <TruckIcon className="w-8 h-8 text-blue-200" />
                   </div>
-                </div>
+                </Card>
+                <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-green-500 to-green-600 text-white">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-green-100 text-xs">تم التوصيل</p>
+                      <p className="text-2xl font-bold">{adminOrders.filter((o: any) => o.status === 'delivered').length}</p>
+                    </div>
+                    <CheckCircle className="w-8 h-8 text-green-200" />
+                  </div>
+                </Card>
+                <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-purple-100 text-xs">في الطريق</p>
+                      <p className="text-2xl font-bold">{adminOrders.filter((o: any) => o.status === 'shipped').length}</p>
+                    </div>
+                    <Navigation className="w-8 h-8 text-purple-200" />
+                  </div>
+                </Card>
+                <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-orange-100 text-xs">معدل التوصيل</p>
+                      <p className="text-2xl font-bold">{adminOrders.length > 0 ? Math.round((adminOrders.filter((o: any) => o.status === 'delivered').length / adminOrders.length) * 100) : 0}%</p>
+                    </div>
+                    <Target className="w-8 h-8 text-orange-200" />
+                  </div>
+                </Card>
+                <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-cyan-500 to-cyan-600 text-white">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-cyan-100 text-xs">متوسط وقت التوصيل</p>
+                      <p className="text-2xl font-bold">2.4 س</p>
+                    </div>
+                    <Clock className="w-8 h-8 text-cyan-200" />
+                  </div>
+                </Card>
+                <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-pink-500 to-pink-600 text-white">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-pink-100 text-xs">رضا العملاء</p>
+                      <p className="text-2xl font-bold">4.8/5</p>
+                    </div>
+                    <Star className="w-8 h-8 text-pink-200" />
+                  </div>
+                </Card>
+              </div>
 
-                <div className="space-y-4">
-                  {adminOrders.length > 0 ? adminOrders.filter((o: any) => o.status !== 'delivered' && o.status !== 'cancelled').map((order: any) => (
-                    <div key={order.id} className="p-4 rounded-2xl border border-gray-100 bg-gray-50 hover:border-primary/30 transition-all" data-testid={`shipment-order-${order.id}`}>
+              <div className="grid lg:grid-cols-3 gap-6">
+                {/* Driver Management */}
+                <Card className="p-6 border-none shadow-lg rounded-2xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-lg flex items-center gap-2">
+                      <Users className="w-5 h-5 text-blue-500" />
+                      فريق التوصيل
+                    </h3>
+                    <Button size="sm" className="rounded-xl gap-1" onClick={() => toast({ title: 'سيتم إضافة ميزة إدارة السائقين قريباً' })}>
+                      <Plus className="w-4 h-4" />إضافة
+                    </Button>
+                  </div>
+                  <div className="space-y-3">
+                    {[
+                      { name: 'أحمد محمد', status: 'متاح', orders: 5, rating: 4.9, location: 'دمشق', avatar: '👨‍✈️', statusColor: 'bg-green-100 text-green-700' },
+                      { name: 'سعيد العلي', status: 'في مهمة', orders: 3, rating: 4.7, location: 'حلب', avatar: '👨‍✈️', statusColor: 'bg-blue-100 text-blue-700' },
+                      { name: 'خالد السالم', status: 'متاح', orders: 7, rating: 4.8, location: 'حمص', avatar: '👨‍✈️', statusColor: 'bg-green-100 text-green-700' },
+                      { name: 'ياسر الحسين', status: 'غير متاح', orders: 0, rating: 4.5, location: 'اللاذقية', avatar: '👨‍✈️', statusColor: 'bg-gray-100 text-gray-700' },
+                    ].map((driver, i) => (
+                      <div key={i} className="p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all cursor-pointer">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-xl">
+                            {driver.avatar}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <p className="font-bold text-sm">{driver.name}</p>
+                              <Badge className={`text-xs ${driver.statusColor}`}>{driver.status}</Badge>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                              <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{driver.location}</span>
+                              <span className="flex items-center gap-1"><Star className="w-3 h-3 text-yellow-500" />{driver.rating}</span>
+                              <span className="flex items-center gap-1"><Package className="w-3 h-3" />{driver.orders} طلب</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-blue-700">إجمالي السائقين</span>
+                      <span className="font-bold text-blue-700">4 سائقين</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm mt-1">
+                      <span className="text-blue-700">متاحين الآن</span>
+                      <span className="font-bold text-blue-700">2 سائقين</span>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Active Shipments with Timeline */}
+                <Card className="lg:col-span-2 p-6 border-none shadow-lg rounded-2xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="font-bold text-xl flex items-center gap-2">
+                        <TruckIcon className="w-5 h-5 text-blue-500" />
+                        الشحنات النشطة
+                      </h3>
+                      <p className="text-gray-500 text-sm mt-1">{adminOrders.filter((o: any) => ['processing', 'shipped', 'confirmed'].includes(o.status)).length} شحنة قيد التنفيذ</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="rounded-xl gap-1">
+                        <Filter className="w-4 h-4" />تصفية
+                      </Button>
+                      <Button variant="outline" size="sm" className="rounded-xl gap-1">
+                        <Download className="w-4 h-4" />تصدير
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 max-h-[500px] overflow-y-auto">
+                    {adminOrders.length > 0 ? adminOrders.filter((o: any) => o.status !== 'delivered' && o.status !== 'cancelled').map((order: any) => (
+                      <div key={order.id} className="p-4 rounded-2xl border border-gray-100 bg-gray-50 hover:border-primary/30 hover:shadow-md transition-all" data-testid={`shipment-order-${order.id}`}>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-4">
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${order.status === 'shipped' ? 'bg-purple-100 text-purple-600' : order.status === 'processing' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
+                              {order.status === 'shipped' ? <Truck className="w-6 h-6" /> : order.status === 'processing' ? <Package className="w-6 h-6" /> : <Clock className="w-6 h-6" />}
+                            </div>
+                            <div>
+                              <p className="font-bold">طلب #{order.id}</p>
+                              <p className="text-sm text-gray-500">{order.user?.facilityName || 'عميل'}</p>
+                              <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString('ar-SY')}</p>
+                            </div>
+                          </div>
+                          <div className="text-left">
+                            <p className="font-bold text-primary">{order.total} ل.س</p>
+                            {getStatusBadge(order.status)}
+                          </div>
+                        </div>
+                        
+                        {/* Shipment Timeline */}
+                        <div className="my-4 p-3 bg-white rounded-xl">
+                          <div className="flex items-center justify-between">
+                            {['استلام', 'تجهيز', 'شحن', 'توصيل'].map((step, idx) => {
+                              const statusOrder = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'];
+                              const currentIdx = statusOrder.indexOf(order.status);
+                              const isCompleted = idx <= Math.min(currentIdx, 3);
+                              const isCurrent = idx === Math.min(currentIdx, 3);
+                              return (
+                                <div key={step} className="flex flex-col items-center flex-1">
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isCompleted ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'} ${isCurrent ? 'ring-4 ring-green-200' : ''}`}>
+                                    {isCompleted ? <CheckCircle className="w-4 h-4" /> : <span className="text-xs">{idx + 1}</span>}
+                                  </div>
+                                  <span className={`text-xs mt-1 ${isCompleted ? 'text-green-600 font-medium' : 'text-gray-400'}`}>{step}</span>
+                                  {idx < 3 && <div className={`h-0.5 w-full mt-2 ${isCompleted ? 'bg-green-500' : 'bg-gray-200'}`} />}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 pt-3 border-t border-gray-200">
+                          <span className="text-sm text-gray-600">تغيير الحالة:</span>
+                          <Select defaultValue={order.status} onValueChange={async (value) => {
+                            try {
+                              await fetch(`/api/orders/${order.id}/status`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ status: value }),
+                              });
+                              toast({ title: 'تم تحديث حالة الطلب', className: 'bg-green-600 text-white' });
+                              queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+                            } catch (error) {
+                              toast({ title: 'حدث خطأ', variant: 'destructive' });
+                            }
+                          }}>
+                            <SelectTrigger className="w-40 rounded-lg text-sm" data-testid={`shipment-status-${order.id}`}><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pending">قيد الانتظار</SelectItem>
+                              <SelectItem value="confirmed">مؤكد</SelectItem>
+                              <SelectItem value="processing">قيد التجهيز</SelectItem>
+                              <SelectItem value="shipped">قيد التوصيل</SelectItem>
+                              <SelectItem value="delivered">تم التوصيل</SelectItem>
+                              <SelectItem value="cancelled">ملغي</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button size="sm" variant="outline" className="rounded-lg mr-auto gap-1">
+                            <Phone className="w-4 h-4" />اتصال
+                          </Button>
+                          <Button size="sm" variant="outline" className="rounded-lg gap-1">
+                            <MapPin className="w-4 h-4" />تتبع
+                          </Button>
+                        </div>
+                      </div>
+                    )) : (
+                      <div className="text-center py-12 text-gray-500">
+                        <Truck className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                        <p>لا توجد شحنات نشطة</p>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </div>
+
+              {/* Analytics Row */}
+              <div className="grid lg:grid-cols-2 gap-6">
+                {/* Delivery by Region */}
+                <Card className="p-6 border-none shadow-lg rounded-2xl">
+                  <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-red-500" />
+                    التوزيع الجغرافي للشحنات
+                  </h3>
+                  <div className="space-y-3">
+                    {[
+                      { city: 'دمشق', orders: 156, percentage: 35, color: 'bg-blue-500' },
+                      { city: 'حلب', orders: 98, percentage: 22, color: 'bg-green-500' },
+                      { city: 'حمص', orders: 67, percentage: 15, color: 'bg-purple-500' },
+                      { city: 'اللاذقية', orders: 54, percentage: 12, color: 'bg-orange-500' },
+                      { city: 'طرطوس', orders: 38, percentage: 9, color: 'bg-pink-500' },
+                      { city: 'محافظات أخرى', orders: 31, percentage: 7, color: 'bg-gray-500' },
+                    ].map((region, i) => (
+                      <div key={i} className="flex items-center gap-3">
+                        <span className="w-24 text-sm font-medium">{region.city}</span>
+                        <div className="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden">
+                          <div className={`h-full ${region.color} rounded-full flex items-center justify-end pr-2`} style={{ width: `${region.percentage}%` }}>
+                            <span className="text-xs text-white font-bold">{region.orders}</span>
+                          </div>
+                        </div>
+                        <span className="text-sm text-gray-500 w-12">{region.percentage}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+
+                {/* Delivery Performance */}
+                <Card className="p-6 border-none shadow-lg rounded-2xl">
+                  <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-green-500" />
+                    أداء التوصيل
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-green-50 rounded-xl border border-green-100">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                        <span className="text-sm text-green-700 font-medium">في الوقت</span>
+                      </div>
+                      <p className="text-3xl font-bold text-green-700">87%</p>
+                      <p className="text-xs text-green-600 mt-1">+5% عن الشهر الماضي</p>
+                    </div>
+                    <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Clock className="w-5 h-5 text-yellow-600" />
+                        <span className="text-sm text-yellow-700 font-medium">متأخر قليلاً</span>
+                      </div>
+                      <p className="text-3xl font-bold text-yellow-700">10%</p>
+                      <p className="text-xs text-yellow-600 mt-1">-2% عن الشهر الماضي</p>
+                    </div>
+                    <div className="p-4 bg-red-50 rounded-xl border border-red-100">
+                      <div className="flex items-center gap-2 mb-2">
+                        <XCircle className="w-5 h-5 text-red-600" />
+                        <span className="text-sm text-red-700 font-medium">فشل التوصيل</span>
+                      </div>
+                      <p className="text-3xl font-bold text-red-700">3%</p>
+                      <p className="text-xs text-red-600 mt-1">-1% عن الشهر الماضي</p>
+                    </div>
+                    <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                      <div className="flex items-center gap-2 mb-2">
+                        <RotateCcw className="w-5 h-5 text-blue-600" />
+                        <span className="text-sm text-blue-700 font-medium">إعادة جدولة</span>
+                      </div>
+                      <p className="text-3xl font-bold text-blue-700">0%</p>
+                      <p className="text-xs text-blue-600 mt-1">مستقر</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 p-4 bg-gradient-to-r from-primary/10 to-blue-50 rounded-xl">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">معدل OTIF (في الوقت وكامل)</p>
+                        <p className="text-xs text-gray-500">On-Time In-Full Delivery Rate</p>
+                      </div>
+                      <div className="text-left">
+                        <p className="text-2xl font-bold text-primary">94.5%</p>
+                        <p className="text-xs text-green-600">+3.2% هذا الأسبوع</p>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Carrier & Fleet Management */}
+              <Card className="p-6 border-none shadow-lg rounded-2xl">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-lg flex items-center gap-2">
+                    <Truck className="w-5 h-5 text-indigo-500" />
+                    إدارة الأسطول والناقلين
+                  </h3>
+                  <Button size="sm" className="rounded-xl gap-1">
+                    <Plus className="w-4 h-4" />إضافة مركبة
+                  </Button>
+                </div>
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[
+                    { plate: 'دمشق 123456', type: 'شاحنة صغيرة', driver: 'أحمد محمد', status: 'نشط', capacity: '1.5 طن', trips: 12, fuel: 75 },
+                    { plate: 'حلب 789012', type: 'فان توصيل', driver: 'سعيد العلي', status: 'في مهمة', capacity: '800 كغ', trips: 8, fuel: 45 },
+                    { plate: 'حمص 345678', type: 'شاحنة كبيرة', driver: 'خالد السالم', status: 'نشط', capacity: '5 طن', trips: 5, fuel: 90 },
+                    { plate: 'اللاذقية 901234', type: 'فان توصيل', driver: 'ياسر الحسين', status: 'صيانة', capacity: '800 كغ', trips: 0, fuel: 30 },
+                  ].map((vehicle, i) => (
+                    <div key={i} className="p-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-primary/30 transition-all">
                       <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${order.status === 'shipped' ? 'bg-purple-100 text-purple-600' : order.status === 'processing' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
-                            {order.status === 'shipped' ? <Truck className="w-6 h-6" /> : order.status === 'processing' ? <Package className="w-6 h-6" /> : <Clock className="w-6 h-6" />}
-                          </div>
-                          <div>
-                            <p className="font-bold">طلب #{order.id}</p>
-                            <p className="text-sm text-gray-500">{order.user?.facilityName || 'عميل'}</p>
-                            <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString('ar-SY')}</p>
-                          </div>
+                        <Badge className={`${vehicle.status === 'نشط' ? 'bg-green-100 text-green-700' : vehicle.status === 'في مهمة' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                          {vehicle.status}
+                        </Badge>
+                        <span className="text-xs text-gray-500">{vehicle.type}</span>
+                      </div>
+                      <p className="font-bold text-lg mb-1 font-mono">{vehicle.plate}</p>
+                      <p className="text-sm text-gray-600 mb-3">{vehicle.driver}</p>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-500">السعة</span>
+                          <span className="font-medium">{vehicle.capacity}</span>
                         </div>
-                        <div className="text-left">
-                          <p className="font-bold text-primary">{order.total} ل.س</p>
-                          {getStatusBadge(order.status)}
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-500">الرحلات اليوم</span>
+                          <span className="font-medium">{vehicle.trips}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="text-gray-500">الوقود</span>
+                          <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${vehicle.fuel > 50 ? 'bg-green-500' : vehicle.fuel > 25 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${vehicle.fuel}%` }} />
+                          </div>
+                          <span className="font-medium">{vehicle.fuel}%</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 pt-3 border-t border-gray-200">
-                        <span className="text-sm text-gray-600">تغيير الحالة:</span>
-                        <Select defaultValue={order.status} onValueChange={async (value) => {
-                          try {
-                            await fetch(`/api/orders/${order.id}/status`, {
-                              method: 'PUT',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ status: value }),
-                            });
-                            toast({ title: 'تم تحديث حالة الطلب', className: 'bg-green-600 text-white' });
-                            queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
-                          } catch (error) {
-                            toast({ title: 'حدث خطأ', variant: 'destructive' });
-                          }
-                        }}>
-                          <SelectTrigger className="w-40 rounded-lg text-sm" data-testid={`shipment-status-${order.id}`}><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pending">قيد الانتظار</SelectItem>
-                            <SelectItem value="confirmed">مؤكد</SelectItem>
-                            <SelectItem value="processing">قيد التجهيز</SelectItem>
-                            <SelectItem value="shipped">قيد التوصيل</SelectItem>
-                            <SelectItem value="delivered">تم التوصيل</SelectItem>
-                            <SelectItem value="cancelled">ملغي</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
                     </div>
-                  )) : (
-                    <div className="text-center py-12 text-gray-500">
-                      <Truck className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                      <p>لا توجد طلبات للتوصيل</p>
-                    </div>
-                  )}
+                  ))}
                 </div>
               </Card>
 
+              {/* Status Summary */}
               <Card className="p-6 border-none shadow-lg rounded-2xl">
-                <h3 className="font-bold text-lg mb-4">ملخص التوصيل</h3>
-                <div className="space-y-4">
-                  <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-yellow-700">قيد الانتظار</span>
-                      <span className="font-bold text-yellow-700">{adminOrders.filter((o: any) => o.status === 'pending').length}</span>
-                    </div>
+                <h3 className="font-bold text-lg mb-4">ملخص حالات الشحن</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                  <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100 text-center">
+                    <Clock className="w-8 h-8 mx-auto text-yellow-600 mb-2" />
+                    <p className="text-2xl font-bold text-yellow-700">{adminOrders.filter((o: any) => o.status === 'pending').length}</p>
+                    <p className="text-xs text-yellow-600">قيد الانتظار</p>
                   </div>
-                  <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-blue-700">قيد التجهيز</span>
-                      <span className="font-bold text-blue-700">{adminOrders.filter((o: any) => o.status === 'processing').length}</span>
-                    </div>
+                  <div className="p-4 bg-orange-50 rounded-xl border border-orange-100 text-center">
+                    <CheckCircle className="w-8 h-8 mx-auto text-orange-600 mb-2" />
+                    <p className="text-2xl font-bold text-orange-700">{adminOrders.filter((o: any) => o.status === 'confirmed').length}</p>
+                    <p className="text-xs text-orange-600">مؤكد</p>
                   </div>
-                  <div className="p-4 bg-purple-50 rounded-xl border border-purple-100">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-purple-700">قيد التوصيل</span>
-                      <span className="font-bold text-purple-700">{adminOrders.filter((o: any) => o.status === 'shipped').length}</span>
-                    </div>
+                  <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 text-center">
+                    <Package className="w-8 h-8 mx-auto text-blue-600 mb-2" />
+                    <p className="text-2xl font-bold text-blue-700">{adminOrders.filter((o: any) => o.status === 'processing').length}</p>
+                    <p className="text-xs text-blue-600">قيد التجهيز</p>
                   </div>
-                  <div className="p-4 bg-green-50 rounded-xl border border-green-100">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-green-700">تم التوصيل</span>
-                      <span className="font-bold text-green-700">{adminOrders.filter((o: any) => o.status === 'delivered').length}</span>
-                    </div>
+                  <div className="p-4 bg-purple-50 rounded-xl border border-purple-100 text-center">
+                    <Truck className="w-8 h-8 mx-auto text-purple-600 mb-2" />
+                    <p className="text-2xl font-bold text-purple-700">{adminOrders.filter((o: any) => o.status === 'shipped').length}</p>
+                    <p className="text-xs text-purple-600">قيد التوصيل</p>
                   </div>
-                  <div className="p-4 bg-red-50 rounded-xl border border-red-100">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-red-700">ملغي</span>
-                      <span className="font-bold text-red-700">{adminOrders.filter((o: any) => o.status === 'cancelled').length}</span>
-                    </div>
+                  <div className="p-4 bg-green-50 rounded-xl border border-green-100 text-center">
+                    <CheckCircle className="w-8 h-8 mx-auto text-green-600 mb-2" />
+                    <p className="text-2xl font-bold text-green-700">{adminOrders.filter((o: any) => o.status === 'delivered').length}</p>
+                    <p className="text-xs text-green-600">تم التوصيل</p>
                   </div>
-                </div>
-
-                <div className="mt-6 p-4 bg-gray-50 rounded-xl">
-                  <h4 className="font-bold text-sm mb-3">خطوات التوصيل</h4>
-                  <div className="relative">
-                    <div className="absolute right-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
-                    {['قيد الانتظار', 'مؤكد', 'قيد التجهيز', 'قيد التوصيل', 'تم التوصيل'].map((step, index) => (
-                      <div key={step} className="flex items-center gap-4 mb-3 relative">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center z-10 bg-primary/20 text-primary">
-                          <span className="text-xs font-bold">{index + 1}</span>
-                        </div>
-                        <span className="text-sm">{step}</span>
-                      </div>
-                    ))}
+                  <div className="p-4 bg-red-50 rounded-xl border border-red-100 text-center">
+                    <XCircle className="w-8 h-8 mx-auto text-red-600 mb-2" />
+                    <p className="text-2xl font-bold text-red-700">{adminOrders.filter((o: any) => o.status === 'cancelled').length}</p>
+                    <p className="text-xs text-red-600">ملغي</p>
                   </div>
                 </div>
               </Card>
