@@ -3001,12 +3001,12 @@ export default function Admin() {
                         />
                       </div>
                       <Button 
-                        className="mt-3 rounded-xl w-full"
+                        className="mt-3 rounded-xl w-full h-12 bg-green-600 hover:bg-green-700 text-white font-bold text-base"
                         onClick={handleAddProductToBanner}
                         disabled={!selectedProductForBanner || !productPromoPrice}
                         data-testid="add-product-to-banner-btn"
                       >
-                        <Plus className="w-4 h-4 ml-2" />
+                        <Plus className="w-5 h-5 ml-2" />
                         إضافة للباقة
                       </Button>
                     </div>
