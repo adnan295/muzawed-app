@@ -1633,6 +1633,17 @@ export async function registerRoutes(
     }
   });
 
+  // Track banner purchase
+  app.post("/api/banners/:id/purchase", async (req, res) => {
+    try {
+      const { amount } = req.body;
+      await storage.incrementBannerPurchase(parseInt(req.params.id), parseFloat(amount) || 0);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Reorder banners
   app.post("/api/banners/reorder", async (req, res) => {
     try {

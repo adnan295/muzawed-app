@@ -139,6 +139,7 @@ export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   addressId: integer("address_id").notNull().references(() => addresses.id),
+  bannerId: integer("banner_id").references(() => banners.id), // Track which promo banner the order came from
   status: text("status").notNull().default("pending"), // pending, processing, shipped, delivered, cancelled
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
   tax: decimal("tax", { precision: 10, scale: 2 }).notNull(),
@@ -662,6 +663,8 @@ export const banners = pgTable("banners", {
   endDate: timestamp("end_date"),
   viewCount: integer("view_count").default(0).notNull(),
   clickCount: integer("click_count").default(0).notNull(),
+  purchaseCount: integer("purchase_count").default(0).notNull(), // عدد المشتريات من الباقة
+  purchaseTotal: decimal("purchase_total", { precision: 12, scale: 2 }).default("0").notNull(), // إجمالي المبيعات
   targetAudience: text("target_audience").default("all"), // all, vip, new, returning
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

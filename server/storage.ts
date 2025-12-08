@@ -319,6 +319,7 @@ export interface IStorage {
   duplicateBanner(id: number): Promise<Banner | undefined>;
   incrementBannerViews(id: number): Promise<void>;
   incrementBannerClicks(id: number): Promise<void>;
+  incrementBannerPurchase(id: number, amount: number): Promise<void>;
   reorderBanners(bannerIds: number[]): Promise<void>;
   deleteBanners(ids: number[]): Promise<void>;
   getBannerStats(): Promise<{ totalViews: number; totalClicks: number; avgCtr: number }>;
@@ -1319,6 +1320,15 @@ export class DatabaseStorage implements IStorage {
   async incrementBannerClicks(id: number): Promise<void> {
     await db.update(banners)
       .set({ clickCount: sql`${banners.clickCount} + 1` })
+      .where(eq(banners.id, id));
+  }
+
+  async incrementBannerPurchase(id: number, amount: number): Promise<void> {
+    await db.update(banners)
+      .set({ 
+        purchaseCount: sql`${banners.purchaseCount} + 1`,
+        purchaseTotal: sql`${banners.purchaseTotal} + ${amount}`
+      })
       .where(eq(banners.id, id));
   }
 

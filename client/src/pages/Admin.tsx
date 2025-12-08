@@ -2584,7 +2584,7 @@ export default function Admin() {
                         <div className="p-4 bg-white">
                           {/* Stats Row - Enhanced Analytics */}
                           <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-3 mb-3 border border-blue-100">
-                            <div className="grid grid-cols-3 gap-2 text-center">
+                            <div className="grid grid-cols-4 gap-2 text-center">
                               <div>
                                 <div className="flex items-center justify-center gap-1 text-blue-600">
                                   <Eye className="w-4 h-4" />
@@ -2600,6 +2600,13 @@ export default function Admin() {
                                 <p className="text-xs text-gray-500">نقرة</p>
                               </div>
                               <div>
+                                <div className="flex items-center justify-center gap-1 text-orange-600">
+                                  <ShoppingCart className="w-4 h-4" />
+                                  <span className="font-bold text-lg">{banner.purchaseCount || 0}</span>
+                                </div>
+                                <p className="text-xs text-gray-500">مشتري</p>
+                              </div>
+                              <div>
                                 <div className="flex items-center justify-center gap-1 text-purple-600">
                                   <TrendingUp className="w-4 h-4" />
                                   <span className="font-bold text-lg">
@@ -2609,6 +2616,13 @@ export default function Admin() {
                                 <p className="text-xs text-gray-500">معدل النقر</p>
                               </div>
                             </div>
+                            {/* Purchase Total */}
+                            {(banner.purchaseCount > 0) && (
+                              <div className="mt-2 pt-2 border-t border-blue-100 text-center">
+                                <span className="text-sm text-gray-600">إجمالي المبيعات: </span>
+                                <span className="font-bold text-green-600">{parseFloat(banner.purchaseTotal || 0).toLocaleString('ar-SY')} ل.س</span>
+                              </div>
+                            )}
                           </div>
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-xs text-gray-500">الترتيب: {banner.position + 1}</span>
