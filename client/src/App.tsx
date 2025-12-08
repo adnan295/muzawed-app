@@ -30,6 +30,7 @@ import Cards from "@/pages/Cards";
 import Referral from "@/pages/Referral";
 import Invoice from "@/pages/Invoice";
 import Admin from "@/pages/Admin";
+import AdminLogin from "@/pages/AdminLogin";
 
 function Router() {
   return (
@@ -59,6 +60,7 @@ function Router() {
       <Route path="/facility" component={FacilityDetails} />
       <Route path="/settings" component={Settings} />
       <Route path="/admin" component={Admin} />
+      <Route path="/admin/login" component={AdminLogin} />
       <Route component={NotFound} />
     </Switch>
   );

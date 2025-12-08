@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -25,7 +26,7 @@ import {
   TruckIcon, MapPinned, Factory, ShoppingBag, FileSpreadsheet, File, MailCheck,
   Sparkles, Flame, ThumbsUp, ThumbsDown, AlertCircle, Info, HelpCircle, CircleDollarSign,
   BadgePercent, Gauge, ArrowUpRight, ArrowDownRight, Hash, Split, Merge,
-  GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight
+  GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight, LogOut
 } from 'lucide-react';
 import { Link } from 'wouter';
 import { productsAPI, categoriesAPI, brandsAPI } from '@/lib/api';
@@ -177,6 +178,9 @@ const kpiData = [
 ];
 
 export default function Admin() {
+  const [, setLocation] = useLocation();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
@@ -195,6 +199,49 @@ export default function Admin() {
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const adminAuth = localStorage.getItem('adminAuth');
+    if (adminAuth) {
+      try {
+        const auth = JSON.parse(adminAuth);
+        if (auth.loggedIn) {
+          setIsAuthenticated(true);
+        } else {
+          setLocation('/admin/login');
+        }
+      } catch {
+        setLocation('/admin/login');
+      }
+    } else {
+      setLocation('/admin/login');
+    }
+    setIsLoading(false);
+  }, [setLocation]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('adminAuth');
+    toast({
+      title: 'تم تسجيل الخروج',
+      description: 'تم تسجيل خروجك بنجاح',
+    });
+    setLocation('/admin/login');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">جاري التحميل...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   const { data: products = [], refetch: refetchProducts } = useQuery<Product[]>({
     queryKey: ['products'],
@@ -360,6 +407,10 @@ export default function Admin() {
                   العودة للمتجر
                 </Button>
               </Link>
+              <Button variant="ghost" className="text-white hover:bg-white/10 gap-2 border border-white/20" onClick={handleLogout} data-testid="button-admin-logout">
+                <LogOut className="w-5 h-5" />
+                تسجيل الخروج
+              </Button>
             </div>
           </div>
 
