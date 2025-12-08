@@ -2330,11 +2330,74 @@ export default function Admin() {
                   إدارة المنتجات ({products.length})
                 </h3>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button variant="outline" className="rounded-xl gap-2">
+                  <input
+                    type="file"
+                    id="import-file"
+                    accept=".csv"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      
+                      const text = await file.text();
+                      const lines = text.split('\n').filter(l => l.trim());
+                      if (lines.length < 2) {
+                        toast({ title: 'الملف فارغ أو غير صالح', variant: 'destructive' });
+                        return;
+                      }
+                      
+                      // Parse CSV (skip header)
+                      const importProducts = lines.slice(1).map(line => {
+                        const cols = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)?.map(c => c.replace(/^"|"$/g, '').replace(/""/g, '"')) || [];
+                        return {
+                          name: cols[1] || '',
+                          categoryId: categories.find(c => c.name === cols[2])?.id?.toString() || '1',
+                          brandId: brands.find(b => b.name === cols[3])?.id?.toString() || '',
+                          price: cols[4] || '0',
+                          originalPrice: cols[5] || '',
+                          minOrder: cols[6] || '1',
+                          unit: cols[7] || 'كرتون',
+                          stock: cols[8] || '0',
+                          image: cols[9] || '',
+                        };
+                      }).filter(p => p.name);
+                      
+                      try {
+                        const res = await fetch('/api/products/import/csv', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ products: importProducts }),
+                        });
+                        const data = await res.json();
+                        toast({ title: data.message, className: 'bg-green-600 text-white' });
+                        refetchProducts();
+                      } catch (error) {
+                        toast({ title: 'خطأ في الاستيراد', variant: 'destructive' });
+                      }
+                      e.target.value = '';
+                    }}
+                  />
+                  <Button variant="outline" className="rounded-xl gap-2" onClick={() => document.getElementById('import-file')?.click()}>
                     <Upload className="w-4 h-4" />استيراد
                   </Button>
-                  <Button variant="outline" className="rounded-xl gap-2">
-                    <Download className="w-4 h-4" />تصدير Excel
+                  <Button variant="outline" className="rounded-xl gap-2" onClick={async () => {
+                    try {
+                      const res = await fetch('/api/products/export/csv');
+                      const blob = await res.blob();
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `products_${new Date().toISOString().split('T')[0]}.csv`;
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                      window.URL.revokeObjectURL(url);
+                      toast({ title: 'تم تصدير المنتجات بنجاح', className: 'bg-green-600 text-white' });
+                    } catch (error) {
+                      toast({ title: 'خطأ في التصدير', variant: 'destructive' });
+                    }
+                  }}>
+                    <Download className="w-4 h-4" />تصدير CSV
                   </Button>
                   <Button variant="outline" className="rounded-xl gap-2" onClick={() => window.print()}>
                     <Printer className="w-4 h-4" />طباعة

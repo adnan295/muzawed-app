@@ -148,6 +148,82 @@ export async function registerRoutes(
     }
   });
 
+  // Export products to CSV
+  app.get("/api/products/export/csv", async (req, res) => {
+    try {
+      const products = await storage.getProducts();
+      const categories = await storage.getCategories();
+      const brands = await storage.getBrands();
+      
+      // Create CSV content with Arabic headers
+      const headers = ['المعرف', 'الاسم', 'القسم', 'العلامة التجارية', 'السعر', 'السعر الأصلي', 'الحد الأدنى', 'الوحدة', 'المخزون', 'رابط الصورة'];
+      const rows = products.map(p => {
+        const category = categories.find(c => c.id === p.categoryId);
+        const brand = brands.find(b => b.id === p.brandId);
+        return [
+          p.id,
+          p.name,
+          category?.name || '',
+          brand?.name || '',
+          p.price,
+          p.originalPrice || '',
+          p.minOrder,
+          p.unit,
+          p.stock,
+          p.image
+        ].map(val => `"${String(val).replace(/"/g, '""')}"`).join(',');
+      });
+      
+      const csv = '\uFEFF' + [headers.join(','), ...rows].join('\n'); // BOM for Arabic support
+      
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename=products_${new Date().toISOString().split('T')[0]}.csv`);
+      res.send(csv);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Import products from CSV
+  app.post("/api/products/import/csv", async (req, res) => {
+    try {
+      const { products: importData } = req.body;
+      
+      if (!Array.isArray(importData) || importData.length === 0) {
+        return res.status(400).json({ error: 'لا توجد بيانات للاستيراد' });
+      }
+      
+      const results = { success: 0, errors: [] as string[] };
+      
+      for (const item of importData) {
+        try {
+          await storage.createProduct({
+            name: item.name,
+            categoryId: parseInt(item.categoryId),
+            brandId: item.brandId ? parseInt(item.brandId) : null,
+            price: item.price,
+            originalPrice: item.originalPrice || null,
+            minOrder: parseInt(item.minOrder) || 1,
+            unit: item.unit || 'كرتون',
+            stock: parseInt(item.stock) || 0,
+            image: item.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400',
+          });
+          results.success++;
+        } catch (err: any) {
+          results.errors.push(`خطأ في المنتج "${item.name}": ${err.message}`);
+        }
+      }
+      
+      res.json({ 
+        message: `تم استيراد ${results.success} منتج بنجاح`,
+        success: results.success,
+        errors: results.errors 
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ==================== Categories Routes ====================
   
   app.get("/api/categories", async (req, res) => {
