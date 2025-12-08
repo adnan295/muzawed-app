@@ -565,3 +565,21 @@ export const expensesAPI = {
     method: "DELETE",
   }),
 };
+
+export const deliverySettingsAPI = {
+  getAll: () => request("/delivery-settings"),
+  getById: (id: number) => request(`/delivery-settings/${id}`),
+  resolve: (warehouseId: number, subtotal: number, quantity: number) => 
+    request(`/delivery-settings/resolve?warehouseId=${warehouseId}&subtotal=${subtotal}&quantity=${quantity}`),
+  create: (data: { warehouseId: number; cityId?: number; baseFee: string; freeThresholdAmount?: string; freeThresholdQuantity?: number; isEnabled?: boolean; notes?: string }) => request("/delivery-settings", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+  update: (id: number, data: Partial<{ warehouseId: number; cityId: number; baseFee: string; freeThresholdAmount: string; freeThresholdQuantity: number; isEnabled: boolean; notes: string }>) => request(`/delivery-settings/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }),
+  delete: (id: number) => request(`/delivery-settings/${id}`, {
+    method: "DELETE",
+  }),
+};

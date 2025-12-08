@@ -2020,5 +2020,77 @@ export async function registerRoutes(
     }
   });
 
+  // Delivery Settings Routes - إعدادات التوصيل
+  app.get("/api/delivery-settings", async (req, res) => {
+    try {
+      const settings = await storage.getDeliverySettings();
+      res.json(settings);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/delivery-settings/resolve", async (req, res) => {
+    try {
+      const warehouseId = parseInt(req.query.warehouseId as string);
+      const subtotal = parseFloat(req.query.subtotal as string) || 0;
+      const quantity = parseInt(req.query.quantity as string) || 0;
+      
+      if (!warehouseId) {
+        return res.status(400).json({ error: "warehouseId مطلوب" });
+      }
+      
+      const result = await storage.resolveDeliveryFee(warehouseId, subtotal, quantity);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/delivery-settings/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const setting = await storage.getDeliverySetting(id);
+      if (!setting) {
+        return res.status(404).json({ error: "إعدادات التوصيل غير موجودة" });
+      }
+      res.json(setting);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/delivery-settings", async (req, res) => {
+    try {
+      const setting = await storage.createDeliverySetting(req.body);
+      res.status(201).json(setting);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/delivery-settings/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updated = await storage.updateDeliverySetting(id, req.body);
+      if (!updated) {
+        return res.status(404).json({ error: "إعدادات التوصيل غير موجودة" });
+      }
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/delivery-settings/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteDeliverySetting(id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }
