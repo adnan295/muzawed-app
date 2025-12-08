@@ -178,13 +178,13 @@ const recentActivities = [
   { id: 2, type: 'user', message: 'عميل جديد: بقالة الأمل', time: '15 دقيقة', icon: Users, color: 'bg-green-100 text-green-600' },
   { id: 3, type: 'stock', message: 'تنبيه: مخزون بيبسي منخفض (15 وحدة)', time: '30 دقيقة', icon: AlertTriangle, color: 'bg-yellow-100 text-yellow-600' },
   { id: 4, type: 'ticket', message: 'تذكرة دعم جديدة TKT-005', time: '45 دقيقة', icon: Headphones, color: 'bg-purple-100 text-purple-600' },
-  { id: 5, type: 'payment', message: 'استلام دفعة 2,500 ر.س', time: '1 ساعة', icon: CreditCard, color: 'bg-emerald-100 text-emerald-600' },
+  { id: 5, type: 'payment', message: 'استلام دفعة 2,500 ل.س', time: '1 ساعة', icon: CreditCard, color: 'bg-emerald-100 text-emerald-600' },
   { id: 6, type: 'return', message: 'طلب استرجاع RET-004', time: '2 ساعة', icon: RotateCcw, color: 'bg-red-100 text-red-600' },
 ];
 
 const kpiData = [
   { name: 'معدل التحويل', value: 12.5, target: 15, unit: '%', trend: 'up', change: 2.3 },
-  { name: 'متوسط قيمة الطلب', value: 850, target: 1000, unit: 'ر.س', trend: 'up', change: 45 },
+  { name: 'متوسط قيمة الطلب', value: 850, target: 1000, unit: 'ل.س', trend: 'up', change: 45 },
   { name: 'معدل إعادة الطلب', value: 68, target: 75, unit: '%', trend: 'up', change: 5 },
   { name: 'وقت التوصيل', value: 2.4, target: 2, unit: 'ساعة', trend: 'down', change: -0.3 },
   { name: 'رضا العملاء', value: 4.6, target: 4.8, unit: '/5', trend: 'up', change: 0.2 },
@@ -395,9 +395,9 @@ export default function Admin() {
   };
 
   const stats = [
-    { title: 'إجمالي المبيعات', value: dashboardStats?.totalRevenue?.toLocaleString('ar-SA') || '0', suffix: 'ر.س', icon: DollarSign, color: 'from-emerald-500 to-emerald-600', change: '+18%', changeType: 'up' },
-    { title: 'الطلبات النشطة', value: dashboardStats?.totalOrders?.toLocaleString('ar-SA') || '0', suffix: 'طلب', icon: ShoppingCart, color: 'from-blue-500 to-blue-600', change: '+24%', changeType: 'up' },
-    { title: 'العملاء المسجلين', value: dashboardStats?.totalCustomers?.toLocaleString('ar-SA') || '0', suffix: 'عميل', icon: Users, color: 'from-purple-500 to-purple-600', change: '+12%', changeType: 'up' },
+    { title: 'إجمالي المبيعات', value: dashboardStats?.totalRevenue?.toLocaleString('ar-SY') || '0', suffix: 'ل.س', icon: DollarSign, color: 'from-emerald-500 to-emerald-600', change: '+18%', changeType: 'up' },
+    { title: 'الطلبات النشطة', value: dashboardStats?.totalOrders?.toLocaleString('ar-SY') || '0', suffix: 'طلب', icon: ShoppingCart, color: 'from-blue-500 to-blue-600', change: '+24%', changeType: 'up' },
+    { title: 'العملاء المسجلين', value: dashboardStats?.totalCustomers?.toLocaleString('ar-SY') || '0', suffix: 'عميل', icon: Users, color: 'from-purple-500 to-purple-600', change: '+12%', changeType: 'up' },
     { title: 'منتجات منخفضة المخزون', value: dashboardStats?.lowStockProducts?.toString() || lowStockProductsData.length.toString(), suffix: 'منتج', icon: AlertTriangle, color: 'from-orange-500 to-orange-600', change: lowStockProductsData.length > 10 ? 'تنبيه!' : 'طبيعي', changeType: lowStockProductsData.length > 10 ? 'down' : 'up' },
   ];
 
@@ -602,7 +602,7 @@ export default function Admin() {
                               <div className="flex-1">
                                 <p className="text-sm font-bold text-gray-800">{notification.title}</p>
                                 <p className="text-sm text-gray-600">{notification.message}</p>
-                                <p className="text-xs text-gray-400 mt-1">{new Date(notification.createdAt).toLocaleDateString('ar-SA')}</p>
+                                <p className="text-xs text-gray-400 mt-1">{new Date(notification.createdAt).toLocaleDateString('ar-SY')}</p>
                               </div>
                             </div>
                           </div>
@@ -762,7 +762,7 @@ export default function Admin() {
                       <YAxis yAxisId="right" orientation="right" stroke="#9ca3af" fontSize={12} />
                       <Tooltip contentStyle={{ background: 'white', border: 'none', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }} />
                       <Legend />
-                      <Area yAxisId="left" type="monotone" dataKey="sales" stroke="#8b5cf6" strokeWidth={2} fillOpacity={1} fill="url(#colorSales)" name="المبيعات (ر.س)" />
+                      <Area yAxisId="left" type="monotone" dataKey="sales" stroke="#8b5cf6" strokeWidth={2} fillOpacity={1} fill="url(#colorSales)" name="المبيعات (ل.س)" />
                       <Bar yAxisId="right" dataKey="orders" fill="#10b981" radius={[4, 4, 0, 0]} name="الطلبات" />
                     </ComposedChart>
                   </ResponsiveContainer>
@@ -797,7 +797,7 @@ export default function Admin() {
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-bold text-gray-800">{log.action}</p>
                           <p className="text-sm text-gray-600 line-clamp-2">{log.details}</p>
-                          <p className="text-xs text-gray-400 mt-1">{new Date(log.createdAt).toLocaleDateString('ar-SA')}</p>
+                          <p className="text-xs text-gray-400 mt-1">{new Date(log.createdAt).toLocaleDateString('ar-SY')}</p>
                         </div>
                       </motion.div>
                     );
@@ -959,11 +959,11 @@ export default function Admin() {
                           <div>
                             <p className="font-bold">طلب #{order.id}</p>
                             <p className="text-sm text-gray-500">{order.user?.facilityName || 'عميل'}</p>
-                            <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString('ar-SA')}</p>
+                            <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString('ar-SY')}</p>
                           </div>
                         </div>
                         <div className="text-left">
-                          <p className="font-bold text-primary">{order.total} ر.س</p>
+                          <p className="font-bold text-primary">{order.total} ل.س</p>
                           {getStatusBadge(order.status)}
                         </div>
                       </div>
@@ -1094,7 +1094,7 @@ export default function Admin() {
                         </td>
                         <td className="py-4">{ret.customer}</td>
                         <td className="py-4"><Badge variant="outline">{ret.reason}</Badge></td>
-                        <td className="py-4 font-bold">{ret.amount} ر.س</td>
+                        <td className="py-4 font-bold">{ret.amount} ل.س</td>
                         <td className="py-4 text-gray-500">{ret.date}</td>
                         <td className="py-4">{getStatusBadge(ret.status)}</td>
                         <td className="py-4">
@@ -1140,7 +1140,7 @@ export default function Admin() {
                       </div>
                       <div>
                         <p className="text-xs text-gray-500">متوسط الطلب</p>
-                        <p className="text-xl font-bold">{segment.avgOrder} ر.س</p>
+                        <p className="text-xl font-bold">{segment.avgOrder} ل.س</p>
                       </div>
                       <div className="col-span-2">
                         <div className="flex justify-between text-xs mb-1">
@@ -1229,7 +1229,7 @@ export default function Admin() {
                           </div>
                         </td>
                         <td className="py-4 font-bold">{supplier.orders}</td>
-                        <td className="py-4 font-bold text-green-600">{supplier.balance.toLocaleString()} ر.س</td>
+                        <td className="py-4 font-bold text-green-600">{supplier.balance.toLocaleString()} ل.س</td>
                         <td className="py-4">
                           <div className="flex items-center gap-1">
                             <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg hover:bg-blue-50 hover:text-blue-600"><Eye className="w-4 h-4" /></Button>
@@ -1747,7 +1747,7 @@ export default function Admin() {
                         <span className="font-bold text-sm">معدل الكسب</span>
                       </div>
                       <p className="text-2xl font-bold">1 نقطة</p>
-                      <p className="text-xs text-gray-500">لكل 10 ر.س مشتريات</p>
+                      <p className="text-xs text-gray-500">لكل 10 ل.س مشتريات</p>
                     </div>
                     <div className="bg-white rounded-xl p-4">
                       <div className="flex items-center gap-2 mb-2">
@@ -1755,7 +1755,7 @@ export default function Admin() {
                         <span className="font-bold text-sm">قيمة الاستبدال</span>
                       </div>
                       <p className="text-2xl font-bold">100 نقطة</p>
-                      <p className="text-xs text-gray-500">= 10 ر.س خصم</p>
+                      <p className="text-xs text-gray-500">= 10 ل.س خصم</p>
                     </div>
                     <div className="bg-white rounded-xl p-4">
                       <div className="flex items-center gap-2 mb-2">
@@ -1839,7 +1839,7 @@ export default function Admin() {
                             <Button size="icon" variant="ghost" className="h-6 w-6"><Copy className="w-3 h-3" /></Button>
                             <Badge className={coupon.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>{coupon.isActive ? 'نشط' : 'منتهي'}</Badge>
                           </div>
-                          <p className="text-sm text-gray-600 mt-1">{coupon.type === 'percentage' ? `خصم ${coupon.value}%` : `خصم ${coupon.value} ر.س`} • الحد الأدنى {coupon.minOrder} ر.س</p>
+                          <p className="text-sm text-gray-600 mt-1">{coupon.type === 'percentage' ? `خصم ${coupon.value}%` : `خصم ${coupon.value} ل.س`} • الحد الأدنى {coupon.minOrder} ل.س</p>
                         </div>
                       </div>
                       <div className="text-left">
@@ -1893,7 +1893,7 @@ export default function Admin() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-orange-100 text-xs">إجمالي السعة</p>
-                    <p className="text-2xl font-bold">{warehousesList.reduce((sum, w) => sum + (w.capacity || 0), 0).toLocaleString('ar-SA')}</p>
+                    <p className="text-2xl font-bold">{warehousesList.reduce((sum, w) => sum + (w.capacity || 0), 0).toLocaleString('ar-SY')}</p>
                   </div>
                   <Boxes className="w-8 h-8 text-orange-200" />
                 </div>
@@ -1934,7 +1934,7 @@ export default function Admin() {
                       <div className="bg-white p-3 rounded-lg shadow-lg border">
                         <p className="font-bold">{payload[0].payload.name}</p>
                         <p className="text-sm text-gray-600">{payload[0].payload.city}</p>
-                        <p className="text-primary font-bold">{payload[0].value?.toLocaleString('ar-SA')} وحدة</p>
+                        <p className="text-primary font-bold">{payload[0].value?.toLocaleString('ar-SY')} وحدة</p>
                       </div>
                     ) : null} />
                     <Bar dataKey="capacity" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
@@ -2062,11 +2062,20 @@ export default function Admin() {
                           <Select value={newCity.region} onValueChange={(v) => setNewCity({ ...newCity, region: v })}>
                             <SelectTrigger data-testid="select-region"><SelectValue placeholder="اختر المنطقة" /></SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="الوسطى">المنطقة الوسطى</SelectItem>
-                              <SelectItem value="الغربية">المنطقة الغربية</SelectItem>
-                              <SelectItem value="الشرقية">المنطقة الشرقية</SelectItem>
-                              <SelectItem value="الشمالية">المنطقة الشمالية</SelectItem>
-                              <SelectItem value="الجنوبية">المنطقة الجنوبية</SelectItem>
+                              <SelectItem value="دمشق">محافظة دمشق</SelectItem>
+                              <SelectItem value="ريف دمشق">محافظة ريف دمشق</SelectItem>
+                              <SelectItem value="حلب">محافظة حلب</SelectItem>
+                              <SelectItem value="حمص">محافظة حمص</SelectItem>
+                              <SelectItem value="حماة">محافظة حماة</SelectItem>
+                              <SelectItem value="اللاذقية">محافظة اللاذقية</SelectItem>
+                              <SelectItem value="طرطوس">محافظة طرطوس</SelectItem>
+                              <SelectItem value="إدلب">محافظة إدلب</SelectItem>
+                              <SelectItem value="درعا">محافظة درعا</SelectItem>
+                              <SelectItem value="السويداء">محافظة السويداء</SelectItem>
+                              <SelectItem value="القنيطرة">محافظة القنيطرة</SelectItem>
+                              <SelectItem value="دير الزور">محافظة دير الزور</SelectItem>
+                              <SelectItem value="الرقة">محافظة الرقة</SelectItem>
+                              <SelectItem value="الحسكة">محافظة الحسكة</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -2209,7 +2218,7 @@ export default function Admin() {
                           <div className="grid grid-cols-2 gap-2 text-sm">
                             <div className="bg-white rounded-lg p-2 text-center">
                               <p className="text-xs text-gray-500">السعة</p>
-                              <p className="font-bold">{warehouse.capacity.toLocaleString('ar-SA')}</p>
+                              <p className="font-bold">{warehouse.capacity.toLocaleString('ar-SY')}</p>
                             </div>
                             <div className="bg-white rounded-lg p-2 text-center">
                               <p className="text-xs text-gray-500">الهاتف</p>
@@ -2285,7 +2294,7 @@ export default function Admin() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-emerald-100 text-xs">قيمة المخزون</p>
-                    <p className="text-lg font-bold">{products.reduce((sum, p) => sum + (parseFloat(p.price) * p.stock), 0).toLocaleString('ar-SA').slice(0, 8)} ر.س</p>
+                    <p className="text-lg font-bold">{products.reduce((sum, p) => sum + (parseFloat(p.price) * p.stock), 0).toLocaleString('ar-SY').slice(0, 8)} ل.س</p>
                   </div>
                   <Coins className="w-8 h-8 text-emerald-200" />
                 </div>
@@ -2462,12 +2471,12 @@ export default function Admin() {
                               </div>
                               <div className="flex items-center gap-4">
                                 <div>
-                                  <span className="text-3xl font-bold text-primary">{parseFloat(selectedProduct.price).toLocaleString('ar-SA')}</span>
-                                  <span className="text-lg text-gray-500 mr-1">ر.س</span>
+                                  <span className="text-3xl font-bold text-primary">{parseFloat(selectedProduct.price).toLocaleString('ar-SY')}</span>
+                                  <span className="text-lg text-gray-500 mr-1">ل.س</span>
                                 </div>
                                 {selectedProduct.originalPrice && (
                                   <div>
-                                    <span className="text-lg text-gray-400 line-through">{selectedProduct.originalPrice} ر.س</span>
+                                    <span className="text-lg text-gray-400 line-through">{selectedProduct.originalPrice} ل.س</span>
                                     <Badge className="mr-2 bg-red-500 text-white">
                                       -{Math.round((1 - parseFloat(selectedProduct.price) / parseFloat(selectedProduct.originalPrice)) * 100)}%
                                     </Badge>
@@ -2485,7 +2494,7 @@ export default function Admin() {
                             </div>
                             <div className="p-4 bg-green-50 rounded-xl text-center">
                               <DollarSign className="w-6 h-6 mx-auto text-green-600 mb-2" />
-                              <p className="text-xl font-bold text-green-600">{stockValue.toLocaleString('ar-SA')}</p>
+                              <p className="text-xl font-bold text-green-600">{stockValue.toLocaleString('ar-SY')}</p>
                               <p className="text-xs text-gray-600">قيمة المخزون</p>
                             </div>
                             <div className="p-4 bg-purple-50 rounded-xl text-center">
@@ -2709,10 +2718,10 @@ export default function Admin() {
                           <td className="px-4 py-3 text-sm">{brand?.name || '-'}</td>
                           <td className="px-4 py-3">
                             <div>
-                              <span className="font-bold text-lg text-primary">{parseFloat(product.price).toLocaleString('ar-SA')} ر.س</span>
+                              <span className="font-bold text-lg text-primary">{parseFloat(product.price).toLocaleString('ar-SY')} ل.س</span>
                               {product.originalPrice && (
                                 <div>
-                                  <span className="text-xs text-gray-400 line-through">{product.originalPrice} ر.س</span>
+                                  <span className="text-xs text-gray-400 line-through">{product.originalPrice} ل.س</span>
                                   <Badge className="mr-2 bg-red-100 text-red-600 text-xs">
                                     -{Math.round((1 - parseFloat(product.price) / parseFloat(product.originalPrice)) * 100)}%
                                   </Badge>
@@ -2731,7 +2740,7 @@ export default function Admin() {
                             )}
                           </td>
                           <td className="px-4 py-3">
-                            <span className="font-bold text-emerald-600">{stockValue.toLocaleString('ar-SA')} ر.س</span>
+                            <span className="font-bold text-emerald-600">{stockValue.toLocaleString('ar-SY')} ل.س</span>
                           </td>
                           <td className="px-4 py-3">
                             <Badge className={product.stock > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
@@ -2829,7 +2838,7 @@ export default function Admin() {
                         <h4 className="font-bold text-sm line-clamp-2 mb-1">{product.name}</h4>
                         <p className="text-xs text-gray-500 mb-2">{brand?.name}</p>
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-primary">{parseFloat(product.price).toLocaleString('ar-SA')} ر.س</span>
+                          <span className="font-bold text-primary">{parseFloat(product.price).toLocaleString('ar-SY')} ل.س</span>
                           <div className={`flex items-center gap-1 text-xs ${product.stock < 30 ? 'text-red-500' : 'text-green-600'}`}>
                             <div className={`w-2 h-2 rounded-full ${product.stock === 0 ? 'bg-red-500' : product.stock < 30 ? 'bg-yellow-500' : 'bg-green-500'}`}></div>
                             {product.stock}
@@ -3037,15 +3046,15 @@ export default function Admin() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
                 <p className="text-emerald-100 text-xs">إجمالي المبيعات</p>
-                <p className="text-2xl font-bold">{adminOrders.reduce((sum: number, o: any) => sum + parseFloat(o.total || 0), 0).toLocaleString('ar-SA')} ر.س</p>
+                <p className="text-2xl font-bold">{adminOrders.reduce((sum: number, o: any) => sum + parseFloat(o.total || 0), 0).toLocaleString('ar-SY')} ل.س</p>
               </Card>
               <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-teal-500 to-teal-600 text-white">
                 <p className="text-teal-100 text-xs">مبيعات المكتملة</p>
-                <p className="text-2xl font-bold">{adminOrders.filter((o: any) => o.status === 'delivered').reduce((sum: number, o: any) => sum + parseFloat(o.total || 0), 0).toLocaleString('ar-SA')} ر.س</p>
+                <p className="text-2xl font-bold">{adminOrders.filter((o: any) => o.status === 'delivered').reduce((sum: number, o: any) => sum + parseFloat(o.total || 0), 0).toLocaleString('ar-SY')} ل.س</p>
               </Card>
               <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-cyan-500 to-cyan-600 text-white">
                 <p className="text-cyan-100 text-xs">متوسط قيمة الطلب</p>
-                <p className="text-2xl font-bold">{adminOrders.length > 0 ? (adminOrders.reduce((sum: number, o: any) => sum + parseFloat(o.total || 0), 0) / adminOrders.length).toFixed(0) : 0} ر.س</p>
+                <p className="text-2xl font-bold">{adminOrders.length > 0 ? (adminOrders.reduce((sum: number, o: any) => sum + parseFloat(o.total || 0), 0) / adminOrders.length).toFixed(0) : 0} ل.س</p>
               </Card>
               <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 text-white">
                 <p className="text-indigo-100 text-xs">معدل الإكمال</p>
@@ -3157,12 +3166,12 @@ export default function Admin() {
                         </td>
                         <td className="px-4 py-4">
                           <div>
-                            <p className="text-sm">{new Date(order.createdAt).toLocaleDateString('ar-SA')}</p>
-                            <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}</p>
+                            <p className="text-sm">{new Date(order.createdAt).toLocaleDateString('ar-SY')}</p>
+                            <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit' })}</p>
                           </div>
                         </td>
                         <td className="px-4 py-4">
-                          <p className="font-bold text-lg text-primary">{parseFloat(order.total).toLocaleString('ar-SA')} ر.س</p>
+                          <p className="font-bold text-lg text-primary">{parseFloat(order.total).toLocaleString('ar-SY')} ل.س</p>
                         </td>
                         <td className="px-4 py-4">
                           <Badge className={order.paymentMethod === 'wallet' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'}>
@@ -3281,7 +3290,7 @@ export default function Admin() {
                     </div>
                     <div>
                       <p className="text-xl">تفاصيل الطلب #{selectedOrder?.id}</p>
-                      <p className="text-sm text-gray-500 font-normal">{selectedOrder && new Date(selectedOrder.createdAt).toLocaleString('ar-SA')}</p>
+                      <p className="text-sm text-gray-500 font-normal">{selectedOrder && new Date(selectedOrder.createdAt).toLocaleString('ar-SY')}</p>
                     </div>
                   </DialogTitle>
                 </DialogHeader>
@@ -3324,10 +3333,10 @@ export default function Admin() {
                       <div className="p-4 bg-green-50 rounded-2xl border border-green-100">
                         <h4 className="font-bold mb-3 flex items-center gap-2 text-green-700"><Receipt className="w-4 h-4" />ملخص الطلب</h4>
                         <div className="space-y-2 text-sm">
-                          <div className="flex justify-between"><span className="text-gray-600">المجموع الفرعي:</span><span className="font-bold">{parseFloat(selectedOrder.subtotal || selectedOrder.total).toLocaleString('ar-SA')} ر.س</span></div>
-                          <div className="flex justify-between"><span className="text-gray-600">رسوم التوصيل:</span><span className="font-bold">{parseFloat(selectedOrder.deliveryFee || 0).toLocaleString('ar-SA')} ر.س</span></div>
-                          <div className="flex justify-between"><span className="text-gray-600">الخصم:</span><span className="font-bold text-red-600">-{parseFloat(selectedOrder.discount || 0).toLocaleString('ar-SA')} ر.س</span></div>
-                          <div className="flex justify-between pt-2 border-t border-green-200"><span className="font-bold">الإجمالي:</span><span className="font-bold text-xl text-green-700">{parseFloat(selectedOrder.total).toLocaleString('ar-SA')} ر.س</span></div>
+                          <div className="flex justify-between"><span className="text-gray-600">المجموع الفرعي:</span><span className="font-bold">{parseFloat(selectedOrder.subtotal || selectedOrder.total).toLocaleString('ar-SY')} ل.س</span></div>
+                          <div className="flex justify-between"><span className="text-gray-600">رسوم التوصيل:</span><span className="font-bold">{parseFloat(selectedOrder.deliveryFee || 0).toLocaleString('ar-SY')} ل.س</span></div>
+                          <div className="flex justify-between"><span className="text-gray-600">الخصم:</span><span className="font-bold text-red-600">-{parseFloat(selectedOrder.discount || 0).toLocaleString('ar-SY')} ل.س</span></div>
+                          <div className="flex justify-between pt-2 border-t border-green-200"><span className="font-bold">الإجمالي:</span><span className="font-bold text-xl text-green-700">{parseFloat(selectedOrder.total).toLocaleString('ar-SY')} ل.س</span></div>
                         </div>
                       </div>
                     </div>
@@ -3348,7 +3357,7 @@ export default function Admin() {
                                   <p className="text-xs text-gray-500">الكمية: {item.quantity}</p>
                                 </div>
                               </div>
-                              <p className="font-bold text-primary">{parseFloat(item.price || 0).toLocaleString('ar-SA')} ر.س</p>
+                              <p className="font-bold text-primary">{parseFloat(item.price || 0).toLocaleString('ar-SY')} ل.س</p>
                             </div>
                           ))}
                         </div>
@@ -3447,7 +3456,7 @@ export default function Admin() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600 font-mono">{user.phone}</td>
-                        <td className="px-4 py-3 text-sm text-gray-500">{new Date(user.createdAt).toLocaleDateString('ar-SA')}</td>
+                        <td className="px-4 py-3 text-sm text-gray-500">{new Date(user.createdAt).toLocaleDateString('ar-SY')}</td>
                         <td className="px-4 py-3">
                           <div className="flex gap-2">
                             <Button size="sm" variant="ghost" className="rounded-lg">

@@ -75,7 +75,7 @@ export default function Wallet() {
              <div className="text-center mb-4">
                <p className="text-blue-200 text-sm mb-1">الرصيد الحالي</p>
                <h2 className="text-4xl font-bold tracking-tight" data-testid="text-balance">
-                 {wallet?.balance || '0.00'} <span className="text-lg font-normal">ر.س</span>
+                 {wallet?.balance || '0.00'} <span className="text-lg font-normal">ل.س</span>
                </h2>
              </div>
 
@@ -120,7 +120,7 @@ export default function Wallet() {
                         </div>
                       </div>
                       <span className={`font-bold text-sm ${tx.type === 'payment' ? 'text-red-600' : 'text-green-600'}`}>
-                        {tx.type === 'payment' ? '-' : '+'}{tx.amount} ر.س
+                        {tx.type === 'payment' ? '-' : '+'}{tx.amount} ل.س
                       </span>
                    </div>
                  ))}

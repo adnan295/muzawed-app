@@ -248,7 +248,7 @@ export default function Checkout() {
               {cartItems.map(item => (
                 <div key={item.id} className="flex items-center justify-between text-sm">
                   <span className="text-gray-600">{item.product?.name} × {item.quantity}</span>
-                  <span className="font-bold">{(parseFloat(item.product?.price || '0') * item.quantity).toFixed(2)} ر.س</span>
+                  <span className="font-bold">{(parseFloat(item.product?.price || '0') * item.quantity).toFixed(2)} ل.س</span>
                 </div>
               ))}
             </div>
@@ -259,11 +259,11 @@ export default function Checkout() {
             <h3 className="font-bold text-sm mb-2">ملخص الدفع</h3>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">المجموع</span>
-              <span>{subtotal.toFixed(2)} ر.س</span>
+              <span>{subtotal.toFixed(2)} ل.س</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">الضريبة (15%)</span>
-              <span>{tax.toFixed(2)} ر.س</span>
+              <span>{tax.toFixed(2)} ل.س</span>
             </div>
             <div className="flex justify-between text-sm text-green-600">
               <span className="text-muted-foreground">التوصيل</span>
@@ -272,7 +272,7 @@ export default function Checkout() {
             <Separator />
             <div className="flex justify-between text-lg font-bold">
               <span>الإجمالي</span>
-              <span className="text-primary" data-testid="text-total">{total.toFixed(2)} ر.س</span>
+              <span className="text-primary" data-testid="text-total">{total.toFixed(2)} ل.س</span>
             </div>
           </div>
         </div>
@@ -285,7 +285,7 @@ export default function Checkout() {
             disabled={!defaultAddress || createOrderMutation.isPending}
             data-testid="button-confirm-order"
           >
-            {createOrderMutation.isPending ? 'جاري الإرسال...' : `تأكيد الطلب (${total.toFixed(2)} ر.س)`}
+            {createOrderMutation.isPending ? 'جاري الإرسال...' : `تأكيد الطلب (${total.toFixed(2)} ل.س)`}
           </Button>
         </div>
 

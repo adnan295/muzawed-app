@@ -117,7 +117,7 @@ export function ProductCard({ product }: ProductCardProps) {
           
           <div className="flex items-baseline gap-2 mb-4 mt-auto">
             <span className="text-primary font-black text-lg">
-              {price} <span className="text-xs font-normal text-muted-foreground">ر.س</span>
+              {price} <span className="text-xs font-normal text-muted-foreground">ل.س</span>
             </span>
             {originalPrice && (
               <span className="text-muted-foreground text-xs line-through decoration-red-400 opacity-60">

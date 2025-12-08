@@ -46,7 +46,7 @@ export default function BuyAgain() {
         
         <div className="fixed bottom-20 left-4 right-4 z-20">
            <Button className="w-full h-12 rounded-xl shadow-lg shadow-primary/20 font-bold">
-             إضافة الكل للسلة (450.00 ر.س)
+             إضافة الكل للسلة (450.00 ل.س)
            </Button>
         </div>
       </div>

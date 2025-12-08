@@ -24,7 +24,7 @@ const BANNERS: BannerProps[] = [
     id: '1',
     image: deliveryImg,
     title: 'مقاضيك واصلة لباب محلك',
-    subtitle: 'توصيل مجاني للطلبات فوق 500 ريال',
+    subtitle: 'توصيل مجاني للطلبات فوق 500000 ليرة',
     buttonText: 'اطلب الآن',
     colorClass: 'from-primary to-purple-800',
   },

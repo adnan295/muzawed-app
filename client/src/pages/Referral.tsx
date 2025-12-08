@@ -33,7 +33,7 @@ export default function Referral() {
              </div>
              <h1 className="text-2xl font-bold mb-2">ادعُ أصدقاءك</h1>
              <p className="text-purple-100 text-sm max-w-xs mx-auto">
-               احصل على رصيد 50 ريال لكل صديق يسجل ويطلب عن طريقك
+               احصل على رصيد 50000 ليرة لكل صديق يسجل ويطلب عن طريقك
              </p>
            </div>
         </div>
@@ -69,7 +69,7 @@ export default function Referral() {
                 <Gift className="w-5 h-5 text-yellow-600" />
               </div>
               <span className="text-2xl font-bold">600</span>
-              <span className="text-xs text-muted-foreground mt-1">رصيد مكتسب (ر.س)</span>
+              <span className="text-xs text-muted-foreground mt-1">رصيد مكتسب (ل.س)</span>
             </Card>
           </div>
 
@@ -95,7 +95,7 @@ export default function Referral() {
                  <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shrink-0">3</div>
                  <div>
                    <h4 className="font-bold text-sm">أنت تكسب!</h4>
-                   <p className="text-xs text-muted-foreground mt-1">ستحصل فوراً على 50 ريال رصيد في محفظتك.</p>
+                   <p className="text-xs text-muted-foreground mt-1">ستحصل فوراً على 50000 ليرة رصيد في محفظتك.</p>
                  </div>
                </div>
             </div>

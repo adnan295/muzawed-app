@@ -94,15 +94,15 @@ export default function Invoice() {
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">المجموع الخاضع للضريبة</span>
-            <span>{subtotal.toFixed(2)} ر.س</span>
+            <span>{subtotal.toFixed(2)} ل.س</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">ضريبة القيمة المضافة (15%)</span>
-            <span>{vat.toFixed(2)} ر.س</span>
+            <span>{vat.toFixed(2)} ل.س</span>
           </div>
           <div className="flex justify-between text-lg font-bold mt-4 pt-4 border-t border-dashed border-gray-200">
             <span>الإجمالي المستحق</span>
-            <span>{total.toFixed(2)} ر.س</span>
+            <span>{total.toFixed(2)} ل.س</span>
           </div>
         </div>
 

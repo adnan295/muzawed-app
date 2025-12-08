@@ -1,8 +1,13 @@
 # Overview
 
-This is a wholesale e-commerce mobile application called "Sary" (ساري) built for the Saudi Arabian market. The application is designed for businesses and facilities to purchase bulk products at wholesale prices. It features a complete e-commerce flow including product browsing, shopping cart, checkout, order management, wallet system, and user authentication.
+This is a wholesale e-commerce mobile application called "Sary" (ساري) built for the **Syrian market**. The application is designed for businesses and facilities to purchase bulk products at wholesale prices. It features a complete e-commerce flow including product browsing, shopping cart, checkout, order management, wallet system, and user authentication.
 
 The application is built as a full-stack TypeScript application with a React frontend (using Vite) and an Express.js backend, with PostgreSQL as the database layer managed through Drizzle ORM. The UI is styled with Tailwind CSS and uses shadcn/ui components, with right-to-left (RTL) Arabic language support throughout.
+
+**Localization:**
+- Currency: Syrian Pound (ل.س - SYP)
+- Locale: ar-SY
+- Regions: Syrian governorates (محافظات سورية)
 
 # User Preferences
 
@@ -133,7 +138,7 @@ Shopping & Orders:
 ## Multi-Warehouse Architecture
 
 **Database Tables**
-- `cities`: Saudi cities with region and active status (18 major cities)
+- `cities`: Syrian cities with governorate (محافظة) and active status (14 governorates)
 - `warehouses`: Warehouse details linked to cities (one warehouse per city)
 - `productInventory`: Join table linking products to warehouses with per-warehouse stock levels
 

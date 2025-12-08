@@ -19,7 +19,7 @@ export default function Onboarding() {
     },
     {
       title: 'توصيل سريع ومجاني',
-      description: 'اطلب اليوم واستلم طلبك غداً. توصيل مجاني للطلبات التي تتجاوز 500 ريال.',
+      description: 'اطلب اليوم واستلم طلبك غداً. توصيل مجاني للطلبات التي تتجاوز 500000 ليرة.',
       icon: Truck,
       color: 'bg-green-500 text-white',
       bg: 'bg-green-50'

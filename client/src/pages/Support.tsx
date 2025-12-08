@@ -65,7 +65,7 @@ export default function Support() {
               <AccordionItem value="item-3" className="bg-white rounded-xl border border-gray-100 px-4">
                 <AccordionTrigger className="hover:no-underline font-semibold text-sm">هل يوجد حد أدنى للطلب؟</AccordionTrigger>
                 <AccordionContent className="text-muted-foreground text-sm">
-                  نعم، الحد الأدنى للطلب هو 150 ريال سعودي. التوصيل مجاني للطلبات فوق 500 ريال.
+                  نعم، الحد الأدنى للطلب هو 150000 ليرة. التوصيل مجاني للطلبات فوق 500000 ليرة.
                 </AccordionContent>
               </AccordionItem>
             </Accordion>

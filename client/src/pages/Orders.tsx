@@ -173,7 +173,7 @@ function OrderCard({ order, statusInfo }: { order: Order; statusInfo: any }) {
         
         <div className="flex justify-between items-center text-sm border-t border-gray-50 pt-3 mt-2">
           <span className="text-muted-foreground">الدفع: {order.paymentMethod === 'wallet' ? 'المحفظة' : order.paymentMethod === 'card' ? 'بطاقة' : 'نقدي'}</span>
-          <span className="font-bold">{order.total} ر.س</span>
+          <span className="font-bold">{order.total} ل.س</span>
         </div>
       </div>
     </Card>

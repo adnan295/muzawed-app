@@ -86,14 +86,14 @@ export default function OrderDetails() {
                      <p className="text-sm font-bold line-clamp-1">{item.name}</p>
                      <p className="text-xs text-muted-foreground">الكمية: {item.minOrder}</p>
                    </div>
-                   <span className="font-bold text-sm">{(item.price * item.minOrder).toFixed(2)} ر.س</span>
+                   <span className="font-bold text-sm">{(item.price * item.minOrder).toFixed(2)} ل.س</span>
                  </div>
                ))}
              </div>
              <Separator className="my-3" />
              <div className="flex justify-between items-center font-bold">
                <span>الإجمالي</span>
-               <span className="text-primary">450.00 ر.س</span>
+               <span className="text-primary">450.00 ل.س</span>
              </div>
           </Card>
 

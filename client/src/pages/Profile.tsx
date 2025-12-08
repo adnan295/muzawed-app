@@ -130,7 +130,7 @@ export default function Profile() {
             <div className="text-xs text-purple-100 mb-1">إجمالي المشتريات</div>
             <div className="font-bold text-lg text-white">{totalSpent.toFixed(0)}</div>
             <div className="text-[10px] text-green-300 flex items-center justify-center gap-1">
-              <TrendingUp className="w-3 h-3" /> ر.س
+              <TrendingUp className="w-3 h-3" /> ل.س
             </div>
           </div>
           <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 text-center border border-white/10">
@@ -141,7 +141,7 @@ export default function Profile() {
           <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 text-center border border-white/10">
             <div className="text-xs text-purple-100 mb-1">رصيد المحفظة</div>
             <div className="font-bold text-lg text-white">{wallet?.balance || '0'}</div>
-            <div className="text-[10px] text-green-300">ر.س</div>
+            <div className="text-[10px] text-green-300">ل.س</div>
           </div>
         </div>
       </div>

@@ -37,8 +37,8 @@ export function FilterSheet() {
             <h3 className="font-bold text-sm">نطاق السعر</h3>
             <Slider defaultValue={[50]} max={500} step={1} className="w-full" />
             <div className="flex justify-between text-xs text-muted-foreground font-medium">
-              <span>0 ر.س</span>
-              <span>500+ ر.س</span>
+              <span>0 ل.س</span>
+              <span>500+ ل.س</span>
             </div>
           </div>
 

@@ -143,9 +143,9 @@ export default function ProductDetails() {
             <div className="flex items-start justify-between mb-2">
               <h1 className="text-xl font-bold text-foreground leading-snug max-w-[80%]" data-testid="text-product-name">{product.name}</h1>
               <div className="flex flex-col items-end">
-                <span className="text-2xl font-bold text-primary" data-testid="text-product-price">{price} <span className="text-sm font-normal text-muted-foreground">ر.س</span></span>
+                <span className="text-2xl font-bold text-primary" data-testid="text-product-price">{price} <span className="text-sm font-normal text-muted-foreground">ل.س</span></span>
                 {originalPrice && (
-                  <span className="text-sm text-muted-foreground line-through decoration-red-400">{originalPrice} ر.س</span>
+                  <span className="text-sm text-muted-foreground line-through decoration-red-400">{originalPrice} ل.س</span>
                 )}
               </div>
             </div>
@@ -165,7 +165,7 @@ export default function ProductDetails() {
                   quantity >= parseInt(tier.range) ? "bg-primary/5 border-primary" : "bg-gray-50 border-transparent"
                 )}>
                   <span className="text-xs text-muted-foreground mb-1">الكمية {tier.range}</span>
-                  <span className="font-bold text-foreground">{tier.price} ر.س</span>
+                  <span className="font-bold text-foreground">{tier.price} ل.س</span>
                 </div>
               ))}
             </div>
@@ -245,7 +245,7 @@ export default function ProductDetails() {
               data-testid="button-add-to-cart"
             >
               <ShoppingCart className="w-5 h-5 ml-2" />
-              أضف للسلة - {(price * quantity).toFixed(2)} ر.س
+              أضف للسلة - {(price * quantity).toFixed(2)} ل.س
             </Button>
           </div>
         </div>

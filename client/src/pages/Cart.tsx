@@ -124,7 +124,7 @@ export default function Cart() {
               <div className="flex-1 flex flex-col justify-between">
                 <div>
                   <h3 className="font-bold text-sm line-clamp-1">{item.product?.name}</h3>
-                  <p className="text-xs text-muted-foreground mt-1">{item.product?.price} ر.س / {item.product?.unit}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{item.product?.price} ل.س / {item.product?.unit}</p>
                 </div>
                 
                 <div className="flex items-center justify-between mt-2">
@@ -146,7 +146,7 @@ export default function Cart() {
                     </button>
                   </div>
                   <span className="font-bold text-primary">
-                    {(parseFloat(item.product?.price || '0') * item.quantity).toFixed(2)} ر.س
+                    {(parseFloat(item.product?.price || '0') * item.quantity).toFixed(2)} ل.س
                   </span>
                 </div>
               </div>
@@ -158,11 +158,11 @@ export default function Cart() {
             <h3 className="font-bold text-sm mb-2">ملخص الطلب</h3>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">المجموع الفرعي</span>
-              <span>{subtotal.toFixed(2)} ر.س</span>
+              <span>{subtotal.toFixed(2)} ل.س</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">ضريبة القيمة المضافة (15%)</span>
-              <span>{vat.toFixed(2)} ر.س</span>
+              <span>{vat.toFixed(2)} ل.س</span>
             </div>
             <div className="flex justify-between text-sm text-green-600">
               <span className="text-muted-foreground">التوصيل</span>
@@ -171,7 +171,7 @@ export default function Cart() {
             <Separator />
             <div className="flex justify-between text-lg font-bold">
               <span>الإجمالي</span>
-              <span className="text-primary">{total.toFixed(2)} ر.س</span>
+              <span className="text-primary">{total.toFixed(2)} ل.س</span>
             </div>
           </div>
         </div>
