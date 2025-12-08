@@ -3,6 +3,35 @@ import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Cities table - المدن/المحافظات
+export const cities = pgTable("cities", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  province: text("province"), // المنطقة
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCitySchema = createInsertSchema(cities).omit({ id: true, createdAt: true });
+export type InsertCity = z.infer<typeof insertCitySchema>;
+export type City = typeof cities.$inferSelect;
+
+// Warehouses table - المستودعات
+export const warehouses = pgTable("warehouses", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  cityId: integer("city_id").notNull().references(() => cities.id),
+  address: text("address"),
+  phone: text("phone"),
+  managerId: integer("manager_id"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertWarehouseSchema = createInsertSchema(warehouses).omit({ id: true, createdAt: true });
+export type InsertWarehouse = z.infer<typeof insertWarehouseSchema>;
+export type Warehouse = typeof warehouses.$inferSelect;
+
 // Users table
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -12,6 +41,7 @@ export const users = pgTable("users", {
   facilityType: text("facility_type"),
   commercialRegister: text("commercial_register"),
   taxNumber: text("tax_number"),
+  cityId: integer("city_id").references(() => cities.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -75,6 +105,21 @@ export const products = pgTable("products", {
 export const insertProductSchema = createInsertSchema(products).omit({ id: true, createdAt: true });
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Product = typeof products.$inferSelect;
+
+// Product Inventory per Warehouse - مخزون المنتجات لكل مستودع
+export const productInventory = pgTable("product_inventory", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+  warehouseId: integer("warehouse_id").notNull().references(() => warehouses.id, { onDelete: "cascade" }),
+  stock: integer("stock").default(0).notNull(),
+  priceOverride: decimal("price_override", { precision: 10, scale: 2 }),
+  minOrderOverride: integer("min_order_override"),
+  isActive: boolean("is_active").default(true).notNull(),
+});
+
+export const insertProductInventorySchema = createInsertSchema(productInventory).omit({ id: true });
+export type InsertProductInventory = z.infer<typeof insertProductInventorySchema>;
+export type ProductInventory = typeof productInventory.$inferSelect;
 
 // Cart Items table
 export const cartItems = pgTable("cart_items", {
@@ -358,23 +403,6 @@ export const insertCouponSchema = createInsertSchema(coupons).omit({ id: true, c
 export type InsertCoupon = z.infer<typeof insertCouponSchema>;
 export type Coupon = typeof coupons.$inferSelect;
 
-// Warehouses table
-export const warehouses = pgTable("warehouses", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  code: text("code").notNull().unique(),
-  address: text("address").notNull(),
-  city: text("city").notNull(),
-  manager: text("manager"),
-  phone: text("phone"),
-  capacity: integer("capacity"),
-  isActive: boolean("is_active").default(true).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertWarehouseSchema = createInsertSchema(warehouses).omit({ id: true, createdAt: true });
-export type InsertWarehouse = z.infer<typeof insertWarehouseSchema>;
-export type Warehouse = typeof warehouses.$inferSelect;
 
 // Invoices table
 export const invoices = pgTable("invoices", {

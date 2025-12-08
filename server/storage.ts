@@ -66,6 +66,12 @@ import {
   type ActivityLog,
   type InsertActivityLog,
   activityLogs,
+  type City,
+  type InsertCity,
+  cities,
+  type ProductInventory,
+  type InsertProductInventory,
+  productInventory,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte, count, or } from "drizzle-orm";
@@ -189,8 +195,26 @@ export interface IStorage {
   // Warehouses
   getWarehouses(): Promise<Warehouse[]>;
   getWarehouse(id: number): Promise<Warehouse | undefined>;
+  getWarehouseByCity(cityId: number): Promise<Warehouse | undefined>;
   createWarehouse(warehouse: InsertWarehouse): Promise<Warehouse>;
   updateWarehouse(id: number, warehouse: Partial<InsertWarehouse>): Promise<Warehouse | undefined>;
+  deleteWarehouse(id: number): Promise<void>;
+
+  // Cities
+  getCities(): Promise<City[]>;
+  getCity(id: number): Promise<City | undefined>;
+  createCity(city: InsertCity): Promise<City>;
+  updateCity(id: number, city: Partial<InsertCity>): Promise<City | undefined>;
+  deleteCity(id: number): Promise<void>;
+
+  // Product Inventory (per warehouse)
+  getProductInventory(warehouseId: number): Promise<ProductInventory[]>;
+  getProductInventoryByProduct(productId: number): Promise<ProductInventory[]>;
+  getInventoryItem(productId: number, warehouseId: number): Promise<ProductInventory | undefined>;
+  createProductInventory(inventory: InsertProductInventory): Promise<ProductInventory>;
+  updateProductInventory(id: number, inventory: Partial<InsertProductInventory>): Promise<ProductInventory | undefined>;
+  deleteProductInventory(id: number): Promise<void>;
+  getProductsByCity(cityId: number): Promise<Product[]>;
 
   // Stats
   getDashboardStats(): Promise<{
@@ -667,6 +691,81 @@ export class DatabaseStorage implements IStorage {
   async updateWarehouse(id: number, warehouseData: Partial<InsertWarehouse>): Promise<Warehouse | undefined> {
     const [updated] = await db.update(warehouses).set(warehouseData).where(eq(warehouses.id, id)).returning();
     return updated || undefined;
+  }
+
+  async getWarehouseByCity(cityId: number): Promise<Warehouse | undefined> {
+    const [warehouse] = await db.select().from(warehouses).where(eq(warehouses.cityId, cityId));
+    return warehouse || undefined;
+  }
+
+  async deleteWarehouse(id: number): Promise<void> {
+    await db.delete(warehouses).where(eq(warehouses.id, id));
+  }
+
+  // Cities
+  async getCities(): Promise<City[]> {
+    return await db.select().from(cities).orderBy(cities.name);
+  }
+
+  async getCity(id: number): Promise<City | undefined> {
+    const [city] = await db.select().from(cities).where(eq(cities.id, id));
+    return city || undefined;
+  }
+
+  async createCity(city: InsertCity): Promise<City> {
+    const [newCity] = await db.insert(cities).values(city).returning();
+    return newCity;
+  }
+
+  async updateCity(id: number, cityData: Partial<InsertCity>): Promise<City | undefined> {
+    const [updated] = await db.update(cities).set(cityData).where(eq(cities.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async deleteCity(id: number): Promise<void> {
+    await db.delete(cities).where(eq(cities.id, id));
+  }
+
+  // Product Inventory (per warehouse)
+  async getProductInventory(warehouseId: number): Promise<ProductInventory[]> {
+    return await db.select().from(productInventory).where(eq(productInventory.warehouseId, warehouseId));
+  }
+
+  async getProductInventoryByProduct(productId: number): Promise<ProductInventory[]> {
+    return await db.select().from(productInventory).where(eq(productInventory.productId, productId));
+  }
+
+  async getInventoryItem(productId: number, warehouseId: number): Promise<ProductInventory | undefined> {
+    const [item] = await db.select().from(productInventory)
+      .where(and(eq(productInventory.productId, productId), eq(productInventory.warehouseId, warehouseId)));
+    return item || undefined;
+  }
+
+  async createProductInventory(inventory: InsertProductInventory): Promise<ProductInventory> {
+    const [newItem] = await db.insert(productInventory).values(inventory).returning();
+    return newItem;
+  }
+
+  async updateProductInventory(id: number, inventoryData: Partial<InsertProductInventory>): Promise<ProductInventory | undefined> {
+    const [updated] = await db.update(productInventory).set(inventoryData).where(eq(productInventory.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async deleteProductInventory(id: number): Promise<void> {
+    await db.delete(productInventory).where(eq(productInventory.id, id));
+  }
+
+  async getProductsByCity(cityId: number): Promise<Product[]> {
+    const warehouse = await this.getWarehouseByCity(cityId);
+    if (!warehouse) return [];
+    
+    const inventory = await db.select().from(productInventory)
+      .where(and(eq(productInventory.warehouseId, warehouse.id), eq(productInventory.isActive, true)));
+    
+    const productIds = inventory.map(i => i.productId);
+    if (productIds.length === 0) return [];
+    
+    return await db.select().from(products).where(sql`${products.id} = ANY(${productIds})`);
   }
 
   // Stats
