@@ -775,38 +775,42 @@ export class DatabaseStorage implements IStorage {
 
   // Product with Inventory (transactional)
   async createProductWithInventory(product: InsertProduct, inventoryItems: { warehouseId: number; stock: number }[]): Promise<Product> {
-    const [newProduct] = await db.insert(products).values(product).returning();
-    
-    if (inventoryItems.length > 0) {
-      const inventoryRecords = inventoryItems.map(item => ({
-        productId: newProduct.id,
-        warehouseId: item.warehouseId,
-        stock: item.stock,
-        isActive: true,
-      }));
-      await db.insert(productInventory).values(inventoryRecords);
-    }
-    
-    return newProduct;
+    return await db.transaction(async (tx) => {
+      const [newProduct] = await tx.insert(products).values(product).returning();
+      
+      if (inventoryItems.length > 0) {
+        const inventoryRecords = inventoryItems.map(item => ({
+          productId: newProduct.id,
+          warehouseId: item.warehouseId,
+          stock: item.stock,
+          isActive: true,
+        }));
+        await tx.insert(productInventory).values(inventoryRecords);
+      }
+      
+      return newProduct;
+    });
   }
 
   async updateProductWithInventory(id: number, productData: Partial<InsertProduct>, inventoryItems: { warehouseId: number; stock: number }[]): Promise<Product | undefined> {
-    const [updatedProduct] = await db.update(products).set(productData).where(eq(products.id, id)).returning();
-    if (!updatedProduct) return undefined;
-    
-    await db.delete(productInventory).where(eq(productInventory.productId, id));
-    
-    if (inventoryItems.length > 0) {
-      const inventoryRecords = inventoryItems.map(item => ({
-        productId: id,
-        warehouseId: item.warehouseId,
-        stock: item.stock,
-        isActive: true,
-      }));
-      await db.insert(productInventory).values(inventoryRecords);
-    }
-    
-    return updatedProduct;
+    return await db.transaction(async (tx) => {
+      const [updatedProduct] = await tx.update(products).set(productData).where(eq(products.id, id)).returning();
+      if (!updatedProduct) return undefined;
+      
+      await tx.delete(productInventory).where(eq(productInventory.productId, id));
+      
+      if (inventoryItems.length > 0) {
+        const inventoryRecords = inventoryItems.map(item => ({
+          productId: id,
+          warehouseId: item.warehouseId,
+          stock: item.stock,
+          isActive: true,
+        }));
+        await tx.insert(productInventory).values(inventoryRecords);
+      }
+      
+      return updatedProduct;
+    });
   }
 
   async getProductWithInventory(id: number): Promise<{ product: Product; inventory: ProductInventory[] } | undefined> {

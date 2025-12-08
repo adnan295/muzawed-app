@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -226,6 +227,7 @@ export default function Admin() {
     name: '', categoryId: '', brandId: '', price: '', originalPrice: '',
     image: '', minOrder: '1', unit: 'كرتون', stock: '100',
   });
+  const [productInventory, setProductInventory] = useState<{ warehouseId: number; stock: number }[]>([]);
 
   // Warehouse management state
   const [isAddWarehouseOpen, setIsAddWarehouseOpen] = useState(false);
@@ -414,6 +416,7 @@ export default function Admin() {
           minOrder: parseInt(newProduct.minOrder),
           unit: newProduct.unit,
           stock: parseInt(newProduct.stock),
+          inventory: productInventory.filter(inv => inv.stock > 0),
         }),
       });
 
@@ -421,6 +424,7 @@ export default function Admin() {
         toast({ title: 'تم إضافة المنتج بنجاح', className: 'bg-green-600 text-white' });
         setIsAddProductOpen(false);
         setNewProduct({ name: '', categoryId: '', brandId: '', price: '', originalPrice: '', image: '', minOrder: '1', unit: 'كرتون', stock: '100' });
+        setProductInventory([]);
         refetchProducts();
       }
     } catch (error) {
@@ -2236,6 +2240,61 @@ export default function Admin() {
                         <Label>رابط الصورة</Label>
                         <Input placeholder="https://..." value={newProduct.image} onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })} data-testid="input-image" />
                       </div>
+                      
+                      {/* Warehouse Inventory Section */}
+                      <div className="border rounded-xl p-4 bg-gray-50">
+                        <Label className="text-base font-bold flex items-center gap-2 mb-3">
+                          <Warehouse className="w-4 h-4" />
+                          توزيع المخزون على المستودعات
+                        </Label>
+                        <p className="text-xs text-gray-500 mb-3">حدد الكمية المتوفرة في كل مستودع</p>
+                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                          {warehousesList.map((wh) => {
+                            const city = cities.find((c: any) => c.id === wh.cityId);
+                            const existingInv = productInventory.find(inv => inv.warehouseId === wh.id);
+                            return (
+                              <div key={wh.id} className="flex items-center justify-between gap-3 p-2 bg-white rounded-lg border">
+                                <div className="flex items-center gap-2 flex-1">
+                                  <Checkbox
+                                    checked={!!existingInv}
+                                    onCheckedChange={(checked: boolean) => {
+                                      if (checked) {
+                                        setProductInventory([...productInventory, { warehouseId: wh.id, stock: 0 }]);
+                                      } else {
+                                        setProductInventory(productInventory.filter(inv => inv.warehouseId !== wh.id));
+                                      }
+                                    }}
+                                    data-testid={`checkbox-warehouse-${wh.id}`}
+                                  />
+                                  <span className="text-sm font-medium">{wh.name}</span>
+                                  <span className="text-xs text-gray-500">({city?.name})</span>
+                                </div>
+                                {existingInv && (
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      type="number"
+                                      className="w-20 h-8 text-center"
+                                      placeholder="0"
+                                      value={existingInv.stock || ''}
+                                      onChange={(e) => {
+                                        setProductInventory(productInventory.map(inv =>
+                                          inv.warehouseId === wh.id ? { ...inv, stock: parseInt(e.target.value) || 0 } : inv
+                                        ));
+                                      }}
+                                      data-testid={`input-warehouse-stock-${wh.id}`}
+                                    />
+                                    <span className="text-xs text-gray-500">وحدة</span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {warehousesList.length === 0 && (
+                          <p className="text-center text-gray-400 text-sm py-4">لا توجد مستودعات. أضف مستودعات أولاً.</p>
+                        )}
+                      </div>
+                      
                       <Button className="w-full rounded-xl" onClick={handleAddProduct} disabled={!newProduct.name || !newProduct.categoryId || !newProduct.price} data-testid="button-submit-product">
                         <Plus className="w-4 h-4 ml-2" />إضافة المنتج
                       </Button>
