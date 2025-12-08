@@ -429,3 +429,142 @@ export const activityLogs = pgTable("activity_logs", {
 export const insertActivityLogSchema = createInsertSchema(activityLogs).omit({ id: true, createdAt: true });
 export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
 export type ActivityLog = typeof activityLogs.$inferSelect;
+
+// Promotions/Campaigns table
+export const promotions = pgTable("promotions", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  type: text("type").notNull(), // banner, flash_sale, bundle, free_shipping
+  description: text("description"),
+  image: text("image"),
+  discountType: text("discount_type"), // percentage, fixed
+  discountValue: decimal("discount_value", { precision: 10, scale: 2 }),
+  targetType: text("target_type"), // all, category, product, customer_tier
+  targetIds: text("target_ids").array(),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  priority: integer("priority").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertPromotionSchema = createInsertSchema(promotions).omit({ id: true, createdAt: true });
+export type InsertPromotion = z.infer<typeof insertPromotionSchema>;
+export type Promotion = typeof promotions.$inferSelect;
+
+// Suppliers table
+export const suppliers = pgTable("suppliers", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  code: text("code").notNull().unique(),
+  contactName: text("contact_name"),
+  email: text("email"),
+  phone: text("phone"),
+  address: text("address"),
+  city: text("city"),
+  taxNumber: text("tax_number"),
+  paymentTerms: text("payment_terms"), // net_30, net_60, cod
+  rating: integer("rating").default(0),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertSupplierSchema = createInsertSchema(suppliers).omit({ id: true, createdAt: true });
+export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
+export type Supplier = typeof suppliers.$inferSelect;
+
+// Purchase Orders table
+export const purchaseOrders = pgTable("purchase_orders", {
+  id: serial("id").primaryKey(),
+  poNumber: text("po_number").notNull().unique(),
+  supplierId: integer("supplier_id").notNull().references(() => suppliers.id),
+  warehouseId: integer("warehouse_id").references(() => warehouses.id),
+  status: text("status").default("draft").notNull(), // draft, pending, approved, received, cancelled
+  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
+  tax: decimal("tax", { precision: 10, scale: 2 }).default("0"),
+  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+  expectedDate: timestamp("expected_date"),
+  receivedDate: timestamp("received_date"),
+  notes: text("notes"),
+  createdBy: integer("created_by").references(() => staff.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertPurchaseOrderSchema = createInsertSchema(purchaseOrders).omit({ id: true, createdAt: true });
+export type InsertPurchaseOrder = z.infer<typeof insertPurchaseOrderSchema>;
+export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
+
+// Returns/Refunds table
+export const returns = pgTable("returns", {
+  id: serial("id").primaryKey(),
+  returnNumber: text("return_number").notNull().unique(),
+  orderId: integer("order_id").notNull().references(() => orders.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  reason: text("reason").notNull(), // defective, wrong_item, damaged, not_as_described, other
+  status: text("status").default("pending").notNull(), // pending, approved, rejected, refunded
+  refundAmount: decimal("refund_amount", { precision: 10, scale: 2 }),
+  refundMethod: text("refund_method"), // wallet, original_payment
+  notes: text("notes"),
+  images: text("images").array(),
+  processedBy: integer("processed_by").references(() => staff.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  processedAt: timestamp("processed_at"),
+});
+
+export const insertReturnSchema = createInsertSchema(returns).omit({ id: true, createdAt: true });
+export type InsertReturn = z.infer<typeof insertReturnSchema>;
+export type Return = typeof returns.$inferSelect;
+
+// Shipments/Tracking table
+export const shipments = pgTable("shipments", {
+  id: serial("id").primaryKey(),
+  trackingNumber: text("tracking_number").notNull().unique(),
+  orderId: integer("order_id").notNull().references(() => orders.id),
+  carrier: text("carrier").notNull(), // in_house, aramex, smsa, dhl
+  status: text("status").default("preparing").notNull(), // preparing, picked_up, in_transit, out_for_delivery, delivered, failed
+  estimatedDelivery: timestamp("estimated_delivery"),
+  actualDelivery: timestamp("actual_delivery"),
+  driverName: text("driver_name"),
+  driverPhone: text("driver_phone"),
+  currentLocation: text("current_location"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertShipmentSchema = createInsertSchema(shipments).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertShipment = z.infer<typeof insertShipmentSchema>;
+export type Shipment = typeof shipments.$inferSelect;
+
+// Customer Segments table
+export const customerSegments = pgTable("customer_segments", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  criteria: text("criteria"), // JSON string for segment rules
+  customerCount: integer("customer_count").default(0).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCustomerSegmentSchema = createInsertSchema(customerSegments).omit({ id: true, createdAt: true });
+export type InsertCustomerSegment = z.infer<typeof insertCustomerSegmentSchema>;
+export type CustomerSegment = typeof customerSegments.$inferSelect;
+
+// Reports/Exports table
+export const reports = pgTable("reports", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  type: text("type").notNull(), // sales, inventory, customers, orders, financial
+  format: text("format").notNull(), // pdf, excel, csv
+  parameters: text("parameters"), // JSON string
+  fileUrl: text("file_url"),
+  status: text("status").default("pending").notNull(), // pending, processing, completed, failed
+  generatedBy: integer("generated_by").references(() => staff.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
+export const insertReportSchema = createInsertSchema(reports).omit({ id: true, createdAt: true });
+export type InsertReport = z.infer<typeof insertReportSchema>;
+export type Report = typeof reports.$inferSelect;

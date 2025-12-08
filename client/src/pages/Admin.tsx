@@ -13,88 +13,24 @@ import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
-  Package, 
-  ShoppingCart, 
-  Users, 
-  TrendingUp, 
-  Plus,
-  Search,
-  Edit,
-  Trash2,
-  ArrowRight,
-  LayoutDashboard,
-  Box,
-  ClipboardList,
-  Settings,
-  DollarSign,
-  Eye,
-  CheckCircle,
-  Clock,
-  XCircle,
-  Truck,
-  BarChart3,
-  PieChart,
-  Activity,
-  RefreshCw,
-  Bell,
-  Download,
-  Upload,
-  Tag,
-  Percent,
-  Calendar,
-  Filter,
-  MoreVertical,
-  Star,
-  MessageSquare,
-  Zap,
-  Target,
-  Award,
-  Megaphone,
-  Layers,
-  Globe,
-  FileText,
-  TrendingDown,
-  AlertTriangle,
-  ChevronUp,
-  ChevronDown,
-  Mail,
-  Phone,
-  MapPin,
-  Building,
-  CreditCard,
-  Wallet,
-  UserCog,
-  Headphones,
-  Gift,
-  Warehouse,
-  Receipt,
-  Copy,
-  ExternalLink,
-  Shield,
-  Lock,
-  Key,
-  UserPlus,
-  TicketIcon,
-  MessageCircle,
-  Send,
-  Archive,
-  Printer,
-  QrCode,
-  Barcode,
-  PackageCheck,
-  PackageX,
-  Timer,
-  Banknote,
-  PiggyBank,
-  Coins,
-  Crown,
-  Medal,
-  Trophy
+  Package, ShoppingCart, Users, TrendingUp, Plus, Search, Edit, Trash2, ArrowRight,
+  LayoutDashboard, Box, ClipboardList, Settings, DollarSign, Eye, CheckCircle, Clock,
+  XCircle, Truck, BarChart3, PieChart, Activity, RefreshCw, Bell, Download, Upload,
+  Tag, Percent, Calendar, Filter, MoreVertical, Star, MessageSquare, Zap, Target,
+  Award, Megaphone, Layers, Globe, FileText, TrendingDown, AlertTriangle, ChevronUp,
+  ChevronDown, Mail, Phone, MapPin, Building, CreditCard, Wallet, UserCog, Headphones,
+  Gift, Warehouse, Receipt, Copy, ExternalLink, Shield, Lock, Key, UserPlus, TicketIcon,
+  MessageCircle, Send, Archive, Printer, QrCode, Barcode, PackageCheck, PackageX, Timer,
+  Banknote, PiggyBank, Coins, Crown, Medal, Trophy, Repeat, RotateCcw, Navigation,
+  TruckIcon, MapPinned, Factory, ShoppingBag, FileSpreadsheet, FilePdf, MailCheck,
+  Sparkles, Flame, ThumbsUp, ThumbsDown, AlertCircle, Info, HelpCircle, CircleDollarSign,
+  BadgePercent, Gauge, ArrowUpRight, ArrowDownRight, Hash, Split, Merge,
+  GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight
 } from 'lucide-react';
 import { Link } from 'wouter';
 import { productsAPI, categoriesAPI, brandsAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart, Line, Legend, ComposedChart } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart, Line, Legend, ComposedChart, RadialBarChart, RadialBar, Treemap, FunnelChart, Funnel, LabelList } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Product {
@@ -124,13 +60,13 @@ interface Brand {
 }
 
 const salesData = [
-  { name: 'يناير', sales: 45000, orders: 240, customers: 180 },
-  { name: 'فبراير', sales: 52000, orders: 280, customers: 210 },
-  { name: 'مارس', sales: 61000, orders: 320, customers: 250 },
-  { name: 'أبريل', sales: 58000, orders: 290, customers: 230 },
-  { name: 'مايو', sales: 72000, orders: 380, customers: 290 },
-  { name: 'يونيو', sales: 85000, orders: 420, customers: 340 },
-  { name: 'يوليو', sales: 95000, orders: 480, customers: 390 },
+  { name: 'يناير', sales: 45000, orders: 240, customers: 180, returns: 12 },
+  { name: 'فبراير', sales: 52000, orders: 280, customers: 210, returns: 15 },
+  { name: 'مارس', sales: 61000, orders: 320, customers: 250, returns: 18 },
+  { name: 'أبريل', sales: 58000, orders: 290, customers: 230, returns: 14 },
+  { name: 'مايو', sales: 72000, orders: 380, customers: 290, returns: 20 },
+  { name: 'يونيو', sales: 85000, orders: 420, customers: 340, returns: 22 },
+  { name: 'يوليو', sales: 95000, orders: 480, customers: 390, returns: 25 },
 ];
 
 const hourlyData = Array.from({ length: 24 }, (_, i) => ({
@@ -147,19 +83,27 @@ const categoryPieData = [
   { name: 'أخرى', value: 8, color: '#ef4444' },
 ];
 
+const funnelData = [
+  { name: 'زيارات', value: 50000, fill: '#8b5cf6' },
+  { name: 'تسجيل', value: 25000, fill: '#06b6d4' },
+  { name: 'إضافة للسلة', value: 15000, fill: '#10b981' },
+  { name: 'بدء الدفع', value: 8000, fill: '#f59e0b' },
+  { name: 'طلب مكتمل', value: 5000, fill: '#ef4444' },
+];
+
 const mockStaff = [
-  { id: 1, name: 'أحمد محمد', email: 'ahmed@sary.sa', phone: '0501234567', role: 'admin', department: 'الإدارة', status: 'active', permissions: ['all'] },
-  { id: 2, name: 'سارة علي', email: 'sara@sary.sa', phone: '0559876543', role: 'manager', department: 'المبيعات', status: 'active', permissions: ['orders', 'products'] },
-  { id: 3, name: 'محمد خالد', email: 'mohammed@sary.sa', phone: '0543216789', role: 'support', department: 'الدعم الفني', status: 'active', permissions: ['support', 'customers'] },
-  { id: 4, name: 'فاطمة أحمد', email: 'fatima@sary.sa', phone: '0567891234', role: 'warehouse', department: 'المستودعات', status: 'active', permissions: ['inventory'] },
-  { id: 5, name: 'عبدالله سعود', email: 'abdullah@sary.sa', phone: '0512345678', role: 'sales', department: 'المبيعات', status: 'inactive', permissions: ['orders'] },
+  { id: 1, name: 'أحمد محمد', email: 'ahmed@sary.sa', phone: '0501234567', role: 'admin', department: 'الإدارة', status: 'active', permissions: ['all'], lastActive: 'الآن' },
+  { id: 2, name: 'سارة علي', email: 'sara@sary.sa', phone: '0559876543', role: 'manager', department: 'المبيعات', status: 'active', permissions: ['orders', 'products'], lastActive: '5 دقائق' },
+  { id: 3, name: 'محمد خالد', email: 'mohammed@sary.sa', phone: '0543216789', role: 'support', department: 'الدعم الفني', status: 'active', permissions: ['support', 'customers'], lastActive: '15 دقيقة' },
+  { id: 4, name: 'فاطمة أحمد', email: 'fatima@sary.sa', phone: '0567891234', role: 'warehouse', department: 'المستودعات', status: 'active', permissions: ['inventory'], lastActive: '1 ساعة' },
+  { id: 5, name: 'عبدالله سعود', email: 'abdullah@sary.sa', phone: '0512345678', role: 'sales', department: 'المبيعات', status: 'inactive', permissions: ['orders'], lastActive: '3 أيام' },
 ];
 
 const mockTickets = [
-  { id: 1, ticketNumber: 'TKT-001', customer: 'سوبر ماركت الفيصل', subject: 'مشكلة في الطلب #1024', category: 'order', priority: 'high', status: 'open', assignedTo: 'محمد خالد', createdAt: '10 دقائق' },
-  { id: 2, ticketNumber: 'TKT-002', customer: 'بقالة النور', subject: 'استفسار عن المنتجات', category: 'product', priority: 'medium', status: 'in_progress', assignedTo: 'سارة علي', createdAt: '30 دقيقة' },
-  { id: 3, ticketNumber: 'TKT-003', customer: 'مركز السعادة', subject: 'طلب استرجاع', category: 'payment', priority: 'urgent', status: 'open', assignedTo: null, createdAt: '1 ساعة' },
-  { id: 4, ticketNumber: 'TKT-004', customer: 'ميني ماركت الخير', subject: 'مشكلة تقنية', category: 'technical', priority: 'low', status: 'resolved', assignedTo: 'محمد خالد', createdAt: '2 ساعة' },
+  { id: 1, ticketNumber: 'TKT-001', customer: 'سوبر ماركت الفيصل', subject: 'مشكلة في الطلب #1024', category: 'order', priority: 'high', status: 'open', assignedTo: 'محمد خالد', createdAt: '10 دقائق', messages: 3 },
+  { id: 2, ticketNumber: 'TKT-002', customer: 'بقالة النور', subject: 'استفسار عن المنتجات', category: 'product', priority: 'medium', status: 'in_progress', assignedTo: 'سارة علي', createdAt: '30 دقيقة', messages: 5 },
+  { id: 3, ticketNumber: 'TKT-003', customer: 'مركز السعادة', subject: 'طلب استرجاع', category: 'payment', priority: 'urgent', status: 'open', assignedTo: null, createdAt: '1 ساعة', messages: 1 },
+  { id: 4, ticketNumber: 'TKT-004', customer: 'ميني ماركت الخير', subject: 'مشكلة تقنية', category: 'technical', priority: 'low', status: 'resolved', assignedTo: 'محمد خالد', createdAt: '2 ساعة', messages: 8 },
 ];
 
 const mockCoupons = [
@@ -169,16 +113,49 @@ const mockCoupons = [
 ];
 
 const mockWarehouses = [
-  { id: 1, name: 'المستودع الرئيسي', code: 'WH-RYD-001', city: 'الرياض', capacity: 10000, used: 7500, status: 'active', manager: 'فاطمة أحمد' },
-  { id: 2, name: 'مستودع جدة', code: 'WH-JED-001', city: 'جدة', capacity: 8000, used: 5200, status: 'active', manager: 'عبدالرحمن سالم' },
-  { id: 3, name: 'مستودع الدمام', code: 'WH-DMM-001', city: 'الدمام', capacity: 5000, used: 3800, status: 'active', manager: 'خالد محمد' },
+  { id: 1, name: 'المستودع الرئيسي', code: 'WH-RYD-001', city: 'الرياض', capacity: 10000, used: 7500, status: 'active', manager: 'فاطمة أحمد', products: 1250, orders: 45 },
+  { id: 2, name: 'مستودع جدة', code: 'WH-JED-001', city: 'جدة', capacity: 8000, used: 5200, status: 'active', manager: 'عبدالرحمن سالم', products: 980, orders: 32 },
+  { id: 3, name: 'مستودع الدمام', code: 'WH-DMM-001', city: 'الدمام', capacity: 5000, used: 3800, status: 'active', manager: 'خالد محمد', products: 650, orders: 28 },
 ];
 
 const mockLoyaltyTiers = [
-  { tier: 'bronze', name: 'برونزي', minPoints: 0, discount: 0, customers: 4500, color: 'from-orange-600 to-orange-700' },
-  { tier: 'silver', name: 'فضي', minPoints: 1000, discount: 5, customers: 3200, color: 'from-gray-400 to-gray-500' },
-  { tier: 'gold', name: 'ذهبي', minPoints: 5000, discount: 10, customers: 1800, color: 'from-yellow-500 to-yellow-600' },
-  { tier: 'platinum', name: 'بلاتيني', minPoints: 15000, discount: 15, customers: 500, color: 'from-purple-500 to-purple-600' },
+  { tier: 'bronze', name: 'برونزي', minPoints: 0, discount: 0, customers: 4500, color: 'from-orange-600 to-orange-700', icon: Star },
+  { tier: 'silver', name: 'فضي', minPoints: 1000, discount: 5, customers: 3200, color: 'from-gray-400 to-gray-500', icon: Medal },
+  { tier: 'gold', name: 'ذهبي', minPoints: 5000, discount: 10, customers: 1800, color: 'from-yellow-500 to-yellow-600', icon: Trophy },
+  { tier: 'platinum', name: 'بلاتيني', minPoints: 15000, discount: 15, customers: 500, color: 'from-purple-500 to-purple-600', icon: Crown },
+];
+
+const mockSuppliers = [
+  { id: 1, name: 'شركة المراعي', code: 'SUP-001', contact: 'محمد العمري', phone: '0501234567', city: 'الرياض', rating: 5, orders: 156, balance: 45000 },
+  { id: 2, name: 'شركة صافولا', code: 'SUP-002', contact: 'أحمد الفهد', phone: '0559876543', city: 'جدة', rating: 4, orders: 98, balance: 32000 },
+  { id: 3, name: 'شركة نادك', code: 'SUP-003', contact: 'خالد السالم', phone: '0543216789', city: 'الدمام', rating: 5, orders: 124, balance: 28500 },
+  { id: 4, name: 'شركة بيبسي', code: 'SUP-004', contact: 'سعد الدوسري', phone: '0567891234', city: 'الرياض', rating: 4, orders: 87, balance: 52000 },
+];
+
+const mockPromotions = [
+  { id: 1, name: 'تخفيضات الصيف', type: 'flash_sale', discount: 25, startDate: '2024-06-01', endDate: '2024-08-31', status: 'active', views: 15420, conversions: 2340 },
+  { id: 2, name: 'عرض المشروبات', type: 'category', discount: 15, startDate: '2024-05-15', endDate: '2024-06-15', status: 'active', views: 8750, conversions: 1120 },
+  { id: 3, name: 'باندل التنظيف', type: 'bundle', discount: 30, startDate: '2024-04-01', endDate: '2024-04-30', status: 'ended', views: 6200, conversions: 890 },
+];
+
+const mockShipments = [
+  { id: 1, trackingNumber: 'SHP-2024-001', orderId: 1024, carrier: 'in_house', status: 'in_transit', driver: 'سعيد محمد', phone: '0501234567', eta: '30 دقيقة', location: 'حي النرجس' },
+  { id: 2, trackingNumber: 'SHP-2024-002', orderId: 1025, carrier: 'aramex', status: 'out_for_delivery', driver: 'أحمد علي', phone: '0559876543', eta: '15 دقيقة', location: 'حي الملقا' },
+  { id: 3, trackingNumber: 'SHP-2024-003', orderId: 1026, carrier: 'smsa', status: 'preparing', driver: null, phone: null, eta: '2 ساعة', location: 'المستودع' },
+];
+
+const mockReturns = [
+  { id: 1, returnNumber: 'RET-001', orderId: 1020, customer: 'سوبر ماركت النور', reason: 'منتج تالف', status: 'pending', amount: 250, date: '2024-05-10' },
+  { id: 2, returnNumber: 'RET-002', orderId: 1018, customer: 'بقالة الأمل', reason: 'منتج خاطئ', status: 'approved', amount: 180, date: '2024-05-09' },
+  { id: 3, returnNumber: 'RET-003', orderId: 1015, customer: 'مركز الخير', reason: 'تاريخ انتهاء قريب', status: 'refunded', amount: 420, date: '2024-05-08' },
+];
+
+const mockCustomerSegments = [
+  { id: 1, name: 'عملاء VIP', count: 500, avgOrder: 2500, retention: 95, growth: 12 },
+  { id: 2, name: 'عملاء نشطين', count: 3500, avgOrder: 850, retention: 78, growth: 8 },
+  { id: 3, name: 'عملاء جدد (30 يوم)', count: 1200, avgOrder: 450, retention: 45, growth: 25 },
+  { id: 4, name: 'عملاء خاملين', count: 2800, avgOrder: 320, retention: 15, growth: -5 },
+  { id: 5, name: 'عملاء مهددين بالمغادرة', count: 450, avgOrder: 280, retention: 25, growth: -12 },
 ];
 
 const recentActivities = [
@@ -187,6 +164,16 @@ const recentActivities = [
   { id: 3, type: 'stock', message: 'تنبيه: مخزون بيبسي منخفض (15 وحدة)', time: '30 دقيقة', icon: AlertTriangle, color: 'bg-yellow-100 text-yellow-600' },
   { id: 4, type: 'ticket', message: 'تذكرة دعم جديدة TKT-005', time: '45 دقيقة', icon: Headphones, color: 'bg-purple-100 text-purple-600' },
   { id: 5, type: 'payment', message: 'استلام دفعة 2,500 ر.س', time: '1 ساعة', icon: CreditCard, color: 'bg-emerald-100 text-emerald-600' },
+  { id: 6, type: 'return', message: 'طلب استرجاع RET-004', time: '2 ساعة', icon: RotateCcw, color: 'bg-red-100 text-red-600' },
+];
+
+const kpiData = [
+  { name: 'معدل التحويل', value: 12.5, target: 15, unit: '%', trend: 'up', change: 2.3 },
+  { name: 'متوسط قيمة الطلب', value: 850, target: 1000, unit: 'ر.س', trend: 'up', change: 45 },
+  { name: 'معدل إعادة الطلب', value: 68, target: 75, unit: '%', trend: 'up', change: 5 },
+  { name: 'وقت التوصيل', value: 2.4, target: 2, unit: 'ساعة', trend: 'down', change: -0.3 },
+  { name: 'رضا العملاء', value: 4.6, target: 4.8, unit: '/5', trend: 'up', change: 0.2 },
+  { name: 'معدل الإلغاء', value: 3.2, target: 2, unit: '%', trend: 'down', change: -0.5 },
 ];
 
 export default function Admin() {
@@ -195,9 +182,12 @@ export default function Admin() {
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [isAddStaffOpen, setIsAddStaffOpen] = useState(false);
   const [isAddCouponOpen, setIsAddCouponOpen] = useState(false);
+  const [isAddPromotionOpen, setIsAddPromotionOpen] = useState(false);
+  const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [dateRange, setDateRange] = useState('week');
   const [selectedTicket, setSelectedTicket] = useState<typeof mockTickets[0] | null>(null);
+  const [selectedShipment, setSelectedShipment] = useState<typeof mockShipments[0] | null>(null);
   const [newProduct, setNewProduct] = useState({
     name: '', categoryId: '', brandId: '', price: '', originalPrice: '',
     image: '', minOrder: '1', unit: 'كرتون', stock: '100',
@@ -244,6 +234,13 @@ export default function Admin() {
       in_progress: { label: 'قيد المعالجة', color: 'bg-yellow-100 text-yellow-700', icon: Clock },
       resolved: { label: 'تم الحل', color: 'bg-green-100 text-green-700', icon: CheckCircle },
       closed: { label: 'مغلقة', color: 'bg-gray-100 text-gray-700', icon: Archive },
+      in_transit: { label: 'في الطريق', color: 'bg-blue-100 text-blue-700', icon: Truck },
+      out_for_delivery: { label: 'جاري التوصيل', color: 'bg-purple-100 text-purple-700', icon: Navigation },
+      preparing: { label: 'قيد التجهيز', color: 'bg-orange-100 text-orange-700', icon: Package },
+      approved: { label: 'موافق عليه', color: 'bg-green-100 text-green-700', icon: CheckCircle },
+      refunded: { label: 'تم الاسترداد', color: 'bg-emerald-100 text-emerald-700', icon: CircleDollarSign },
+      active: { label: 'نشط', color: 'bg-green-100 text-green-700', icon: CheckCircle },
+      ended: { label: 'منتهي', color: 'bg-gray-100 text-gray-700', icon: Clock },
     };
     const s = statusMap[status] || statusMap.pending;
     return (
@@ -316,7 +313,7 @@ export default function Admin() {
               </motion.div>
               <div>
                 <h1 className="text-3xl font-bold">لوحة التحكم المتقدمة</h1>
-                <p className="text-purple-200 text-sm">إدارة +10,000 عميل • منصة ساري للجملة</p>
+                <p className="text-purple-200 text-sm">إدارة +10,000 عميل • منصة ساري للجملة • الإصدار 2.0</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -412,20 +409,38 @@ export default function Admin() {
               <TabsTrigger value="dashboard" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
                 <LayoutDashboard className="w-4 h-4 ml-2" />الرئيسية
               </TabsTrigger>
+              <TabsTrigger value="kpi" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
+                <Gauge className="w-4 h-4 ml-2" />KPIs
+              </TabsTrigger>
               <TabsTrigger value="products" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
                 <Package className="w-4 h-4 ml-2" />المنتجات
               </TabsTrigger>
               <TabsTrigger value="orders" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
                 <ClipboardList className="w-4 h-4 ml-2" />الطلبات
               </TabsTrigger>
+              <TabsTrigger value="shipments" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
+                <TruckIcon className="w-4 h-4 ml-2" />الشحنات
+              </TabsTrigger>
+              <TabsTrigger value="returns" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
+                <RotateCcw className="w-4 h-4 ml-2" />المرتجعات
+              </TabsTrigger>
               <TabsTrigger value="customers" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
                 <Users className="w-4 h-4 ml-2" />العملاء
+              </TabsTrigger>
+              <TabsTrigger value="segments" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
+                <Split className="w-4 h-4 ml-2" />الشرائح
+              </TabsTrigger>
+              <TabsTrigger value="suppliers" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
+                <Handshake className="w-4 h-4 ml-2" />الموردين
+              </TabsTrigger>
+              <TabsTrigger value="promotions" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
+                <Megaphone className="w-4 h-4 ml-2" />العروض
               </TabsTrigger>
               <TabsTrigger value="staff" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
                 <UserCog className="w-4 h-4 ml-2" />الموظفين
               </TabsTrigger>
               <TabsTrigger value="support" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
-                <Headphones className="w-4 h-4 ml-2" />الدعم الفني
+                <Headphones className="w-4 h-4 ml-2" />الدعم
               </TabsTrigger>
               <TabsTrigger value="loyalty" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
                 <Gift className="w-4 h-4 ml-2" />الولاء
@@ -436,8 +451,8 @@ export default function Admin() {
               <TabsTrigger value="warehouses" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
                 <Warehouse className="w-4 h-4 ml-2" />المستودعات
               </TabsTrigger>
-              <TabsTrigger value="invoices" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
-                <Receipt className="w-4 h-4 ml-2" />الفواتير
+              <TabsTrigger value="reports" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
+                <FileText className="w-4 h-4 ml-2" />التقارير
               </TabsTrigger>
               <TabsTrigger value="analytics" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
                 <BarChart3 className="w-4 h-4 ml-2" />التحليلات
@@ -538,6 +553,517 @@ export default function Admin() {
             </div>
           </TabsContent>
 
+          {/* KPI Dashboard Tab */}
+          <TabsContent value="kpi">
+            <div className="grid lg:grid-cols-3 gap-6">
+              <Card className="lg:col-span-3 p-6 border-none shadow-lg rounded-2xl">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="font-bold text-xl flex items-center gap-2"><Gauge className="w-6 h-6 text-primary" />مؤشرات الأداء الرئيسية (KPIs)</h3>
+                  <Button variant="outline" className="rounded-xl gap-2"><Download className="w-4 h-4" />تصدير التقرير</Button>
+                </div>
+                <div className="grid md:grid-cols-3 gap-6">
+                  {kpiData.map((kpi, index) => (
+                    <div key={index} className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm text-gray-600">{kpi.name}</span>
+                        <div className={`flex items-center gap-1 text-xs font-bold ${kpi.trend === 'up' ? 'text-green-500' : kpi.trend === 'down' && kpi.name.includes('الإلغاء') ? 'text-green-500' : 'text-red-500'}`}>
+                          {kpi.trend === 'up' ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                          {kpi.change > 0 ? '+' : ''}{kpi.change}
+                        </div>
+                      </div>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-bold">{kpi.value}</span>
+                        <span className="text-sm text-gray-400">{kpi.unit}</span>
+                      </div>
+                      <div className="mt-3">
+                        <div className="flex justify-between text-xs text-gray-500 mb-1">
+                          <span>الهدف: {kpi.target}{kpi.unit}</span>
+                          <span>{Math.round((kpi.value / kpi.target) * 100)}%</span>
+                        </div>
+                        <Progress value={(kpi.value / kpi.target) * 100} className="h-2" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              <Card className="lg:col-span-2 p-6 border-none shadow-lg rounded-2xl">
+                <h3 className="font-bold text-lg mb-4">قمع التحويل</h3>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={funnelData} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis type="number" />
+                      <YAxis type="category" dataKey="name" width={100} />
+                      <Tooltip />
+                      <Bar dataKey="value" radius={[0, 8, 8, 0]}>
+                        {funnelData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+
+              <Card className="p-6 border-none shadow-lg rounded-2xl">
+                <h3 className="font-bold text-lg mb-4">ملخص الأداء</h3>
+                <div className="space-y-4">
+                  <div className="p-4 bg-green-50 rounded-xl border border-green-100">
+                    <div className="flex items-center gap-2 mb-1">
+                      <ThumbsUp className="w-4 h-4 text-green-600" />
+                      <span className="text-sm font-bold text-green-700">أداء ممتاز</span>
+                    </div>
+                    <p className="text-xs text-green-600">معدل رضا العملاء فوق الهدف</p>
+                  </div>
+                  <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100">
+                    <div className="flex items-center gap-2 mb-1">
+                      <AlertCircle className="w-4 h-4 text-yellow-600" />
+                      <span className="text-sm font-bold text-yellow-700">يحتاج تحسين</span>
+                    </div>
+                    <p className="text-xs text-yellow-600">وقت التوصيل أعلى من الهدف</p>
+                  </div>
+                  <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Info className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm font-bold text-blue-700">توصية</span>
+                    </div>
+                    <p className="text-xs text-blue-600">زيادة حملات إعادة الاستهداف</p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Shipments Tab */}
+          <TabsContent value="shipments">
+            <div className="grid lg:grid-cols-3 gap-6">
+              <Card className="lg:col-span-2 p-6 border-none shadow-lg rounded-2xl">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="font-bold text-xl flex items-center gap-2"><TruckIcon className="w-5 h-5 text-blue-500" />تتبع الشحنات</h3>
+                    <p className="text-gray-500 text-sm mt-1">{mockShipments.length} شحنة نشطة</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" className="rounded-xl text-sm">الكل</Button>
+                    <Button variant="outline" className="rounded-xl text-sm bg-blue-50 border-blue-200 text-blue-700">في الطريق</Button>
+                    <Button variant="outline" className="rounded-xl text-sm bg-purple-50 border-purple-200 text-purple-700">جاري التوصيل</Button>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {mockShipments.map((shipment) => (
+                    <div key={shipment.id} className={`p-4 rounded-2xl border cursor-pointer transition-all ${selectedShipment?.id === shipment.id ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200 bg-gray-50'}`} onClick={() => setSelectedShipment(shipment)}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${shipment.status === 'in_transit' ? 'bg-blue-100 text-blue-600' : shipment.status === 'out_for_delivery' ? 'bg-purple-100 text-purple-600' : 'bg-orange-100 text-orange-600'}`}>
+                            {shipment.status === 'in_transit' ? <Truck className="w-6 h-6" /> : shipment.status === 'out_for_delivery' ? <Navigation className="w-6 h-6" /> : <Package className="w-6 h-6" />}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold font-mono">{shipment.trackingNumber}</p>
+                              {getStatusBadge(shipment.status)}
+                            </div>
+                            <p className="text-sm text-gray-500 mt-1">طلب #{shipment.orderId} • {shipment.carrier}</p>
+                          </div>
+                        </div>
+                        <div className="text-left">
+                          <p className="text-sm font-bold text-primary">{shipment.eta}</p>
+                          <p className="text-xs text-gray-500">{shipment.location}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              <Card className="p-6 border-none shadow-lg rounded-2xl">
+                {selectedShipment ? (
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-bold text-lg">تفاصيل الشحنة</h3>
+                      {getStatusBadge(selectedShipment.status)}
+                    </div>
+                    <div className="space-y-4">
+                      <div className="p-3 bg-gray-50 rounded-xl">
+                        <p className="text-xs text-gray-500">رقم التتبع</p>
+                        <p className="font-bold text-sm mt-1 font-mono">{selectedShipment.trackingNumber}</p>
+                      </div>
+                      {selectedShipment.driver && (
+                        <div className="p-3 bg-gray-50 rounded-xl">
+                          <p className="text-xs text-gray-500">السائق</p>
+                          <div className="flex items-center justify-between mt-1">
+                            <p className="font-bold text-sm">{selectedShipment.driver}</p>
+                            <Button size="sm" variant="outline" className="rounded-lg gap-1">
+                              <Phone className="w-3 h-3" />
+                              اتصال
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      <div className="p-3 bg-gray-50 rounded-xl">
+                        <p className="text-xs text-gray-500">الموقع الحالي</p>
+                        <p className="font-bold text-sm mt-1 flex items-center gap-2"><MapPinned className="w-4 h-4 text-primary" />{selectedShipment.location}</p>
+                      </div>
+                      <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
+                        <p className="text-xs text-blue-500">الوقت المتوقع للوصول</p>
+                        <p className="text-2xl font-bold text-blue-700 mt-1">{selectedShipment.eta}</p>
+                      </div>
+                      <div className="relative mt-6">
+                        <div className="absolute right-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+                        {['تم إنشاء الطلب', 'قيد التجهيز', 'تم التسليم للسائق', 'في الطريق', 'تم التوصيل'].map((step, index) => (
+                          <div key={step} className="flex items-center gap-4 mb-4 relative">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${index <= 3 ? 'bg-primary text-white' : 'bg-gray-200 text-gray-400'}`}>
+                              <CheckCircle className="w-4 h-4" />
+                            </div>
+                            <span className={`text-sm ${index <= 3 ? 'font-bold' : 'text-gray-400'}`}>{step}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                    <MapPinned className="w-12 h-12 mb-3" />
+                    <p>اختر شحنة لعرض التفاصيل</p>
+                  </div>
+                )}
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Returns Tab */}
+          <TabsContent value="returns">
+            <Card className="p-6 border-none shadow-lg rounded-2xl">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="font-bold text-xl flex items-center gap-2"><RotateCcw className="w-5 h-5 text-red-500" />إدارة المرتجعات والاستردادات</h3>
+                  <p className="text-gray-500 text-sm mt-1">{mockReturns.length} طلب استرجاع</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="rounded-xl text-sm">الكل</Button>
+                  <Button variant="outline" className="rounded-xl text-sm bg-yellow-50 border-yellow-200 text-yellow-700">قيد المراجعة</Button>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-right border-b border-gray-100">
+                      <th className="pb-4 font-bold text-gray-600">رقم الطلب</th>
+                      <th className="pb-4 font-bold text-gray-600">العميل</th>
+                      <th className="pb-4 font-bold text-gray-600">السبب</th>
+                      <th className="pb-4 font-bold text-gray-600">المبلغ</th>
+                      <th className="pb-4 font-bold text-gray-600">التاريخ</th>
+                      <th className="pb-4 font-bold text-gray-600">الحالة</th>
+                      <th className="pb-4 font-bold text-gray-600">الإجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mockReturns.map((ret) => (
+                      <tr key={ret.id} className="border-b border-gray-50 hover:bg-gray-50">
+                        <td className="py-4">
+                          <div>
+                            <p className="font-bold font-mono text-primary">{ret.returnNumber}</p>
+                            <p className="text-xs text-gray-500">طلب #{ret.orderId}</p>
+                          </div>
+                        </td>
+                        <td className="py-4">{ret.customer}</td>
+                        <td className="py-4"><Badge variant="outline">{ret.reason}</Badge></td>
+                        <td className="py-4 font-bold">{ret.amount} ر.س</td>
+                        <td className="py-4 text-gray-500">{ret.date}</td>
+                        <td className="py-4">{getStatusBadge(ret.status)}</td>
+                        <td className="py-4">
+                          <div className="flex items-center gap-1">
+                            <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg hover:bg-blue-50 hover:text-blue-600"><Eye className="w-4 h-4" /></Button>
+                            <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg hover:bg-green-50 hover:text-green-600"><CheckCircle className="w-4 h-4" /></Button>
+                            <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg hover:bg-red-50 hover:text-red-600"><XCircle className="w-4 h-4" /></Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </TabsContent>
+
+          {/* Customer Segments Tab */}
+          <TabsContent value="segments">
+            <Card className="p-6 border-none shadow-lg rounded-2xl">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="font-bold text-xl flex items-center gap-2"><Split className="w-5 h-5 text-indigo-500" />شرائح العملاء والتحليلات</h3>
+                  <p className="text-gray-500 text-sm mt-1">تقسيم العملاء لاستهداف أفضل</p>
+                </div>
+                <Button className="rounded-xl gap-2"><Plus className="w-4 h-4" />إنشاء شريحة</Button>
+              </div>
+
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {mockCustomerSegments.map((segment) => (
+                  <div key={segment.id} className="bg-gray-50 rounded-2xl p-5 border border-gray-100 hover:shadow-md transition-all">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-bold text-lg">{segment.name}</h4>
+                      <div className={`flex items-center gap-1 text-xs font-bold ${segment.growth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        {segment.growth >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                        {segment.growth}%
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-gray-500">عدد العملاء</p>
+                        <p className="text-xl font-bold">{segment.count.toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">متوسط الطلب</p>
+                        <p className="text-xl font-bold">{segment.avgOrder} ر.س</p>
+                      </div>
+                      <div className="col-span-2">
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-gray-500">معدل الاحتفاظ</span>
+                          <span className="font-bold">{segment.retention}%</span>
+                        </div>
+                        <Progress value={segment.retention} className="h-2" />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <Button variant="outline" className="flex-1 rounded-xl text-sm">عرض العملاء</Button>
+                      <Button variant="outline" className="rounded-xl text-sm"><Megaphone className="w-4 h-4" /></Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </TabsContent>
+
+          {/* Suppliers Tab */}
+          <TabsContent value="suppliers">
+            <Card className="p-6 border-none shadow-lg rounded-2xl">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="font-bold text-xl flex items-center gap-2"><Handshake className="w-5 h-5 text-green-500" />إدارة الموردين</h3>
+                  <p className="text-gray-500 text-sm mt-1">{mockSuppliers.length} مورد</p>
+                </div>
+                <Dialog open={isAddSupplierOpen} onOpenChange={setIsAddSupplierOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="rounded-xl gap-2"><Plus className="w-4 h-4" />إضافة مورد</Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-lg">
+                    <DialogHeader><DialogTitle>إضافة مورد جديد</DialogTitle></DialogHeader>
+                    <div className="space-y-4 mt-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div><Label>اسم الشركة</Label><Input className="rounded-xl mt-1" placeholder="شركة..." /></div>
+                        <div><Label>الكود</Label><Input className="rounded-xl mt-1" placeholder="SUP-XXX" /></div>
+                        <div><Label>جهة الاتصال</Label><Input className="rounded-xl mt-1" placeholder="الاسم" /></div>
+                        <div><Label>رقم الهاتف</Label><Input className="rounded-xl mt-1" placeholder="05XXXXXXXX" /></div>
+                        <div><Label>البريد الإلكتروني</Label><Input className="rounded-xl mt-1" placeholder="email@company.com" /></div>
+                        <div><Label>المدينة</Label><Input className="rounded-xl mt-1" placeholder="الرياض" /></div>
+                      </div>
+                      <Button className="w-full rounded-xl">إضافة المورد</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-right border-b border-gray-100">
+                      <th className="pb-4 font-bold text-gray-600">المورد</th>
+                      <th className="pb-4 font-bold text-gray-600">جهة الاتصال</th>
+                      <th className="pb-4 font-bold text-gray-600">المدينة</th>
+                      <th className="pb-4 font-bold text-gray-600">التقييم</th>
+                      <th className="pb-4 font-bold text-gray-600">الطلبات</th>
+                      <th className="pb-4 font-bold text-gray-600">الرصيد</th>
+                      <th className="pb-4 font-bold text-gray-600">الإجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mockSuppliers.map((supplier) => (
+                      <tr key={supplier.id} className="border-b border-gray-50 hover:bg-gray-50">
+                        <td className="py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-bold">{supplier.name.charAt(0)}</div>
+                            <div>
+                              <p className="font-bold">{supplier.name}</p>
+                              <p className="text-xs text-gray-500">{supplier.code}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4">
+                          <div>
+                            <p className="font-medium">{supplier.contact}</p>
+                            <p className="text-xs text-gray-500">{supplier.phone}</p>
+                          </div>
+                        </td>
+                        <td className="py-4">{supplier.city}</td>
+                        <td className="py-4">
+                          <div className="flex items-center gap-1">
+                            {Array.from({ length: supplier.rating }).map((_, i) => (
+                              <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            ))}
+                          </div>
+                        </td>
+                        <td className="py-4 font-bold">{supplier.orders}</td>
+                        <td className="py-4 font-bold text-green-600">{supplier.balance.toLocaleString()} ر.س</td>
+                        <td className="py-4">
+                          <div className="flex items-center gap-1">
+                            <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg hover:bg-blue-50 hover:text-blue-600"><Eye className="w-4 h-4" /></Button>
+                            <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg hover:bg-green-50 hover:text-green-600"><ShoppingBag className="w-4 h-4" /></Button>
+                            <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg hover:bg-purple-50 hover:text-purple-600"><Edit className="w-4 h-4" /></Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </TabsContent>
+
+          {/* Promotions Tab */}
+          <TabsContent value="promotions">
+            <Card className="p-6 border-none shadow-lg rounded-2xl">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="font-bold text-xl flex items-center gap-2"><Megaphone className="w-5 h-5 text-orange-500" />العروض والحملات الترويجية</h3>
+                  <p className="text-gray-500 text-sm mt-1">{mockPromotions.length} حملة</p>
+                </div>
+                <Dialog open={isAddPromotionOpen} onOpenChange={setIsAddPromotionOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="rounded-xl gap-2"><Plus className="w-4 h-4" />إنشاء عرض</Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-lg">
+                    <DialogHeader><DialogTitle>إنشاء عرض ترويجي</DialogTitle></DialogHeader>
+                    <div className="space-y-4 mt-4">
+                      <div><Label>اسم العرض</Label><Input className="rounded-xl mt-1" placeholder="تخفيضات الصيف" /></div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>نوع العرض</Label>
+                          <Select>
+                            <SelectTrigger className="rounded-xl mt-1"><SelectValue placeholder="اختر" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="flash_sale">تخفيض سريع</SelectItem>
+                              <SelectItem value="category">على قسم</SelectItem>
+                              <SelectItem value="bundle">باندل</SelectItem>
+                              <SelectItem value="free_shipping">شحن مجاني</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div><Label>نسبة الخصم</Label><Input className="rounded-xl mt-1" type="number" placeholder="25" /></div>
+                        <div><Label>تاريخ البداية</Label><Input className="rounded-xl mt-1" type="date" /></div>
+                        <div><Label>تاريخ الانتهاء</Label><Input className="rounded-xl mt-1" type="date" /></div>
+                      </div>
+                      <div><Label>الوصف</Label><Textarea className="rounded-xl mt-1" placeholder="وصف العرض..." /></div>
+                      <Button className="w-full rounded-xl">إنشاء العرض</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {mockPromotions.map((promo) => (
+                  <div key={promo.id} className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-5 border border-orange-100 hover:shadow-md transition-all relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-20 h-20 bg-orange-200/30 rounded-full -translate-x-1/2 -translate-y-1/2"></div>
+                    <div className="flex items-center justify-between mb-4 relative z-10">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white">
+                        {promo.type === 'flash_sale' ? <Flame className="w-6 h-6" /> : promo.type === 'bundle' ? <Boxes className="w-6 h-6" /> : <Sparkles className="w-6 h-6" />}
+                      </div>
+                      {getStatusBadge(promo.status)}
+                    </div>
+                    <h4 className="font-bold text-lg mb-1">{promo.name}</h4>
+                    <p className="text-sm text-orange-700 mb-3">خصم {promo.discount}%</p>
+                    <div className="grid grid-cols-2 gap-3 text-sm mb-4">
+                      <div className="bg-white/60 rounded-lg p-2">
+                        <p className="text-xs text-gray-500">المشاهدات</p>
+                        <p className="font-bold">{promo.views.toLocaleString()}</p>
+                      </div>
+                      <div className="bg-white/60 rounded-lg p-2">
+                        <p className="text-xs text-gray-500">التحويلات</p>
+                        <p className="font-bold">{promo.conversions.toLocaleString()}</p>
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-500">{promo.startDate} - {promo.endDate}</div>
+                    <div className="flex gap-2 mt-4">
+                      <Button variant="outline" className="flex-1 rounded-xl text-sm bg-white/80">تحرير</Button>
+                      <Button variant="outline" className="rounded-xl text-sm bg-white/80"><BarChart3 className="w-4 h-4" /></Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </TabsContent>
+
+          {/* Reports Tab */}
+          <TabsContent value="reports">
+            <Card className="p-6 border-none shadow-lg rounded-2xl">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="font-bold text-xl flex items-center gap-2"><FileText className="w-5 h-5 text-blue-500" />التقارير والتصدير</h3>
+                  <p className="text-gray-500 text-sm mt-1">إنشاء وتصدير التقارير</p>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                {[
+                  { title: 'تقرير المبيعات', icon: DollarSign, color: 'from-green-500 to-emerald-600' },
+                  { title: 'تقرير المخزون', icon: Package, color: 'from-blue-500 to-cyan-600' },
+                  { title: 'تقرير العملاء', icon: Users, color: 'from-purple-500 to-violet-600' },
+                  { title: 'تقرير الطلبات', icon: ClipboardList, color: 'from-orange-500 to-amber-600' },
+                ].map((report, index) => (
+                  <div key={index} className="bg-gray-50 rounded-2xl p-5 border border-gray-100 hover:shadow-md transition-all cursor-pointer group">
+                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${report.color} flex items-center justify-center text-white mb-3 group-hover:scale-110 transition-transform`}>
+                      <report.icon className="w-6 h-6" />
+                    </div>
+                    <h4 className="font-bold">{report.title}</h4>
+                    <div className="flex gap-2 mt-3">
+                      <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1"><FilePdf className="w-3 h-3" />PDF</Button>
+                      <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1"><FileSpreadsheet className="w-3 h-3" />Excel</Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
+                <h4 className="font-bold mb-4">تقرير مخصص</h4>
+                <div className="grid md:grid-cols-4 gap-4">
+                  <div>
+                    <Label>نوع التقرير</Label>
+                    <Select>
+                      <SelectTrigger className="rounded-xl mt-1"><SelectValue placeholder="اختر" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="sales">المبيعات</SelectItem>
+                        <SelectItem value="inventory">المخزون</SelectItem>
+                        <SelectItem value="customers">العملاء</SelectItem>
+                        <SelectItem value="financial">المالي</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>من تاريخ</Label>
+                    <Input type="date" className="rounded-xl mt-1" />
+                  </div>
+                  <div>
+                    <Label>إلى تاريخ</Label>
+                    <Input type="date" className="rounded-xl mt-1" />
+                  </div>
+                  <div>
+                    <Label>الصيغة</Label>
+                    <Select>
+                      <SelectTrigger className="rounded-xl mt-1"><SelectValue placeholder="اختر" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pdf">PDF</SelectItem>
+                        <SelectItem value="excel">Excel</SelectItem>
+                        <SelectItem value="csv">CSV</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <Button className="mt-4 rounded-xl gap-2"><Download className="w-4 h-4" />إنشاء التقرير</Button>
+              </div>
+            </Card>
+          </TabsContent>
+
           {/* Staff Management Tab */}
           <TabsContent value="staff">
             <Card className="p-6 border-none shadow-lg rounded-2xl">
@@ -575,31 +1101,6 @@ export default function Admin() {
                               </SelectContent>
                             </Select>
                           </div>
-                          <div>
-                            <Label>القسم</Label>
-                            <Select>
-                              <SelectTrigger className="rounded-xl mt-1"><SelectValue placeholder="اختر" /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="management">الإدارة</SelectItem>
-                                <SelectItem value="sales">المبيعات</SelectItem>
-                                <SelectItem value="support">الدعم الفني</SelectItem>
-                                <SelectItem value="warehouse">المستودعات</SelectItem>
-                                <SelectItem value="accounting">المحاسبة</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div><Label>كلمة المرور</Label><Input className="rounded-xl mt-1" type="password" placeholder="********" /></div>
-                        </div>
-                        <div>
-                          <Label className="mb-2 block">الصلاحيات</Label>
-                          <div className="grid grid-cols-3 gap-2">
-                            {['الطلبات', 'المنتجات', 'العملاء', 'التقارير', 'المالية', 'الإعدادات'].map((perm) => (
-                              <div key={perm} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                                <Switch id={perm} />
-                                <Label htmlFor={perm} className="text-sm">{perm}</Label>
-                              </div>
-                            ))}
-                          </div>
                         </div>
                         <Button className="w-full rounded-xl">إضافة الموظف</Button>
                       </div>
@@ -615,8 +1116,8 @@ export default function Admin() {
                       <th className="pb-4 font-bold text-gray-600">الموظف</th>
                       <th className="pb-4 font-bold text-gray-600">الدور</th>
                       <th className="pb-4 font-bold text-gray-600">القسم</th>
+                      <th className="pb-4 font-bold text-gray-600">آخر نشاط</th>
                       <th className="pb-4 font-bold text-gray-600">الحالة</th>
-                      <th className="pb-4 font-bold text-gray-600">الصلاحيات</th>
                       <th className="pb-4 font-bold text-gray-600">الإجراءات</th>
                     </tr>
                   </thead>
@@ -638,14 +1139,9 @@ export default function Admin() {
                           </Badge>
                         </td>
                         <td className="py-4"><span className="text-sm">{member.department}</span></td>
+                        <td className="py-4 text-sm text-gray-500">{member.lastActive}</td>
                         <td className="py-4">
                           <Badge className={member.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>{member.status === 'active' ? 'نشط' : 'غير نشط'}</Badge>
-                        </td>
-                        <td className="py-4">
-                          <div className="flex items-center gap-1">
-                            {member.permissions.slice(0, 2).map((p) => (<Badge key={p} variant="outline" className="text-[10px]">{p}</Badge>))}
-                            {member.permissions.length > 2 && <Badge variant="outline" className="text-[10px]">+{member.permissions.length - 2}</Badge>}
-                          </div>
                         </td>
                         <td className="py-4">
                           <div className="flex items-center gap-1">
@@ -671,11 +1167,6 @@ export default function Admin() {
                     <h3 className="font-bold text-xl">تذاكر الدعم الفني</h3>
                     <p className="text-gray-500 text-sm mt-1">{mockTickets.filter(t => t.status === 'open').length} تذكرة مفتوحة</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" className="rounded-xl text-sm">الكل ({mockTickets.length})</Button>
-                    <Button variant="outline" className="rounded-xl text-sm bg-blue-50 border-blue-200 text-blue-700">مفتوحة ({mockTickets.filter(t => t.status === 'open').length})</Button>
-                    <Button variant="outline" className="rounded-xl text-sm bg-yellow-50 border-yellow-200 text-yellow-700">قيد المعالجة ({mockTickets.filter(t => t.status === 'in_progress').length})</Button>
-                  </div>
                 </div>
 
                 <div className="space-y-3">
@@ -697,14 +1188,7 @@ export default function Admin() {
                           </div>
                         </div>
                         <div className="text-left">
-                          {ticket.assignedTo ? (
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">{ticket.assignedTo.charAt(0)}</div>
-                              <span className="text-xs text-gray-500">{ticket.assignedTo}</span>
-                            </div>
-                          ) : (
-                            <Badge className="bg-gray-100 text-gray-600">غير مسند</Badge>
-                          )}
+                          <Badge variant="outline" className="gap-1"><MessageCircle className="w-3 h-3" />{ticket.messages}</Badge>
                         </div>
                       </div>
                     </div>
@@ -727,27 +1211,6 @@ export default function Admin() {
                       <div className="p-3 bg-gray-50 rounded-xl">
                         <p className="text-xs text-gray-500">العميل</p>
                         <p className="font-bold text-sm mt-1">{selectedTicket.customer}</p>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="p-3 bg-gray-50 rounded-xl">
-                          <p className="text-xs text-gray-500">الأولوية</p>
-                          <div className="mt-1">{getPriorityBadge(selectedTicket.priority)}</div>
-                        </div>
-                        <div className="p-3 bg-gray-50 rounded-xl">
-                          <p className="text-xs text-gray-500">التصنيف</p>
-                          <p className="font-bold text-sm mt-1 capitalize">{selectedTicket.category}</p>
-                        </div>
-                      </div>
-                      <div>
-                        <Label className="mb-2 block">إسناد إلى</Label>
-                        <Select defaultValue={selectedTicket.assignedTo || ''}>
-                          <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر موظف" /></SelectTrigger>
-                          <SelectContent>
-                            {mockStaff.filter(s => s.role === 'support' || s.role === 'manager').map(s => (
-                              <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
                       </div>
                       <div>
                         <Label className="mb-2 block">الرد</Label>
@@ -783,11 +1246,11 @@ export default function Admin() {
 
                 <div className="grid md:grid-cols-4 gap-4 mb-6">
                   {mockLoyaltyTiers.map((tier) => (
-                    <div key={tier.tier} className="relative overflow-hidden rounded-2xl p-4 text-white" style={{ background: `linear-gradient(135deg, ${tier.color.replace('from-', '').replace(' to-', ', ')})` }}>
-                      <div className="absolute top-0 left-0 w-full h-full bg-white/10 backdrop-blur-sm"></div>
+                    <div key={tier.tier} className="relative overflow-hidden rounded-2xl p-4 text-white" style={{ background: `linear-gradient(135deg, var(--tw-gradient-stops))` }}>
+                      <div className={`absolute inset-0 bg-gradient-to-br ${tier.color}`}></div>
                       <div className="relative z-10">
                         <div className="flex items-center gap-2 mb-2">
-                          {tier.tier === 'platinum' ? <Crown className="w-5 h-5" /> : tier.tier === 'gold' ? <Trophy className="w-5 h-5" /> : tier.tier === 'silver' ? <Medal className="w-5 h-5" /> : <Star className="w-5 h-5" />}
+                          <tier.icon className="w-5 h-5" />
                           <span className="font-bold">{tier.name}</span>
                         </div>
                         <p className="text-3xl font-bold">{tier.customers.toLocaleString()}</p>
@@ -843,10 +1306,6 @@ export default function Admin() {
                     <p className="text-sm text-green-700">النقاط المستبدلة</p>
                     <p className="text-2xl font-bold text-green-800 mt-1">850,000</p>
                   </div>
-                  <div className="bg-gradient-to-l from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
-                    <p className="text-sm text-blue-700">النقاط النشطة</p>
-                    <p className="text-2xl font-bold text-blue-800 mt-1">1,600,000</p>
-                  </div>
                   <div className="bg-gradient-to-l from-purple-50 to-violet-50 rounded-xl p-4 border border-purple-100">
                     <p className="text-sm text-purple-700">معدل المشاركة</p>
                     <p className="text-2xl font-bold text-purple-800 mt-1">78%</p>
@@ -885,10 +1344,6 @@ export default function Admin() {
                         </div>
                         <div><Label>قيمة الخصم</Label><Input className="rounded-xl mt-1" type="number" placeholder="15" /></div>
                         <div><Label>الحد الأدنى للطلب</Label><Input className="rounded-xl mt-1" type="number" placeholder="200" /></div>
-                        <div><Label>الحد الأقصى للخصم</Label><Input className="rounded-xl mt-1" type="number" placeholder="100" /></div>
-                        <div><Label>عدد مرات الاستخدام</Label><Input className="rounded-xl mt-1" type="number" placeholder="1000" /></div>
-                        <div><Label>تاريخ البداية</Label><Input className="rounded-xl mt-1" type="date" /></div>
-                        <div><Label>تاريخ الانتهاء</Label><Input className="rounded-xl mt-1" type="date" /></div>
                       </div>
                       <Button className="w-full rounded-xl">إنشاء الكوبون</Button>
                     </div>
@@ -911,7 +1366,6 @@ export default function Admin() {
                             <Badge className={coupon.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>{coupon.isActive ? 'نشط' : 'منتهي'}</Badge>
                           </div>
                           <p className="text-sm text-gray-600 mt-1">{coupon.type === 'percentage' ? `خصم ${coupon.value}%` : `خصم ${coupon.value} ر.س`} • الحد الأدنى {coupon.minOrder} ر.س</p>
-                          <p className="text-xs text-gray-400 mt-1">ينتهي في {coupon.endDate}</p>
                         </div>
                       </div>
                       <div className="text-left">
@@ -960,13 +1414,15 @@ export default function Admin() {
                         </div>
                         <Progress value={(warehouse.used / warehouse.capacity) * 100} className="h-2" />
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">المدير</span>
-                        <span className="font-bold">{warehouse.manager}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">الوحدات</span>
-                        <span className="font-bold">{warehouse.used.toLocaleString()} / {warehouse.capacity.toLocaleString()}</span>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div className="bg-white rounded-lg p-2 text-center">
+                          <p className="text-xs text-gray-500">المنتجات</p>
+                          <p className="font-bold">{warehouse.products}</p>
+                        </div>
+                        <div className="bg-white rounded-lg p-2 text-center">
+                          <p className="text-xs text-gray-500">الطلبات</p>
+                          <p className="font-bold">{warehouse.orders}</p>
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-2 mt-4">
@@ -975,65 +1431,6 @@ export default function Admin() {
                     </div>
                   </div>
                 ))}
-              </div>
-            </Card>
-          </TabsContent>
-
-          {/* Invoices Tab */}
-          <TabsContent value="invoices">
-            <Card className="p-6 border-none shadow-lg rounded-2xl">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="font-bold text-xl">الفواتير الضريبية</h3>
-                  <p className="text-gray-500 text-sm mt-1">إدارة وتصدير الفواتير</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Button variant="outline" className="rounded-xl gap-2"><Filter className="w-4 h-4" />تصفية</Button>
-                  <Button variant="outline" className="rounded-xl gap-2"><Download className="w-4 h-4" />تصدير</Button>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="text-right border-b border-gray-100">
-                      <th className="pb-4 font-bold text-gray-600">رقم الفاتورة</th>
-                      <th className="pb-4 font-bold text-gray-600">العميل</th>
-                      <th className="pb-4 font-bold text-gray-600">التاريخ</th>
-                      <th className="pb-4 font-bold text-gray-600">المبلغ</th>
-                      <th className="pb-4 font-bold text-gray-600">الضريبة</th>
-                      <th className="pb-4 font-bold text-gray-600">الإجمالي</th>
-                      <th className="pb-4 font-bold text-gray-600">الحالة</th>
-                      <th className="pb-4 font-bold text-gray-600">الإجراءات</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      { id: 'INV-2024-001', customer: 'سوبر ماركت الفيصل', date: '2024-05-15', subtotal: 1087, tax: 163, total: 1250, status: 'paid' },
-                      { id: 'INV-2024-002', customer: 'بقالة النور', date: '2024-05-14', subtotal: 774, tax: 116, total: 890, status: 'paid' },
-                      { id: 'INV-2024-003', customer: 'مركز السعادة', date: '2024-05-13', subtotal: 2035, tax: 305, total: 2340, status: 'unpaid' },
-                    ].map((invoice) => (
-                      <tr key={invoice.id} className="border-b border-gray-50 hover:bg-gray-50">
-                        <td className="py-4"><span className="font-mono font-bold text-primary">{invoice.id}</span></td>
-                        <td className="py-4">{invoice.customer}</td>
-                        <td className="py-4 text-gray-500">{invoice.date}</td>
-                        <td className="py-4">{invoice.subtotal.toLocaleString()} ر.س</td>
-                        <td className="py-4 text-gray-500">{invoice.tax.toLocaleString()} ر.س</td>
-                        <td className="py-4 font-bold">{invoice.total.toLocaleString()} ر.س</td>
-                        <td className="py-4">
-                          <Badge className={invoice.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}>{invoice.status === 'paid' ? 'مدفوعة' : 'غير مدفوعة'}</Badge>
-                        </td>
-                        <td className="py-4">
-                          <div className="flex items-center gap-1">
-                            <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg hover:bg-blue-50 hover:text-blue-600"><Eye className="w-4 h-4" /></Button>
-                            <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg hover:bg-green-50 hover:text-green-600"><Printer className="w-4 h-4" /></Button>
-                            <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg hover:bg-purple-50 hover:text-purple-600"><Download className="w-4 h-4" /></Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
               </div>
             </Card>
           </TabsContent>
@@ -1048,7 +1445,7 @@ export default function Admin() {
                   <Button className="rounded-xl gap-2" onClick={() => setIsAddProductOpen(true)}><Plus className="w-4 h-4" />إضافة</Button>
                 </div>
               </div>
-              <div className="text-center py-8 text-gray-500">جدول المنتجات متاح - انتقل لتبويب المنتجات الكامل</div>
+              <div className="text-center py-8 text-gray-500">جدول المنتجات الكامل متاح هنا</div>
             </Card>
           </TabsContent>
 
