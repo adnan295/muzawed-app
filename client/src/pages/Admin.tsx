@@ -204,6 +204,11 @@ export default function Admin() {
   const [orderSearch, setOrderSearch] = useState('');
   const [orderDateFilter, setOrderDateFilter] = useState('all');
   const [orderNotes, setOrderNotes] = useState('');
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [productSort, setProductSort] = useState('name');
+  const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
+  const [productViewMode, setProductViewMode] = useState<'table' | 'grid'>('table');
+  const [priceRange, setPriceRange] = useState({ min: '', max: '' });
   const [newProduct, setNewProduct] = useState({
     name: '', categoryId: '', brandId: '', price: '', originalPrice: '',
     image: '', minOrder: '1', unit: 'كرتون', stock: '100',
@@ -1951,46 +1956,209 @@ export default function Admin() {
                     </div>
                   </DialogContent>
                 </Dialog>
+
+                {/* Product Details Dialog */}
+                <Dialog open={!!selectedProduct} onOpenChange={(open) => !open && setSelectedProduct(null)}>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle className="text-xl">تفاصيل المنتج</DialogTitle>
+                    </DialogHeader>
+                    {selectedProduct && (() => {
+                      const category = categories.find(c => c.id === selectedProduct.categoryId);
+                      const brand = brands.find(b => b.id === selectedProduct.brandId);
+                      const stockValue = parseFloat(selectedProduct.price) * selectedProduct.stock;
+                      return (
+                        <div className="space-y-6 mt-4">
+                          <div className="flex gap-6">
+                            <img src={selectedProduct.image} alt={selectedProduct.name} className="w-40 h-40 rounded-2xl object-cover bg-gray-100 border" />
+                            <div className="flex-1 space-y-3">
+                              <h3 className="text-xl font-bold">{selectedProduct.name}</h3>
+                              <div className="flex flex-wrap gap-2">
+                                <Badge className={`${category?.color || 'bg-gray-100'} text-white`}>{category?.icon} {category?.name}</Badge>
+                                <Badge variant="outline">{brand?.name}</Badge>
+                                <Badge className={selectedProduct.stock > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
+                                  {selectedProduct.stock > 0 ? 'متوفر' : 'نفذ المخزون'}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                <div>
+                                  <span className="text-3xl font-bold text-primary">{parseFloat(selectedProduct.price).toLocaleString('ar-SA')}</span>
+                                  <span className="text-lg text-gray-500 mr-1">ر.س</span>
+                                </div>
+                                {selectedProduct.originalPrice && (
+                                  <div>
+                                    <span className="text-lg text-gray-400 line-through">{selectedProduct.originalPrice} ر.س</span>
+                                    <Badge className="mr-2 bg-red-500 text-white">
+                                      -{Math.round((1 - parseFloat(selectedProduct.price) / parseFloat(selectedProduct.originalPrice)) * 100)}%
+                                    </Badge>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="p-4 bg-blue-50 rounded-xl text-center">
+                              <Package className="w-6 h-6 mx-auto text-blue-600 mb-2" />
+                              <p className="text-2xl font-bold text-blue-600">{selectedProduct.stock}</p>
+                              <p className="text-xs text-gray-600">المخزون الحالي</p>
+                            </div>
+                            <div className="p-4 bg-green-50 rounded-xl text-center">
+                              <DollarSign className="w-6 h-6 mx-auto text-green-600 mb-2" />
+                              <p className="text-xl font-bold text-green-600">{stockValue.toLocaleString('ar-SA')}</p>
+                              <p className="text-xs text-gray-600">قيمة المخزون</p>
+                            </div>
+                            <div className="p-4 bg-purple-50 rounded-xl text-center">
+                              <ShoppingCart className="w-6 h-6 mx-auto text-purple-600 mb-2" />
+                              <p className="text-2xl font-bold text-purple-600">{selectedProduct.minOrder}</p>
+                              <p className="text-xs text-gray-600">الحد الأدنى للطلب</p>
+                            </div>
+                            <div className="p-4 bg-orange-50 rounded-xl text-center">
+                              <Box className="w-6 h-6 mx-auto text-orange-600 mb-2" />
+                              <p className="text-lg font-bold text-orange-600">{selectedProduct.unit}</p>
+                              <p className="text-xs text-gray-600">وحدة البيع</p>
+                            </div>
+                          </div>
+
+                          <div className="p-4 bg-gray-50 rounded-xl">
+                            <h4 className="font-bold mb-3 flex items-center gap-2"><BarChart3 className="w-4 h-4" />معلومات إضافية</h4>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div className="flex justify-between"><span className="text-gray-500">رقم المنتج:</span><span className="font-bold">#{selectedProduct.id}</span></div>
+                              <div className="flex justify-between"><span className="text-gray-500">القسم:</span><span className="font-bold">{category?.name}</span></div>
+                              <div className="flex justify-between"><span className="text-gray-500">العلامة التجارية:</span><span className="font-bold">{brand?.name || '-'}</span></div>
+                              <div className="flex justify-between"><span className="text-gray-500">حالة المخزون:</span>
+                                <span className={`font-bold ${selectedProduct.stock === 0 ? 'text-red-600' : selectedProduct.stock < 30 ? 'text-yellow-600' : 'text-green-600'}`}>
+                                  {selectedProduct.stock === 0 ? 'نفذ' : selectedProduct.stock < 30 ? 'منخفض' : 'جيد'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-3 pt-4 border-t">
+                            <Button className="flex-1 rounded-xl gap-2"><Edit className="w-4 h-4" />تعديل المنتج</Button>
+                            <Button variant="outline" className="rounded-xl gap-2"><Copy className="w-4 h-4" />نسخ</Button>
+                            <Button variant="outline" className="rounded-xl gap-2 text-red-600 border-red-200 hover:bg-red-50"
+                              onClick={async () => {
+                                if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
+                                  await fetch(`/api/products/${selectedProduct.id}`, { method: 'DELETE' });
+                                  toast({ title: 'تم حذف المنتج بنجاح', className: 'bg-green-600 text-white' });
+                                  setSelectedProduct(null);
+                                  refetchProducts();
+                                }
+                              }}>
+                              <Trash2 className="w-4 h-4" />حذف
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </DialogContent>
+                </Dialog>
                 </div>
               </div>
 
-              {/* Filters */}
-              <div className="flex flex-wrap items-center gap-3 mb-6 p-4 bg-gray-50 rounded-xl">
-                <Input className="w-48 bg-white border-gray-200 rounded-lg" placeholder="بحث بالاسم..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} data-testid="input-search-products" />
-                <Select value={filterCategory} onValueChange={setFilterCategory}>
-                  <SelectTrigger className="w-40 bg-white rounded-lg" data-testid="filter-category"><SelectValue placeholder="القسم" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">جميع الأقسام</SelectItem>
-                    {categories.map((cat) => (<SelectItem key={cat.id} value={cat.id.toString()}>{cat.name}</SelectItem>))}
-                  </SelectContent>
-                </Select>
-                <Select value={filterBrand} onValueChange={setFilterBrand}>
-                  <SelectTrigger className="w-40 bg-white rounded-lg" data-testid="filter-brand"><SelectValue placeholder="العلامة" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">جميع العلامات</SelectItem>
-                    {brands.map((brand) => (<SelectItem key={brand.id} value={brand.id.toString()}>{brand.name}</SelectItem>))}
-                  </SelectContent>
-                </Select>
-                <Select value={filterStock} onValueChange={setFilterStock}>
-                  <SelectTrigger className="w-40 bg-white rounded-lg" data-testid="filter-stock"><SelectValue placeholder="المخزون" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">الكل</SelectItem>
-                    <SelectItem value="low">مخزون منخفض</SelectItem>
-                    <SelectItem value="normal">مخزون طبيعي</SelectItem>
-                    <SelectItem value="high">مخزون عالي</SelectItem>
-                  </SelectContent>
-                </Select>
-                {(filterCategory !== 'all' || filterBrand !== 'all' || filterStock !== 'all' || searchQuery) && (
-                  <Button variant="ghost" size="sm" className="text-gray-500" onClick={() => { setFilterCategory('all'); setFilterBrand('all'); setFilterStock('all'); setSearchQuery(''); }}>
-                    مسح الفلاتر
-                  </Button>
+              {/* Advanced Filters */}
+              <div className="p-4 bg-gray-50 rounded-xl mb-6 space-y-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="relative flex-1 min-w-48">
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input className="w-full bg-white border-gray-200 rounded-lg pr-10" placeholder="بحث بالاسم أو الكود..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} data-testid="input-search-products" />
+                  </div>
+                  <Select value={filterCategory} onValueChange={setFilterCategory}>
+                    <SelectTrigger className="w-40 bg-white rounded-lg" data-testid="filter-category"><SelectValue placeholder="القسم" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">جميع الأقسام</SelectItem>
+                      {categories.map((cat) => (<SelectItem key={cat.id} value={cat.id.toString()}>{cat.icon} {cat.name}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={filterBrand} onValueChange={setFilterBrand}>
+                    <SelectTrigger className="w-40 bg-white rounded-lg" data-testid="filter-brand"><SelectValue placeholder="العلامة" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">جميع العلامات</SelectItem>
+                      {brands.map((brand) => (<SelectItem key={brand.id} value={brand.id.toString()}>{brand.name}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={filterStock} onValueChange={setFilterStock}>
+                    <SelectTrigger className="w-40 bg-white rounded-lg" data-testid="filter-stock"><SelectValue placeholder="المخزون" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">الكل</SelectItem>
+                      <SelectItem value="out">نفذ المخزون</SelectItem>
+                      <SelectItem value="low">مخزون منخفض (&lt;30)</SelectItem>
+                      <SelectItem value="normal">مخزون طبيعي (30-100)</SelectItem>
+                      <SelectItem value="high">مخزون عالي (&gt;100)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={productSort} onValueChange={setProductSort}>
+                    <SelectTrigger className="w-40 bg-white rounded-lg"><SelectValue placeholder="الترتيب" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="name">الاسم (أ-ي)</SelectItem>
+                      <SelectItem value="name-desc">الاسم (ي-أ)</SelectItem>
+                      <SelectItem value="price">السعر (الأقل)</SelectItem>
+                      <SelectItem value="price-desc">السعر (الأعلى)</SelectItem>
+                      <SelectItem value="stock">المخزون (الأقل)</SelectItem>
+                      <SelectItem value="stock-desc">المخزون (الأعلى)</SelectItem>
+                      <SelectItem value="id-desc">الأحدث</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600">السعر:</span>
+                      <Input type="number" placeholder="من" className="w-24 bg-white rounded-lg" value={priceRange.min} onChange={(e) => setPriceRange({ ...priceRange, min: e.target.value })} />
+                      <span className="text-gray-400">-</span>
+                      <Input type="number" placeholder="إلى" className="w-24 bg-white rounded-lg" value={priceRange.max} onChange={(e) => setPriceRange({ ...priceRange, max: e.target.value })} />
+                    </div>
+                    {(filterCategory !== 'all' || filterBrand !== 'all' || filterStock !== 'all' || searchQuery || priceRange.min || priceRange.max) && (
+                      <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50" onClick={() => { setFilterCategory('all'); setFilterBrand('all'); setFilterStock('all'); setSearchQuery(''); setPriceRange({ min: '', max: '' }); }}>
+                        <XCircle className="w-4 h-4 ml-1" />مسح الفلاتر
+                      </Button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant={productViewMode === 'table' ? 'default' : 'outline'} size="sm" className="rounded-lg" onClick={() => setProductViewMode('table')}>
+                      <ClipboardList className="w-4 h-4" />
+                    </Button>
+                    <Button variant={productViewMode === 'grid' ? 'default' : 'outline'} size="sm" className="rounded-lg" onClick={() => setProductViewMode('grid')}>
+                      <Boxes className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+                {/* Bulk Actions */}
+                {selectedProducts.length > 0 && (
+                  <div className="flex items-center gap-3 p-3 bg-primary/10 rounded-xl border border-primary/20">
+                    <Badge className="bg-primary text-white">{selectedProducts.length} منتج محدد</Badge>
+                    <Button size="sm" variant="outline" className="rounded-lg gap-1">
+                      <Edit className="w-3 h-3" />تعديل جماعي
+                    </Button>
+                    <Button size="sm" variant="outline" className="rounded-lg gap-1 text-red-600 border-red-200 hover:bg-red-50"
+                      onClick={async () => {
+                        if (confirm(`هل أنت متأكد من حذف ${selectedProducts.length} منتج؟`)) {
+                          for (const id of selectedProducts) {
+                            await fetch(`/api/products/${id}`, { method: 'DELETE' });
+                          }
+                          toast({ title: `تم حذف ${selectedProducts.length} منتج`, className: 'bg-green-600 text-white' });
+                          setSelectedProducts([]);
+                          refetchProducts();
+                        }
+                      }}>
+                      <Trash2 className="w-3 h-3" />حذف المحدد
+                    </Button>
+                    <Button size="sm" variant="ghost" className="rounded-lg" onClick={() => setSelectedProducts([])}>إلغاء التحديد</Button>
+                  </div>
                 )}
               </div>
 
+              {productViewMode === 'table' ? (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr>
+                      <th className="px-2 py-3 text-center">
+                        <input type="checkbox" className="w-4 h-4 rounded" 
+                          checked={selectedProducts.length === products.length && products.length > 0}
+                          onChange={(e) => setSelectedProducts(e.target.checked ? products.map(p => p.id) : [])} />
+                      </th>
                       <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">#</th>
                       <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">المنتج</th>
                       <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">القسم</th>
@@ -2008,17 +2176,40 @@ export default function Admin() {
                       .filter(p => filterCategory !== 'all' ? p.categoryId === parseInt(filterCategory) : true)
                       .filter(p => filterBrand !== 'all' ? p.brandId === parseInt(filterBrand) : true)
                       .filter(p => {
-                        if (filterStock === 'low') return p.stock < 30;
+                        if (filterStock === 'out') return p.stock === 0;
+                        if (filterStock === 'low') return p.stock > 0 && p.stock < 30;
                         if (filterStock === 'normal') return p.stock >= 30 && p.stock < 100;
                         if (filterStock === 'high') return p.stock >= 100;
                         return true;
+                      })
+                      .filter(p => {
+                        if (priceRange.min && parseFloat(p.price) < parseFloat(priceRange.min)) return false;
+                        if (priceRange.max && parseFloat(p.price) > parseFloat(priceRange.max)) return false;
+                        return true;
+                      })
+                      .sort((a, b) => {
+                        switch (productSort) {
+                          case 'name': return a.name.localeCompare(b.name, 'ar');
+                          case 'name-desc': return b.name.localeCompare(a.name, 'ar');
+                          case 'price': return parseFloat(a.price) - parseFloat(b.price);
+                          case 'price-desc': return parseFloat(b.price) - parseFloat(a.price);
+                          case 'stock': return a.stock - b.stock;
+                          case 'stock-desc': return b.stock - a.stock;
+                          case 'id-desc': return b.id - a.id;
+                          default: return 0;
+                        }
                       })
                       .slice(0, 50).map((product, index) => {
                       const category = categories.find(c => c.id === product.categoryId);
                       const brand = brands.find(b => b.id === product.brandId);
                       const stockValue = parseFloat(product.price) * product.stock;
                       return (
-                        <tr key={product.id} className="hover:bg-gray-50" data-testid={`product-row-${product.id}`}>
+                        <tr key={product.id} className={`hover:bg-gray-50 ${selectedProducts.includes(product.id) ? 'bg-primary/5' : ''}`} data-testid={`product-row-${product.id}`}>
+                          <td className="px-2 py-3 text-center">
+                            <input type="checkbox" className="w-4 h-4 rounded" 
+                              checked={selectedProducts.includes(product.id)}
+                              onChange={(e) => setSelectedProducts(e.target.checked ? [...selectedProducts, product.id] : selectedProducts.filter(id => id !== product.id))} />
+                          </td>
                           <td className="px-4 py-3 text-sm text-gray-400">{index + 1}</td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
@@ -2069,7 +2260,7 @@ export default function Admin() {
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex gap-1">
-                              <Button size="sm" variant="ghost" className="rounded-lg text-blue-600 hover:bg-blue-50" title="عرض التفاصيل">
+                              <Button size="sm" variant="ghost" className="rounded-lg text-blue-600 hover:bg-blue-50" title="عرض التفاصيل" onClick={() => setSelectedProduct(product)}>
                                 <Eye className="w-4 h-4" />
                               </Button>
                               <Button size="sm" variant="ghost" className="rounded-lg" title="تعديل" data-testid={`edit-product-${product.id}`}>
@@ -2102,6 +2293,91 @@ export default function Admin() {
                   </tbody>
                 </table>
               </div>
+              ) : (
+              /* Grid View */
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {products
+                  .filter(p => searchQuery ? p.name.includes(searchQuery) : true)
+                  .filter(p => filterCategory !== 'all' ? p.categoryId === parseInt(filterCategory) : true)
+                  .filter(p => filterBrand !== 'all' ? p.brandId === parseInt(filterBrand) : true)
+                  .filter(p => {
+                    if (filterStock === 'out') return p.stock === 0;
+                    if (filterStock === 'low') return p.stock > 0 && p.stock < 30;
+                    if (filterStock === 'normal') return p.stock >= 30 && p.stock < 100;
+                    if (filterStock === 'high') return p.stock >= 100;
+                    return true;
+                  })
+                  .filter(p => {
+                    if (priceRange.min && parseFloat(p.price) < parseFloat(priceRange.min)) return false;
+                    if (priceRange.max && parseFloat(p.price) > parseFloat(priceRange.max)) return false;
+                    return true;
+                  })
+                  .sort((a, b) => {
+                    switch (productSort) {
+                      case 'name': return a.name.localeCompare(b.name, 'ar');
+                      case 'name-desc': return b.name.localeCompare(a.name, 'ar');
+                      case 'price': return parseFloat(a.price) - parseFloat(b.price);
+                      case 'price-desc': return parseFloat(b.price) - parseFloat(a.price);
+                      case 'stock': return a.stock - b.stock;
+                      case 'stock-desc': return b.stock - a.stock;
+                      case 'id-desc': return b.id - a.id;
+                      default: return 0;
+                    }
+                  })
+                  .slice(0, 50).map((product) => {
+                  const category = categories.find(c => c.id === product.categoryId);
+                  const brand = brands.find(b => b.id === product.brandId);
+                  return (
+                    <div key={product.id} className={`relative bg-white rounded-2xl border shadow-sm hover:shadow-lg transition-all cursor-pointer ${selectedProducts.includes(product.id) ? 'ring-2 ring-primary' : ''}`}>
+                      <div className="absolute top-2 right-2 z-10">
+                        <input type="checkbox" className="w-4 h-4 rounded"
+                          checked={selectedProducts.includes(product.id)}
+                          onChange={(e) => setSelectedProducts(e.target.checked ? [...selectedProducts, product.id] : selectedProducts.filter(id => id !== product.id))} />
+                      </div>
+                      {product.originalPrice && (
+                        <div className="absolute top-2 left-2 z-10">
+                          <Badge className="bg-red-500 text-white text-xs">
+                            -{Math.round((1 - parseFloat(product.price) / parseFloat(product.originalPrice)) * 100)}%
+                          </Badge>
+                        </div>
+                      )}
+                      <img src={product.image} alt={product.name} className="w-full h-32 object-cover rounded-t-2xl bg-gray-100" />
+                      <div className="p-3">
+                        <Badge className={`${category?.color || 'bg-gray-100'} text-white text-xs mb-2`}>
+                          {category?.icon} {category?.name}
+                        </Badge>
+                        <h4 className="font-bold text-sm line-clamp-2 mb-1">{product.name}</h4>
+                        <p className="text-xs text-gray-500 mb-2">{brand?.name}</p>
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-primary">{parseFloat(product.price).toLocaleString('ar-SA')} ر.س</span>
+                          <div className={`flex items-center gap-1 text-xs ${product.stock < 30 ? 'text-red-500' : 'text-green-600'}`}>
+                            <div className={`w-2 h-2 rounded-full ${product.stock === 0 ? 'bg-red-500' : product.stock < 30 ? 'bg-yellow-500' : 'bg-green-500'}`}></div>
+                            {product.stock}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="border-t flex">
+                        <Button size="sm" variant="ghost" className="flex-1 rounded-none text-blue-600" onClick={() => setSelectedProduct(product)}>
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="flex-1 rounded-none border-r border-l">
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="flex-1 rounded-none text-red-500"
+                          onClick={async () => {
+                            if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
+                              await fetch(`/api/products/${product.id}`, { method: 'DELETE' });
+                              refetchProducts();
+                            }
+                          }}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              )}
               
               {/* Pagination */}
               {products.length > 0 && (
