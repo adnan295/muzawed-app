@@ -45,6 +45,8 @@ export interface IStorage {
   getProducts(categoryId?: number): Promise<Product[]>;
   getProduct(id: number): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
+  updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined>;
+  deleteProduct(id: number): Promise<void>;
   searchProducts(query: string): Promise<Product[]>;
 
   // Categories
@@ -128,6 +130,15 @@ export class DatabaseStorage implements IStorage {
   async createProduct(product: InsertProduct): Promise<Product> {
     const [newProduct] = await db.insert(products).values(product).returning();
     return newProduct;
+  }
+
+  async updateProduct(id: number, productData: Partial<InsertProduct>): Promise<Product | undefined> {
+    const [product] = await db.update(products).set(productData).where(eq(products.id, id)).returning();
+    return product || undefined;
+  }
+
+  async deleteProduct(id: number): Promise<void> {
+    await db.delete(products).where(eq(products.id, id));
   }
 
   async searchProducts(query: string): Promise<Product[]> {

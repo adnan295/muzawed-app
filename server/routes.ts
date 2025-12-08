@@ -84,6 +84,39 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/products", async (req, res) => {
+    try {
+      const product = await storage.createProduct(req.body);
+      res.status(201).json(product);
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({ error: fromError(error).toString() });
+      }
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/products/:id", async (req, res) => {
+    try {
+      const product = await storage.updateProduct(parseInt(req.params.id), req.body);
+      if (!product) {
+        return res.status(404).json({ error: "المنتج غير موجود" });
+      }
+      res.json(product);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/products/:id", async (req, res) => {
+    try {
+      await storage.deleteProduct(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ==================== Categories Routes ====================
   
   app.get("/api/categories", async (req, res) => {
