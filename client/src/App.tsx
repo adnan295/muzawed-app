@@ -23,6 +23,8 @@ import Settings from "@/pages/Settings";
 import Login from "@/pages/Login";
 import CategoryProducts from "@/pages/CategoryProducts";
 import Onboarding from "@/pages/Onboarding";
+import BuyAgain from "@/pages/BuyAgain";
+import OrderDetails from "@/pages/OrderDetails";
 
 function Router() {
   return (
@@ -37,9 +39,11 @@ function Router() {
       <Route path="/product/:id" component={ProductDetails} />
       <Route path="/checkout" component={Checkout} />
       <Route path="/orders" component={Orders} />
+      <Route path="/order/:id" component={OrderDetails} />
       <Route path="/wallet" component={Wallet} />
       <Route path="/search/:query" component={SearchResults} />
       <Route path="/offers" component={Offers} />
+      <Route path="/buy-again" component={BuyAgain} />
       <Route path="/notifications" component={Notifications} />
       <Route path="/support" component={Support} />
       <Route path="/favorites" component={Favorites} />

@@ -4,6 +4,7 @@ import { CATEGORIES, PRODUCTS } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
 import { AdsCarousel } from '@/components/ui/AdsCarousel';
+import { Link } from 'wouter';
 
 export default function Home() {
   return (
@@ -55,7 +56,9 @@ export default function Home() {
               <h4 className="font-bold text-secondary-foreground mb-1">أعد طلب مشترياتك</h4>
               <p className="text-xs text-muted-foreground">وفر وقتك وأعد طلب منتجاتك السابقة بضغطة زر</p>
             </div>
-            <Button size="sm" className="bg-secondary hover:bg-secondary/90 text-white rounded-lg">سجل طلباتي</Button>
+            <Link href="/buy-again">
+              <Button size="sm" className="bg-secondary hover:bg-secondary/90 text-white rounded-lg">سجل طلباتي</Button>
+            </Link>
           </div>
         </div>
 

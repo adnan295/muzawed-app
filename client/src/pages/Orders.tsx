@@ -3,11 +3,12 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Clock, Package, CheckCircle2, XCircle } from 'lucide-react';
+import { useLocation } from 'wouter';
 
 export default function Orders() {
   const orders = [
     {
-      id: '#12345',
+      id: '12345',
       date: 'اليوم',
       status: 'active',
       statusLabel: 'قيد التجهيز',
@@ -17,7 +18,7 @@ export default function Orders() {
       color: 'bg-blue-100 text-blue-600',
     },
     {
-      id: '#12300',
+      id: '12300',
       date: '05 ديسمبر',
       status: 'completed',
       statusLabel: 'تم التوصيل',
@@ -27,7 +28,7 @@ export default function Orders() {
       color: 'bg-green-100 text-green-600',
     },
     {
-      id: '#11250',
+      id: '11250',
       date: '28 نوفمبر',
       status: 'cancelled',
       statusLabel: 'ملغي',
@@ -78,8 +79,13 @@ export default function Orders() {
 }
 
 function OrderCard({ order }: { order: any }) {
+  const [, setLocation] = useLocation();
+
   return (
-    <Card className="border-none shadow-sm hover:shadow-md transition-shadow cursor-pointer bg-white overflow-hidden">
+    <Card 
+      className="border-none shadow-sm hover:shadow-md transition-shadow cursor-pointer bg-white overflow-hidden"
+      onClick={() => setLocation(`/order/${order.id}`)}
+    >
       <div className="p-4">
         <div className="flex justify-between items-start mb-3">
           <div className="flex items-center gap-3">
@@ -87,7 +93,7 @@ function OrderCard({ order }: { order: any }) {
               <order.icon className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-sm">طلب {order.id}</h3>
+              <h3 className="font-bold text-sm">طلب #{order.id}</h3>
               <p className="text-xs text-muted-foreground">{order.date}</p>
             </div>
           </div>
