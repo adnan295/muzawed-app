@@ -831,93 +831,115 @@ export default function Admin() {
               <Card className="lg:col-span-2 p-6 border-none shadow-lg rounded-2xl">
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h3 className="font-bold text-xl flex items-center gap-2"><TruckIcon className="w-5 h-5 text-blue-500" />تتبع الشحنات</h3>
-                    <p className="text-gray-500 text-sm mt-1">{mockShipments.length} شحنة نشطة</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" className="rounded-xl text-sm">الكل</Button>
-                    <Button variant="outline" className="rounded-xl text-sm bg-blue-50 border-blue-200 text-blue-700">في الطريق</Button>
-                    <Button variant="outline" className="rounded-xl text-sm bg-purple-50 border-purple-200 text-purple-700">جاري التوصيل</Button>
+                    <h3 className="font-bold text-xl flex items-center gap-2"><TruckIcon className="w-5 h-5 text-blue-500" />إدارة التوصيل</h3>
+                    <p className="text-gray-500 text-sm mt-1">{adminOrders.filter((o: any) => ['processing', 'shipped', 'confirmed'].includes(o.status)).length} طلب للتوصيل</p>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  {mockShipments.map((shipment) => (
-                    <div key={shipment.id} className={`p-4 rounded-2xl border cursor-pointer transition-all ${selectedShipment?.id === shipment.id ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200 bg-gray-50'}`} onClick={() => setSelectedShipment(shipment)}>
-                      <div className="flex items-center justify-between">
+                  {adminOrders.length > 0 ? adminOrders.filter((o: any) => o.status !== 'delivered' && o.status !== 'cancelled').map((order: any) => (
+                    <div key={order.id} className="p-4 rounded-2xl border border-gray-100 bg-gray-50 hover:border-primary/30 transition-all" data-testid={`shipment-order-${order.id}`}>
+                      <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-4">
-                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${shipment.status === 'in_transit' ? 'bg-blue-100 text-blue-600' : shipment.status === 'out_for_delivery' ? 'bg-purple-100 text-purple-600' : 'bg-orange-100 text-orange-600'}`}>
-                            {shipment.status === 'in_transit' ? <Truck className="w-6 h-6" /> : shipment.status === 'out_for_delivery' ? <Navigation className="w-6 h-6" /> : <Package className="w-6 h-6" />}
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${order.status === 'shipped' ? 'bg-purple-100 text-purple-600' : order.status === 'processing' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
+                            {order.status === 'shipped' ? <Truck className="w-6 h-6" /> : order.status === 'processing' ? <Package className="w-6 h-6" /> : <Clock className="w-6 h-6" />}
                           </div>
                           <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-bold font-mono">{shipment.trackingNumber}</p>
-                              {getStatusBadge(shipment.status)}
-                            </div>
-                            <p className="text-sm text-gray-500 mt-1">طلب #{shipment.orderId} • {shipment.carrier}</p>
+                            <p className="font-bold">طلب #{order.id}</p>
+                            <p className="text-sm text-gray-500">{order.user?.facilityName || 'عميل'}</p>
+                            <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString('ar-SA')}</p>
                           </div>
                         </div>
                         <div className="text-left">
-                          <p className="text-sm font-bold text-primary">{shipment.eta}</p>
-                          <p className="text-xs text-gray-500">{shipment.location}</p>
+                          <p className="font-bold text-primary">{order.total} ر.س</p>
+                          {getStatusBadge(order.status)}
                         </div>
                       </div>
+                      <div className="flex items-center gap-3 pt-3 border-t border-gray-200">
+                        <span className="text-sm text-gray-600">تغيير الحالة:</span>
+                        <Select defaultValue={order.status} onValueChange={async (value) => {
+                          try {
+                            await fetch(`/api/orders/${order.id}/status`, {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ status: value }),
+                            });
+                            toast({ title: 'تم تحديث حالة الطلب', className: 'bg-green-600 text-white' });
+                            queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+                          } catch (error) {
+                            toast({ title: 'حدث خطأ', variant: 'destructive' });
+                          }
+                        }}>
+                          <SelectTrigger className="w-40 rounded-lg text-sm" data-testid={`shipment-status-${order.id}`}><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">قيد الانتظار</SelectItem>
+                            <SelectItem value="confirmed">مؤكد</SelectItem>
+                            <SelectItem value="processing">قيد التجهيز</SelectItem>
+                            <SelectItem value="shipped">قيد التوصيل</SelectItem>
+                            <SelectItem value="delivered">تم التوصيل</SelectItem>
+                            <SelectItem value="cancelled">ملغي</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                  ))}
+                  )) : (
+                    <div className="text-center py-12 text-gray-500">
+                      <Truck className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                      <p>لا توجد طلبات للتوصيل</p>
+                    </div>
+                  )}
                 </div>
               </Card>
 
               <Card className="p-6 border-none shadow-lg rounded-2xl">
-                {selectedShipment ? (
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-bold text-lg">تفاصيل الشحنة</h3>
-                      {getStatusBadge(selectedShipment.status)}
+                <h3 className="font-bold text-lg mb-4">ملخص التوصيل</h3>
+                <div className="space-y-4">
+                  <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-yellow-700">قيد الانتظار</span>
+                      <span className="font-bold text-yellow-700">{adminOrders.filter((o: any) => o.status === 'pending').length}</span>
                     </div>
-                    <div className="space-y-4">
-                      <div className="p-3 bg-gray-50 rounded-xl">
-                        <p className="text-xs text-gray-500">رقم التتبع</p>
-                        <p className="font-bold text-sm mt-1 font-mono">{selectedShipment.trackingNumber}</p>
-                      </div>
-                      {selectedShipment.driver && (
-                        <div className="p-3 bg-gray-50 rounded-xl">
-                          <p className="text-xs text-gray-500">السائق</p>
-                          <div className="flex items-center justify-between mt-1">
-                            <p className="font-bold text-sm">{selectedShipment.driver}</p>
-                            <Button size="sm" variant="outline" className="rounded-lg gap-1">
-                              <Phone className="w-3 h-3" />
-                              اتصال
-                            </Button>
-                          </div>
+                  </div>
+                  <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-blue-700">قيد التجهيز</span>
+                      <span className="font-bold text-blue-700">{adminOrders.filter((o: any) => o.status === 'processing').length}</span>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-purple-50 rounded-xl border border-purple-100">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-purple-700">قيد التوصيل</span>
+                      <span className="font-bold text-purple-700">{adminOrders.filter((o: any) => o.status === 'shipped').length}</span>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-green-50 rounded-xl border border-green-100">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-green-700">تم التوصيل</span>
+                      <span className="font-bold text-green-700">{adminOrders.filter((o: any) => o.status === 'delivered').length}</span>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-red-50 rounded-xl border border-red-100">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-red-700">ملغي</span>
+                      <span className="font-bold text-red-700">{adminOrders.filter((o: any) => o.status === 'cancelled').length}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 p-4 bg-gray-50 rounded-xl">
+                  <h4 className="font-bold text-sm mb-3">خطوات التوصيل</h4>
+                  <div className="relative">
+                    <div className="absolute right-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+                    {['قيد الانتظار', 'مؤكد', 'قيد التجهيز', 'قيد التوصيل', 'تم التوصيل'].map((step, index) => (
+                      <div key={step} className="flex items-center gap-4 mb-3 relative">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center z-10 bg-primary/20 text-primary">
+                          <span className="text-xs font-bold">{index + 1}</span>
                         </div>
-                      )}
-                      <div className="p-3 bg-gray-50 rounded-xl">
-                        <p className="text-xs text-gray-500">الموقع الحالي</p>
-                        <p className="font-bold text-sm mt-1 flex items-center gap-2"><MapPinned className="w-4 h-4 text-primary" />{selectedShipment.location}</p>
+                        <span className="text-sm">{step}</span>
                       </div>
-                      <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
-                        <p className="text-xs text-blue-500">الوقت المتوقع للوصول</p>
-                        <p className="text-2xl font-bold text-blue-700 mt-1">{selectedShipment.eta}</p>
-                      </div>
-                      <div className="relative mt-6">
-                        <div className="absolute right-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
-                        {['تم إنشاء الطلب', 'قيد التجهيز', 'تم التسليم للسائق', 'في الطريق', 'تم التوصيل'].map((step, index) => (
-                          <div key={step} className="flex items-center gap-4 mb-4 relative">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${index <= 3 ? 'bg-primary text-white' : 'bg-gray-200 text-gray-400'}`}>
-                              <CheckCircle className="w-4 h-4" />
-                            </div>
-                            <span className={`text-sm ${index <= 3 ? 'font-bold' : 'text-gray-400'}`}>{step}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    ))}
                   </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-                    <MapPinned className="w-12 h-12 mb-3" />
-                    <p>اختر شحنة لعرض التفاصيل</p>
-                  </div>
-                )}
+                </div>
               </Card>
             </div>
           </TabsContent>
