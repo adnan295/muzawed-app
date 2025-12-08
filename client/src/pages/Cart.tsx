@@ -1,21 +1,110 @@
-import { Link, useLocation } from 'wouter';
+import { useLocation } from 'wouter';
 import { MobileLayout } from '@/components/layout/MobileLayout';
-import { PRODUCTS } from '@/lib/data';
 import { Button } from '@/components/ui/button';
-import { Trash2, Plus, Minus, CreditCard } from 'lucide-react';
+import { Plus, Minus, CreditCard, ShoppingBag } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { cartAPI } from '@/lib/api';
+import { useAuth } from '@/lib/AuthContext';
+import { Link } from 'wouter';
+
+interface CartItemWithProduct {
+  id: number;
+  userId: number;
+  productId: number;
+  quantity: number;
+  product: {
+    id: number;
+    name: string;
+    price: string;
+    image: string;
+    unit: string;
+    minOrder: number;
+  };
+}
 
 export default function Cart() {
   const [, setLocation] = useLocation();
-  // Mock cart items (subset of products)
-  const cartItems = [
-    { ...PRODUCTS[0], quantity: 10 },
-    { ...PRODUCTS[2], quantity: 4 },
-  ];
+  const { user, isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
 
-  const subtotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const { data: cartItems = [], isLoading } = useQuery<CartItemWithProduct[]>({
+    queryKey: ['cart', user?.id],
+    queryFn: () => cartAPI.get(user!.id) as Promise<CartItemWithProduct[]>,
+    enabled: !!user?.id,
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, quantity }: { id: number; quantity: number }) => 
+      cartAPI.update(id, quantity),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cart'] });
+    },
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: (id: number) => cartAPI.remove(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cart'] });
+    },
+  });
+
+  const handleQuantityChange = (item: CartItemWithProduct, delta: number) => {
+    const newQuantity = item.quantity + delta;
+    if (newQuantity < item.product.minOrder) {
+      removeMutation.mutate(item.id);
+    } else {
+      updateMutation.mutate({ id: item.id, quantity: newQuantity });
+    }
+  };
+
+  const subtotal = cartItems.reduce((acc, item) => 
+    acc + (parseFloat(item.product?.price || '0') * item.quantity), 0);
   const vat = subtotal * 0.15;
   const total = subtotal + vat;
+
+  if (!isAuthenticated) {
+    return (
+      <MobileLayout hideHeader>
+        <div className="flex flex-col items-center justify-center h-[80vh] p-4">
+          <ShoppingBag className="w-16 h-16 text-gray-300 mb-4" />
+          <h2 className="text-xl font-bold mb-2">سجل دخولك أولاً</h2>
+          <p className="text-gray-500 text-center mb-6">يجب تسجيل الدخول لعرض سلة المشتريات</p>
+          <Link href="/login">
+            <Button className="rounded-xl px-8">تسجيل الدخول</Button>
+          </Link>
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <MobileLayout hideHeader>
+        <div className="p-4 space-y-4">
+          <div className="h-8 bg-gray-100 rounded animate-pulse w-40" />
+          {[1, 2].map(i => (
+            <div key={i} className="h-24 bg-gray-100 rounded-xl animate-pulse" />
+          ))}
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  if (cartItems.length === 0) {
+    return (
+      <MobileLayout hideHeader>
+        <div className="flex flex-col items-center justify-center h-[80vh] p-4">
+          <ShoppingBag className="w-16 h-16 text-gray-300 mb-4" />
+          <h2 className="text-xl font-bold mb-2">السلة فارغة</h2>
+          <p className="text-gray-500 text-center mb-6">أضف منتجات للسلة لبدء التسوق</p>
+          <Link href="/">
+            <Button className="rounded-xl px-8">تصفح المنتجات</Button>
+          </Link>
+        </div>
+      </MobileLayout>
+    );
+  }
 
   return (
     <MobileLayout hideHeader>
@@ -27,28 +116,38 @@ export default function Cart() {
 
         <div className="flex-1 overflow-auto p-4 space-y-4">
           {cartItems.map((item) => (
-            <div key={item.id} className="flex gap-4 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
+            <div key={item.id} className="flex gap-4 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm" data-testid={`cart-item-${item.id}`}>
               <div className="w-20 h-20 bg-gray-50 rounded-xl p-2 flex items-center justify-center shrink-0">
-                <img src={item.image} alt={item.name} className="w-full h-full object-contain mix-blend-multiply" />
+                <img src={item.product?.image} alt={item.product?.name} className="w-full h-full object-contain mix-blend-multiply" />
               </div>
               
               <div className="flex-1 flex flex-col justify-between">
                 <div>
-                  <h3 className="font-bold text-sm line-clamp-1">{item.name}</h3>
-                  <p className="text-xs text-muted-foreground mt-1">{item.price} ر.س / {item.unit}</p>
+                  <h3 className="font-bold text-sm line-clamp-1">{item.product?.name}</h3>
+                  <p className="text-xs text-muted-foreground mt-1">{item.product?.price} ر.س / {item.product?.unit}</p>
                 </div>
                 
                 <div className="flex items-center justify-between mt-2">
                   <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-1 border border-gray-200">
-                    <button className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-primary hover:text-primary/80">
+                    <button 
+                      className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-primary hover:text-primary/80"
+                      onClick={() => handleQuantityChange(item, 1)}
+                      data-testid={`button-increase-${item.id}`}
+                    >
                       <Plus className="w-3 h-3" />
                     </button>
                     <span className="text-sm font-bold w-4 text-center">{item.quantity}</span>
-                    <button className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-gray-500 hover:text-destructive">
+                    <button 
+                      className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-gray-500 hover:text-destructive"
+                      onClick={() => handleQuantityChange(item, -1)}
+                      data-testid={`button-decrease-${item.id}`}
+                    >
                       <Minus className="w-3 h-3" />
                     </button>
                   </div>
-                  <span className="font-bold text-primary">{(item.price * item.quantity).toFixed(2)} ر.س</span>
+                  <span className="font-bold text-primary">
+                    {(parseFloat(item.product?.price || '0') * item.quantity).toFixed(2)} ر.س
+                  </span>
                 </div>
               </div>
             </div>
@@ -81,6 +180,7 @@ export default function Cart() {
           <Button 
             className="w-full h-12 text-lg font-bold rounded-xl shadow-lg shadow-primary/20"
             onClick={() => setLocation('/checkout')}
+            data-testid="button-checkout"
           >
             <CreditCard className="w-5 h-5 ml-2" />
             إتمام الشراء
