@@ -1248,6 +1248,84 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== Vehicles Routes ====================
+
+  app.get("/api/vehicles", async (req, res) => {
+    try {
+      const vehiclesList = await storage.getVehicles();
+      res.json(vehiclesList);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/vehicles/available", async (req, res) => {
+    try {
+      const availableVehicles = await storage.getAvailableVehicles();
+      res.json(availableVehicles);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/vehicles/:id", async (req, res) => {
+    try {
+      const vehicle = await storage.getVehicle(parseInt(req.params.id));
+      if (!vehicle) return res.status(404).json({ error: "المركبة غير موجودة" });
+      res.json(vehicle);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/vehicles/warehouse/:warehouseId", async (req, res) => {
+    try {
+      const vehiclesList = await storage.getVehiclesByWarehouse(parseInt(req.params.warehouseId));
+      res.json(vehiclesList);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/vehicles", async (req, res) => {
+    try {
+      const vehicle = await storage.createVehicle(req.body);
+      res.status(201).json(vehicle);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/vehicles/:id", async (req, res) => {
+    try {
+      const vehicle = await storage.updateVehicle(parseInt(req.params.id), req.body);
+      if (!vehicle) return res.status(404).json({ error: "المركبة غير موجودة" });
+      res.json(vehicle);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/vehicles/:id", async (req, res) => {
+    try {
+      await storage.deleteVehicle(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/vehicles/:id/assign-driver", async (req, res) => {
+    try {
+      const { driverId } = req.body;
+      const vehicle = await storage.assignVehicleToDriver(parseInt(req.params.id), driverId);
+      if (!vehicle) return res.status(404).json({ error: "المركبة غير موجودة" });
+      res.json(vehicle);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ==================== Warehouses with Cities Routes ====================
 
   app.get("/api/warehouses/by-city/:cityId", async (req, res) => {

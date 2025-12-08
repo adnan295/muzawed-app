@@ -387,3 +387,26 @@ export const driversAPI = {
     method: "DELETE",
   }),
 };
+
+// Vehicles API
+export const vehiclesAPI = {
+  getAll: () => request("/vehicles"),
+  getById: (id: number) => request(`/vehicles/${id}`),
+  getAvailable: () => request("/vehicles/available"),
+  getByWarehouse: (warehouseId: number) => request(`/vehicles/warehouse/${warehouseId}`),
+  create: (data: any) => request("/vehicles", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+  update: (id: number, data: any) => request(`/vehicles/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }),
+  delete: (id: number) => request(`/vehicles/${id}`, {
+    method: "DELETE",
+  }),
+  assignDriver: (vehicleId: number, driverId: number) => request(`/vehicles/${vehicleId}/assign-driver`, {
+    method: "POST",
+    body: JSON.stringify({ driverId }),
+  }),
+};

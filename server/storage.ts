@@ -75,6 +75,9 @@ import {
   type Driver,
   type InsertDriver,
   drivers,
+  type Vehicle,
+  type InsertVehicle,
+  vehicles,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte, count, or } from "drizzle-orm";
@@ -259,6 +262,16 @@ export interface IStorage {
   deleteDriver(id: number): Promise<void>;
   getDriversByWarehouse(warehouseId: number): Promise<Driver[]>;
   getAvailableDrivers(): Promise<Driver[]>;
+
+  // Vehicles
+  getVehicles(): Promise<Vehicle[]>;
+  getVehicle(id: number): Promise<Vehicle | undefined>;
+  createVehicle(vehicle: InsertVehicle): Promise<Vehicle>;
+  updateVehicle(id: number, vehicle: Partial<InsertVehicle>): Promise<Vehicle | undefined>;
+  deleteVehicle(id: number): Promise<void>;
+  getVehiclesByWarehouse(warehouseId: number): Promise<Vehicle[]>;
+  getAvailableVehicles(): Promise<Vehicle[]>;
+  assignVehicleToDriver(vehicleId: number, driverId: number): Promise<Vehicle | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -953,6 +966,43 @@ export class DatabaseStorage implements IStorage {
 
   async getAvailableDrivers(): Promise<Driver[]> {
     return await db.select().from(drivers).where(and(eq(drivers.status, 'available'), eq(drivers.isActive, true)));
+  }
+
+  // Vehicles
+  async getVehicles(): Promise<Vehicle[]> {
+    return await db.select().from(vehicles).orderBy(desc(vehicles.createdAt));
+  }
+
+  async getVehicle(id: number): Promise<Vehicle | undefined> {
+    const [vehicle] = await db.select().from(vehicles).where(eq(vehicles.id, id));
+    return vehicle || undefined;
+  }
+
+  async createVehicle(vehicle: InsertVehicle): Promise<Vehicle> {
+    const [newVehicle] = await db.insert(vehicles).values(vehicle).returning();
+    return newVehicle;
+  }
+
+  async updateVehicle(id: number, vehicle: Partial<InsertVehicle>): Promise<Vehicle | undefined> {
+    const [updated] = await db.update(vehicles).set(vehicle).where(eq(vehicles.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async deleteVehicle(id: number): Promise<void> {
+    await db.delete(vehicles).where(eq(vehicles.id, id));
+  }
+
+  async getVehiclesByWarehouse(warehouseId: number): Promise<Vehicle[]> {
+    return await db.select().from(vehicles).where(eq(vehicles.warehouseId, warehouseId));
+  }
+
+  async getAvailableVehicles(): Promise<Vehicle[]> {
+    return await db.select().from(vehicles).where(and(eq(vehicles.status, 'available'), eq(vehicles.isActive, true)));
+  }
+
+  async assignVehicleToDriver(vehicleId: number, driverId: number): Promise<Vehicle | undefined> {
+    const [updated] = await db.update(vehicles).set({ driverId, status: 'in_use' }).where(eq(vehicles.id, vehicleId)).returning();
+    return updated || undefined;
   }
 }
 

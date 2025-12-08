@@ -618,3 +618,31 @@ export const drivers = pgTable("drivers", {
 export const insertDriverSchema = createInsertSchema(drivers).omit({ id: true, createdAt: true });
 export type InsertDriver = z.infer<typeof insertDriverSchema>;
 export type Driver = typeof drivers.$inferSelect;
+
+// Vehicles table - المركبات
+export const vehicles = pgTable("vehicles", {
+  id: serial("id").primaryKey(),
+  plateNumber: text("plate_number").notNull().unique(),
+  type: text("type").notNull(), // فان توصيل, شاحنة صغيرة, شاحنة كبيرة, دراجة نارية, سيارة
+  brand: text("brand"), // الماركة
+  model: text("model"), // الموديل
+  year: integer("year"), // سنة الصنع
+  color: text("color"), // اللون
+  capacity: decimal("capacity", { precision: 10, scale: 2 }), // السعة بالطن
+  fuelType: text("fuel_type"), // بنزين, ديزل, كهرباء, هجين
+  driverId: integer("driver_id").references(() => drivers.id),
+  warehouseId: integer("warehouse_id").references(() => warehouses.id),
+  status: text("status").default("available").notNull(), // available, in_use, maintenance, out_of_service
+  lastMaintenanceDate: timestamp("last_maintenance_date"),
+  nextMaintenanceDate: timestamp("next_maintenance_date"),
+  insuranceExpiryDate: timestamp("insurance_expiry_date"),
+  licenseExpiryDate: timestamp("license_expiry_date"),
+  mileage: integer("mileage").default(0),
+  notes: text("notes"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertVehicleSchema = createInsertSchema(vehicles).omit({ id: true, createdAt: true });
+export type InsertVehicle = z.infer<typeof insertVehicleSchema>;
+export type Vehicle = typeof vehicles.$inferSelect;
