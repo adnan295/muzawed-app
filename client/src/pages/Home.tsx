@@ -1,14 +1,41 @@
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { ProductCard } from '@/components/ui/ProductCard';
-import { CATEGORIES, PRODUCTS, BRANDS } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, Search, Bell, MapPin } from 'lucide-react';
 import { AdsCarousel } from '@/components/ui/AdsCarousel';
 import { Link, useLocation } from 'wouter';
 import { Input } from '@/components/ui/input';
+import { useQuery } from '@tanstack/react-query';
+import { productsAPI, categoriesAPI, brandsAPI } from '@/lib/api';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function Home() {
   const [, setLocation] = useLocation();
+  const { user, isAuthenticated } = useAuth();
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => categoriesAPI.getAll(),
+  });
+
+  const { data: brands = [] } = useQuery({
+    queryKey: ['brands'],
+    queryFn: () => brandsAPI.getAll(),
+  });
+
+  const { data: products = [] } = useQuery({
+    queryKey: ['products'],
+    queryFn: () => productsAPI.getAll(),
+  });
+
+  const categoryIcons: Record<string, string> = {
+    "مواد غذائية": "🍞",
+    "مشروبات": "🥤",
+    "حلويات": "🍫",
+    "منظفات": "🧴",
+    "العناية الشخصية": "🧼",
+    "معلبات": "🥫",
+  };
 
   return (
     <MobileLayout hideHeader>
@@ -24,7 +51,9 @@ export default function Home() {
              <div className="flex justify-between items-center mb-6">
                <div>
                  <p className="text-purple-200 text-xs mb-1">مرحباً بك 👋</p>
-                 <h1 className="text-xl font-bold">سوبر ماركت السعادة</h1>
+                 <h1 className="text-xl font-bold" data-testid="text-facility-name">
+                   {user?.facilityName || 'ضيف'}
+                 </h1>
                  <div className="flex items-center gap-1 text-[10px] text-purple-100 mt-1 bg-white/10 w-fit px-2 py-1 rounded-full">
                     <MapPin className="w-3 h-3" />
                     الرياض، حي الملقا
@@ -44,6 +73,7 @@ export default function Home() {
                <div className="relative bg-white text-gray-800 rounded-2xl flex items-center p-1 shadow-lg shadow-black/5">
                  <Search className="w-5 h-5 text-gray-400 mr-3 ml-2" />
                  <Input 
+                   data-testid="input-search"
                    className="border-none shadow-none focus-visible:ring-0 bg-transparent h-12 text-right placeholder:text-gray-400" 
                    placeholder="ابحث عن منتج، علامة تجارية..."
                    onClick={() => setLocation('/search/ ')}
@@ -78,18 +108,12 @@ export default function Home() {
             </Link>
           </div>
           <div className="flex overflow-x-auto px-4 gap-4 no-scrollbar pb-4 pt-1">
-            {CATEGORIES.map((cat) => (
+            {categories.map((cat: any) => (
               <Link key={cat.id} href={`/category/${cat.id}`}>
-                <div className="flex flex-col items-center gap-2 min-w-[72px] cursor-pointer group">
-                  <div className={`w-18 h-18 aspect-square rounded-[1.2rem] flex items-center justify-center shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:shadow-md ${cat.color} bg-opacity-10 border border-white`}>
-                     <div className={`text-2xl drop-shadow-sm`}>
-                       {/* Icon mapping */}
-                       {cat.id === 'water' && '💧'}
-                       {cat.id === 'food' && '🥫'}
-                       {cat.id === 'cleaning' && '✨'}
-                       {cat.id === 'disposables' && '🍽️'}
-                       {cat.id === 'dairy' && '🥛'}
-                       {cat.id === 'sweets' && '🍬'}
+                <div className="flex flex-col items-center gap-2 min-w-[72px] cursor-pointer group" data-testid={`category-${cat.id}`}>
+                  <div className={`w-18 h-18 aspect-square rounded-[1.2rem] flex items-center justify-center shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:shadow-md bg-gradient-to-br ${cat.color} bg-opacity-10 border border-white`}>
+                     <div className="text-2xl drop-shadow-sm">
+                       {categoryIcons[cat.name] || cat.icon}
                      </div>
                   </div>
                   <span className="text-xs font-bold text-center leading-tight text-gray-700 group-hover:text-primary transition-colors">{cat.name}</span>
@@ -108,12 +132,13 @@ export default function Home() {
             </h3>
           </div>
           <div className="flex overflow-x-auto px-4 gap-3 no-scrollbar pb-4">
-            {BRANDS.map((brand) => (
-               <div key={brand.id} className="flex-shrink-0 flex flex-col items-center gap-1 cursor-pointer w-20 group">
-                 <div className={`w-16 h-16 rounded-full flex items-center justify-center shadow-sm border-2 border-white group-hover:border-primary transition-colors ${brand.logo} text-center overflow-hidden relative`}>
+            {brands.map((brand: any) => (
+               <div key={brand.id} className="flex-shrink-0 flex flex-col items-center gap-1 cursor-pointer w-20 group" data-testid={`brand-${brand.id}`}>
+                 <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-sm border-2 border-white group-hover:border-primary transition-colors text-center overflow-hidden relative">
                    <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
-                   <span className="font-bold text-[10px] px-1 relative z-10">{brand.name}</span>
+                   <span className="text-2xl relative z-10">{brand.logo}</span>
                  </div>
+                 <span className="text-[10px] text-gray-600 text-center font-bold">{brand.name}</span>
                </div>
             ))}
           </div>
@@ -128,7 +153,7 @@ export default function Home() {
             </h3>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            {PRODUCTS.map((product) => (
+            {products.slice(0, 8).map((product: any) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
@@ -167,12 +192,11 @@ export default function Home() {
             </Link>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            {PRODUCTS.slice(0, 4).reverse().map((product) => (
+            {products.filter((p: any) => p.originalPrice).slice(0, 4).map((product: any) => (
               <ProductCard key={`offer-${product.id}`} product={product} />
             ))}
           </div>
         </div>
-
       </div>
     </MobileLayout>
   );
