@@ -1,7 +1,7 @@
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { User, Package, MapPin, CreditCard, Settings, LogOut, Phone, Store, Gift } from 'lucide-react';
+import { User, Package, MapPin, CreditCard, Settings, LogOut, Phone, Store, Gift, TrendingUp, TrendingDown, PieChart } from 'lucide-react';
 import { useLocation } from 'wouter';
 
 export default function Profile() {
@@ -19,9 +19,9 @@ export default function Profile() {
 
   return (
     <MobileLayout hideHeader>
-      <div className="bg-primary pb-20 pt-10 px-4 rounded-b-[2.5rem] shadow-xl mb-4 relative overflow-hidden">
+      <div className="bg-primary pb-24 pt-10 px-4 rounded-b-[2.5rem] shadow-xl mb-4 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
-        <div className="relative z-10 flex items-center gap-4 text-white">
+        <div className="relative z-10 flex items-center gap-4 text-white mb-6">
           <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border-2 border-white/30 text-2xl font-bold">
             س
           </div>
@@ -33,9 +33,30 @@ export default function Profile() {
             </div>
           </div>
         </div>
+
+        {/* Business Dashboard Stats */}
+        <div className="grid grid-cols-3 gap-2 relative z-10">
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 text-center border border-white/10">
+            <div className="text-xs text-purple-100 mb-1">مشتريات الشهر</div>
+            <div className="font-bold text-lg text-white">4,500</div>
+            <div className="text-[10px] text-green-300 flex items-center justify-center gap-1">
+              <TrendingUp className="w-3 h-3" /> 12%
+            </div>
+          </div>
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 text-center border border-white/10">
+            <div className="text-xs text-purple-100 mb-1">عدد الطلبات</div>
+            <div className="font-bold text-lg text-white">8</div>
+            <div className="text-[10px] text-white/60">اخر 30 يوم</div>
+          </div>
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 text-center border border-white/10">
+            <div className="text-xs text-purple-100 mb-1">التوفير</div>
+            <div className="font-bold text-lg text-white">350</div>
+            <div className="text-[10px] text-green-300">ر.س</div>
+          </div>
+        </div>
       </div>
 
-      <div className="px-4 -mt-10 relative z-20 space-y-3 pb-8">
+      <div className="px-4 -mt-14 relative z-20 space-y-3 pb-8">
         {menuItems.map((item, index) => (
           <Card 
             key={index} 

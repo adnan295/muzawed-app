@@ -27,6 +27,7 @@ import BuyAgain from "@/pages/BuyAgain";
 import OrderDetails from "@/pages/OrderDetails";
 import Cards from "@/pages/Cards";
 import Referral from "@/pages/Referral";
+import Invoice from "@/pages/Invoice";
 
 function Router() {
   return (
@@ -42,6 +43,7 @@ function Router() {
       <Route path="/checkout" component={Checkout} />
       <Route path="/orders" component={Orders} />
       <Route path="/order/:id" component={OrderDetails} />
+      <Route path="/invoice/:id" component={Invoice} />
       <Route path="/wallet" component={Wallet} />
       <Route path="/cards" component={Cards} />
       <Route path="/referral" component={Referral} />

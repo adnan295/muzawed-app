@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { PRODUCTS } from '@/lib/data';
-import { useLocation, useRoute } from 'wouter';
-import { ChevronRight, Package, Truck, CheckCircle2, Clock, MapPin, Phone } from 'lucide-react';
+import { useLocation, useRoute, Link } from 'wouter';
+import { ChevronRight, Package, Truck, CheckCircle2, Clock, MapPin, Phone, FileText, Repeat } from 'lucide-react';
 
 export default function OrderDetails() {
   const [, params] = useRoute('/order/:id');
@@ -37,6 +37,18 @@ export default function OrderDetails() {
 
         <div className="p-4 space-y-4">
           
+          {/* Actions */}
+          <div className="flex gap-3">
+            <Button variant="outline" className="flex-1 bg-white border-gray-200" onClick={() => setLocation(`/invoice/${orderId}`)}>
+              <FileText className="w-4 h-4 ml-2" />
+              الفاتورة
+            </Button>
+            <Button className="flex-1 shadow-sm bg-primary text-white">
+              <Repeat className="w-4 h-4 ml-2" />
+              إعادة الطلب
+            </Button>
+          </div>
+
           {/* Timeline */}
           <Card className="p-5 border-none shadow-sm">
             <h3 className="font-bold text-sm mb-6">حالة الطلب</h3>
