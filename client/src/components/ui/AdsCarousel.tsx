@@ -107,8 +107,10 @@ export function AdsCarousel() {
   const handleBannerClick = (banner: BannerProps) => {
     if (typeof banner.id === 'number') {
       bannersAPI.trackClick(banner.id).catch(() => {});
-    }
-    if (banner.buttonLink) {
+      // Link to promo page by default for database banners
+      const targetLink = banner.buttonLink || `/promo/${banner.id}`;
+      window.location.href = targetLink;
+    } else if (banner.buttonLink) {
       window.location.href = banner.buttonLink;
     }
   };
