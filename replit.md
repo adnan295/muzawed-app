@@ -130,9 +130,24 @@ Shopping & Orders:
 - No file upload handling beyond multer dependency
 - No WebSocket implementation despite server infrastructure
 
+## Multi-Warehouse Architecture
+
+**Database Tables**
+- `cities`: Saudi cities with region and active status (18 major cities)
+- `warehouses`: Warehouse details linked to cities (one warehouse per city)
+- `productInventory`: Join table linking products to warehouses with per-warehouse stock levels
+
+**Key Features**
+- Each city has ONE warehouse, ensuring customers see only products from their city's warehouse
+- Products can be assigned to multiple warehouses with different stock levels
+- Admin dashboard includes full CRUD for cities and warehouses management
+- API endpoints for filtering products by city (`/api/products/by-city/:cityId`)
+
 ## Recent Updates
 
 **December 2024**
+- Added multi-warehouse architecture with cities and warehouses management
+- Admin dashboard: Cities and Warehouses tab with real data CRUD operations
 - Added notifications system with full CRUD API endpoints
 - Added activity logs tracking system
 - Added inventory management with low-stock alerts API

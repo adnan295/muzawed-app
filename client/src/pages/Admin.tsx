@@ -29,7 +29,7 @@ import {
   GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight, LogOut
 } from 'lucide-react';
 import { Link } from 'wouter';
-import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI } from '@/lib/api';
+import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart, Line, Legend, ComposedChart, RadialBarChart, RadialBar, Treemap, FunnelChart, Funnel, LabelList } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -58,6 +58,24 @@ interface Brand {
   id: number;
   name: string;
   logo: string;
+}
+
+interface City {
+  id: number;
+  name: string;
+  region: string;
+  isActive: boolean;
+}
+
+interface WarehouseData {
+  id: number;
+  name: string;
+  code: string;
+  cityId: number;
+  address?: string;
+  phone?: string;
+  capacity: number;
+  isActive: boolean;
 }
 
 const salesData = [
@@ -113,11 +131,6 @@ const mockCoupons = [
   { id: 3, code: 'FLASH20', type: 'percentage', value: 20, minOrder: 150, maxDiscount: 75, usageLimit: 200, usageCount: 200, isActive: false, endDate: '2024-06-30' },
 ];
 
-const mockWarehouses = [
-  { id: 1, name: 'المستودع الرئيسي', code: 'WH-RYD-001', city: 'الرياض', capacity: 10000, used: 7500, status: 'active', manager: 'فاطمة أحمد', products: 1250, orders: 45 },
-  { id: 2, name: 'مستودع جدة', code: 'WH-JED-001', city: 'جدة', capacity: 8000, used: 5200, status: 'active', manager: 'عبدالرحمن سالم', products: 980, orders: 32 },
-  { id: 3, name: 'مستودع الدمام', code: 'WH-DMM-001', city: 'الدمام', capacity: 5000, used: 3800, status: 'active', manager: 'خالد محمد', products: 650, orders: 28 },
-];
 
 const mockLoyaltyTiers = [
   { tier: 'bronze', name: 'برونزي', minPoints: 0, discount: 0, customers: 4500, color: 'from-orange-600 to-orange-700', icon: Star },
@@ -214,6 +227,14 @@ export default function Admin() {
     image: '', minOrder: '1', unit: 'كرتون', stock: '100',
   });
 
+  // Warehouse management state
+  const [isAddWarehouseOpen, setIsAddWarehouseOpen] = useState(false);
+  const [isAddCityOpen, setIsAddCityOpen] = useState(false);
+  const [newWarehouse, setNewWarehouse] = useState({
+    name: '', code: '', cityId: '', address: '', phone: '', capacity: '1000',
+  });
+  const [newCity, setNewCity] = useState({ name: '', region: '' });
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -265,6 +286,16 @@ export default function Admin() {
   const { data: adminUsers = [] } = useQuery({
     queryKey: ['adminUsers'],
     queryFn: async () => (await adminAPI.getUsers()) as any[],
+  });
+
+  const { data: cities = [], refetch: refetchCities } = useQuery<City[]>({
+    queryKey: ['cities'],
+    queryFn: () => citiesAPI.getAll() as Promise<City[]>,
+  });
+
+  const { data: warehousesList = [], refetch: refetchWarehouses } = useQuery<WarehouseData[]>({
+    queryKey: ['warehouses'],
+    queryFn: () => warehousesAPI.getAll() as Promise<WarehouseData[]>,
   });
 
   useEffect(() => {
@@ -452,6 +483,73 @@ export default function Admin() {
       await fetch(`/api/brands/${id}`, { method: 'DELETE' });
       toast({ title: 'تم حذف العلامة التجارية', className: 'bg-green-600 text-white' });
       queryClient.invalidateQueries({ queryKey: ['brands'] });
+    } catch (error) {
+      toast({ title: 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const handleAddCity = async () => {
+    try {
+      const response = await fetch('/api/cities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newCity.name, region: newCity.region, isActive: true }),
+      });
+      if (response.ok) {
+        toast({ title: 'تم إضافة المدينة بنجاح', className: 'bg-green-600 text-white' });
+        setIsAddCityOpen(false);
+        setNewCity({ name: '', region: '' });
+        refetchCities();
+      }
+    } catch (error) {
+      toast({ title: 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteCity = async (id: number) => {
+    if (!confirm('هل أنت متأكد من حذف هذه المدينة؟ سيتم حذف المستودع المرتبط بها.')) return;
+    try {
+      await fetch(`/api/cities/${id}`, { method: 'DELETE' });
+      toast({ title: 'تم حذف المدينة', className: 'bg-green-600 text-white' });
+      refetchCities();
+      refetchWarehouses();
+    } catch (error) {
+      toast({ title: 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const handleAddWarehouse = async () => {
+    try {
+      const response = await fetch('/api/warehouses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newWarehouse.name,
+          code: newWarehouse.code,
+          cityId: parseInt(newWarehouse.cityId),
+          address: newWarehouse.address || null,
+          phone: newWarehouse.phone || null,
+          capacity: parseInt(newWarehouse.capacity),
+          isActive: true,
+        }),
+      });
+      if (response.ok) {
+        toast({ title: 'تم إضافة المستودع بنجاح', className: 'bg-green-600 text-white' });
+        setIsAddWarehouseOpen(false);
+        setNewWarehouse({ name: '', code: '', cityId: '', address: '', phone: '', capacity: '1000' });
+        refetchWarehouses();
+      }
+    } catch (error) {
+      toast({ title: 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteWarehouse = async (id: number) => {
+    if (!confirm('هل أنت متأكد من حذف هذا المستودع؟')) return;
+    try {
+      await fetch(`/api/warehouses/${id}`, { method: 'DELETE' });
+      toast({ title: 'تم حذف المستودع', className: 'bg-green-600 text-white' });
+      refetchWarehouses();
     } catch (error) {
       toast({ title: 'حدث خطأ', variant: 'destructive' });
     }
@@ -1758,53 +1856,241 @@ export default function Admin() {
 
           {/* Warehouses Tab */}
           <TabsContent value="warehouses">
-            <Card className="p-6 border-none shadow-lg rounded-2xl">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="font-bold text-xl">إدارة المستودعات والفروع</h3>
-                  <p className="text-gray-500 text-sm mt-1">{mockWarehouses.length} مستودع</p>
-                </div>
-                <Button className="rounded-xl gap-2"><Plus className="w-4 h-4" />إضافة مستودع</Button>
-              </div>
-
-              <div className="grid md:grid-cols-3 gap-6">
-                {mockWarehouses.map((warehouse) => (
-                  <div key={warehouse.id} className="bg-gray-50 rounded-2xl p-5 border border-gray-100 hover:shadow-md transition-all">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white">
-                        <Warehouse className="w-6 h-6" />
-                      </div>
-                      <Badge className={warehouse.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>{warehouse.status === 'active' ? 'نشط' : 'متوقف'}</Badge>
-                    </div>
-                    <h4 className="font-bold text-lg">{warehouse.name}</h4>
-                    <p className="text-sm text-gray-500 mb-3">{warehouse.code} • {warehouse.city}</p>
-                    <div className="space-y-3">
-                      <div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="text-gray-500">السعة المستخدمة</span>
-                          <span className="font-bold">{((warehouse.used / warehouse.capacity) * 100).toFixed(0)}%</span>
-                        </div>
-                        <Progress value={(warehouse.used / warehouse.capacity) * 100} className="h-2" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div className="bg-white rounded-lg p-2 text-center">
-                          <p className="text-xs text-gray-500">المنتجات</p>
-                          <p className="font-bold">{warehouse.products}</p>
-                        </div>
-                        <div className="bg-white rounded-lg p-2 text-center">
-                          <p className="text-xs text-gray-500">الطلبات</p>
-                          <p className="font-bold">{warehouse.orders}</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 mt-4">
-                      <Button variant="outline" className="flex-1 rounded-xl text-sm">التفاصيل</Button>
-                      <Button size="icon" variant="ghost" className="rounded-xl"><Edit className="w-4 h-4" /></Button>
-                    </div>
+            {/* Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-blue-100 text-xs">إجمالي المستودعات</p>
+                    <p className="text-2xl font-bold">{warehousesList.length}</p>
                   </div>
-                ))}
-              </div>
-            </Card>
+                  <Warehouse className="w-8 h-8 text-blue-200" />
+                </div>
+              </Card>
+              <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-green-500 to-green-600 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-green-100 text-xs">مستودعات نشطة</p>
+                    <p className="text-2xl font-bold">{warehousesList.filter(w => w.isActive).length}</p>
+                  </div>
+                  <CheckCircle className="w-8 h-8 text-green-200" />
+                </div>
+              </Card>
+              <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-purple-100 text-xs">المدن المغطاة</p>
+                    <p className="text-2xl font-bold">{cities.length}</p>
+                  </div>
+                  <MapPin className="w-8 h-8 text-purple-200" />
+                </div>
+              </Card>
+              <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-orange-100 text-xs">إجمالي السعة</p>
+                    <p className="text-2xl font-bold">{warehousesList.reduce((sum, w) => sum + w.capacity, 0).toLocaleString('ar-SA')}</p>
+                  </div>
+                  <Boxes className="w-8 h-8 text-orange-200" />
+                </div>
+              </Card>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Cities Management */}
+              <Card className="p-6 border-none shadow-lg rounded-2xl">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="font-bold text-xl flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-primary" />
+                      إدارة المدن
+                    </h3>
+                    <p className="text-gray-500 text-sm mt-1">{cities.length} مدينة</p>
+                  </div>
+                  <Dialog open={isAddCityOpen} onOpenChange={setIsAddCityOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="rounded-xl gap-2" data-testid="button-add-city"><Plus className="w-4 h-4" />إضافة مدينة</Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader><DialogTitle>إضافة مدينة جديدة</DialogTitle></DialogHeader>
+                      <div className="space-y-4 mt-4">
+                        <div>
+                          <Label>اسم المدينة *</Label>
+                          <Input placeholder="مثال: الرياض" value={newCity.name} onChange={(e) => setNewCity({ ...newCity, name: e.target.value })} data-testid="input-city-name" />
+                        </div>
+                        <div>
+                          <Label>المنطقة</Label>
+                          <Select value={newCity.region} onValueChange={(v) => setNewCity({ ...newCity, region: v })}>
+                            <SelectTrigger data-testid="select-region"><SelectValue placeholder="اختر المنطقة" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="الوسطى">المنطقة الوسطى</SelectItem>
+                              <SelectItem value="الغربية">المنطقة الغربية</SelectItem>
+                              <SelectItem value="الشرقية">المنطقة الشرقية</SelectItem>
+                              <SelectItem value="الشمالية">المنطقة الشمالية</SelectItem>
+                              <SelectItem value="الجنوبية">المنطقة الجنوبية</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button className="w-full rounded-xl" onClick={handleAddCity} disabled={!newCity.name} data-testid="button-submit-city">
+                          <Plus className="w-4 h-4 ml-2" />إضافة المدينة
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+                <ScrollArea className="h-[400px]">
+                  <div className="space-y-3">
+                    {cities.map((city) => {
+                      const cityWarehouse = warehousesList.find(w => w.cityId === city.id);
+                      return (
+                        <div key={city.id} className="p-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-primary/20 transition-all" data-testid={`card-city-${city.id}`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white">
+                                <MapPin className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <p className="font-bold">{city.name}</p>
+                                <p className="text-xs text-gray-500">{city.region || 'بدون منطقة'}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {cityWarehouse ? (
+                                <Badge className="bg-green-100 text-green-700">مستودع متوفر</Badge>
+                              ) : (
+                                <Badge className="bg-yellow-100 text-yellow-700">بدون مستودع</Badge>
+                              )}
+                              <Badge className={city.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>
+                                {city.isActive ? 'نشطة' : 'غير نشطة'}
+                              </Badge>
+                              <Button size="icon" variant="ghost" className="rounded-lg hover:bg-red-50 hover:text-red-600" onClick={() => handleDeleteCity(city.id)}>
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {cities.length === 0 && (
+                      <div className="text-center py-10 text-gray-500">
+                        <MapPin className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                        <p>لا توجد مدن مسجلة</p>
+                        <p className="text-sm">أضف مدينة جديدة للبدء</p>
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+              </Card>
+
+              {/* Warehouses Management */}
+              <Card className="p-6 border-none shadow-lg rounded-2xl">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="font-bold text-xl flex items-center gap-2">
+                      <Warehouse className="w-5 h-5 text-primary" />
+                      إدارة المستودعات
+                    </h3>
+                    <p className="text-gray-500 text-sm mt-1">{warehousesList.length} مستودع</p>
+                  </div>
+                  <Dialog open={isAddWarehouseOpen} onOpenChange={setIsAddWarehouseOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="rounded-xl gap-2" data-testid="button-add-warehouse"><Plus className="w-4 h-4" />إضافة مستودع</Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader><DialogTitle>إضافة مستودع جديد</DialogTitle></DialogHeader>
+                      <div className="space-y-4 mt-4">
+                        <div>
+                          <Label>اسم المستودع *</Label>
+                          <Input placeholder="مثال: مستودع الرياض الرئيسي" value={newWarehouse.name} onChange={(e) => setNewWarehouse({ ...newWarehouse, name: e.target.value })} data-testid="input-warehouse-name" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>الكود *</Label>
+                            <Input placeholder="WH-RYD-001" value={newWarehouse.code} onChange={(e) => setNewWarehouse({ ...newWarehouse, code: e.target.value })} data-testid="input-warehouse-code" />
+                          </div>
+                          <div>
+                            <Label>المدينة *</Label>
+                            <Select value={newWarehouse.cityId} onValueChange={(v) => setNewWarehouse({ ...newWarehouse, cityId: v })}>
+                              <SelectTrigger data-testid="select-warehouse-city"><SelectValue placeholder="اختر المدينة" /></SelectTrigger>
+                              <SelectContent>
+                                {cities.filter(c => c.isActive && !warehousesList.some(w => w.cityId === c.id)).map((city) => (
+                                  <SelectItem key={city.id} value={city.id.toString()}>{city.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div>
+                          <Label>العنوان</Label>
+                          <Input placeholder="العنوان التفصيلي" value={newWarehouse.address} onChange={(e) => setNewWarehouse({ ...newWarehouse, address: e.target.value })} data-testid="input-warehouse-address" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>رقم الهاتف</Label>
+                            <Input placeholder="0500000000" value={newWarehouse.phone} onChange={(e) => setNewWarehouse({ ...newWarehouse, phone: e.target.value })} data-testid="input-warehouse-phone" />
+                          </div>
+                          <div>
+                            <Label>السعة</Label>
+                            <Input type="number" placeholder="1000" value={newWarehouse.capacity} onChange={(e) => setNewWarehouse({ ...newWarehouse, capacity: e.target.value })} data-testid="input-warehouse-capacity" />
+                          </div>
+                        </div>
+                        <Button className="w-full rounded-xl" onClick={handleAddWarehouse} disabled={!newWarehouse.name || !newWarehouse.code || !newWarehouse.cityId} data-testid="button-submit-warehouse">
+                          <Plus className="w-4 h-4 ml-2" />إضافة المستودع
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+                <ScrollArea className="h-[400px]">
+                  <div className="space-y-3">
+                    {warehousesList.map((warehouse) => {
+                      const city = cities.find(c => c.id === warehouse.cityId);
+                      return (
+                        <div key={warehouse.id} className="p-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-primary/20 transition-all" data-testid={`card-warehouse-${warehouse.id}`}>
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white">
+                                <Warehouse className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <p className="font-bold">{warehouse.name}</p>
+                                <p className="text-xs text-gray-500">{warehouse.code} • {city?.name || 'غير محدد'}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge className={warehouse.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>
+                                {warehouse.isActive ? 'نشط' : 'متوقف'}
+                              </Badge>
+                              <Button size="icon" variant="ghost" className="rounded-lg"><Edit className="w-4 h-4" /></Button>
+                              <Button size="icon" variant="ghost" className="rounded-lg hover:bg-red-50 hover:text-red-600" onClick={() => handleDeleteWarehouse(warehouse.id)}>
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="bg-white rounded-lg p-2 text-center">
+                              <p className="text-xs text-gray-500">السعة</p>
+                              <p className="font-bold">{warehouse.capacity.toLocaleString('ar-SA')}</p>
+                            </div>
+                            <div className="bg-white rounded-lg p-2 text-center">
+                              <p className="text-xs text-gray-500">الهاتف</p>
+                              <p className="font-bold text-xs">{warehouse.phone || 'غير محدد'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {warehousesList.length === 0 && (
+                      <div className="text-center py-10 text-gray-500">
+                        <Warehouse className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                        <p>لا توجد مستودعات مسجلة</p>
+                        <p className="text-sm">أضف مستودع جديد للبدء</p>
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* Products Tab - World Class */}
