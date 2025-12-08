@@ -36,6 +36,15 @@ import {
   type Supplier,
   type InsertSupplier,
   suppliers,
+  type SupplierTransaction,
+  type InsertSupplierTransaction,
+  supplierTransactions,
+  type SupplierStockPosition,
+  type InsertSupplierStockPosition,
+  supplierStockPositions,
+  type SupplierBalance,
+  type InsertSupplierBalance,
+  supplierBalances,
   type Return,
   type InsertReturn,
   returns,
@@ -163,6 +172,27 @@ export interface IStorage {
   createSupplier(supplier: InsertSupplier): Promise<Supplier>;
   updateSupplier(id: number, supplier: Partial<InsertSupplier>): Promise<Supplier | undefined>;
   deleteSupplier(id: number): Promise<void>;
+
+  // Supplier Transactions
+  getSupplierTransactions(supplierId: number): Promise<SupplierTransaction[]>;
+  createSupplierTransaction(transaction: InsertSupplierTransaction): Promise<SupplierTransaction>;
+  recordSupplierImport(data: { supplierId: number; warehouseId: number; productId: number; quantity: number; unitPrice: string; notes?: string }): Promise<SupplierTransaction>;
+  recordSupplierExport(data: { supplierId: number; warehouseId: number; productId: number; quantity: number; unitPrice: string; notes?: string }): Promise<SupplierTransaction>;
+  recordSupplierPayment(data: { supplierId: number; amount: string; paymentMethod: string; referenceNumber?: string; notes?: string }): Promise<SupplierTransaction>;
+
+  // Supplier Stock Positions
+  getSupplierStockPositions(supplierId: number): Promise<SupplierStockPosition[]>;
+  getSupplierStockPosition(supplierId: number, productId: number, warehouseId: number): Promise<SupplierStockPosition | undefined>;
+
+  // Supplier Balances
+  getSupplierBalance(supplierId: number): Promise<SupplierBalance | undefined>;
+  getSupplierDashboard(supplierId: number): Promise<{
+    supplier: Supplier;
+    balance: SupplierBalance | undefined;
+    stockPositions: SupplierStockPosition[];
+    recentTransactions: SupplierTransaction[];
+  }>;
+  recalculateSupplierBalance(supplierId: number): Promise<SupplierBalance>;
 
   // Returns
   getReturns(): Promise<Return[]>;
@@ -626,6 +656,213 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSupplier(id: number): Promise<void> {
     await db.delete(suppliers).where(eq(suppliers.id, id));
+  }
+
+  // Supplier Transactions
+  async getSupplierTransactions(supplierId: number): Promise<SupplierTransaction[]> {
+    return await db.select().from(supplierTransactions)
+      .where(eq(supplierTransactions.supplierId, supplierId))
+      .orderBy(desc(supplierTransactions.createdAt));
+  }
+
+  async createSupplierTransaction(transaction: InsertSupplierTransaction): Promise<SupplierTransaction> {
+    const [newTransaction] = await db.insert(supplierTransactions).values(transaction).returning();
+    return newTransaction;
+  }
+
+  async recordSupplierImport(data: { supplierId: number; warehouseId: number; productId: number; quantity: number; unitPrice: string; notes?: string }): Promise<SupplierTransaction> {
+    const totalAmount = (parseFloat(data.unitPrice) * data.quantity).toFixed(2);
+    
+    // Create the import transaction
+    const [transaction] = await db.insert(supplierTransactions).values({
+      supplierId: data.supplierId,
+      warehouseId: data.warehouseId,
+      productId: data.productId,
+      type: 'import',
+      quantity: data.quantity,
+      unitPrice: data.unitPrice,
+      totalAmount,
+      notes: data.notes,
+    }).returning();
+
+    // Update or create stock position
+    const existingPosition = await this.getSupplierStockPosition(data.supplierId, data.productId, data.warehouseId);
+    if (existingPosition) {
+      const newQty = existingPosition.quantity + data.quantity;
+      await db.update(supplierStockPositions)
+        .set({ quantity: newQty, lastImportDate: new Date(), updatedAt: new Date() })
+        .where(eq(supplierStockPositions.id, existingPosition.id));
+    } else {
+      await db.insert(supplierStockPositions).values({
+        supplierId: data.supplierId,
+        productId: data.productId,
+        warehouseId: data.warehouseId,
+        quantity: data.quantity,
+        avgCost: data.unitPrice,
+        lastImportDate: new Date(),
+      });
+    }
+
+    // Recalculate supplier balance
+    await this.recalculateSupplierBalance(data.supplierId);
+
+    return transaction;
+  }
+
+  async recordSupplierExport(data: { supplierId: number; warehouseId: number; productId: number; quantity: number; unitPrice: string; notes?: string }): Promise<SupplierTransaction> {
+    const totalAmount = (parseFloat(data.unitPrice) * data.quantity).toFixed(2);
+    
+    // Create the export transaction (negative)
+    const [transaction] = await db.insert(supplierTransactions).values({
+      supplierId: data.supplierId,
+      warehouseId: data.warehouseId,
+      productId: data.productId,
+      type: 'export',
+      quantity: data.quantity,
+      unitPrice: data.unitPrice,
+      totalAmount,
+      notes: data.notes,
+    }).returning();
+
+    // Update stock position
+    const existingPosition = await this.getSupplierStockPosition(data.supplierId, data.productId, data.warehouseId);
+    if (existingPosition) {
+      const newQty = Math.max(0, existingPosition.quantity - data.quantity);
+      await db.update(supplierStockPositions)
+        .set({ quantity: newQty, updatedAt: new Date() })
+        .where(eq(supplierStockPositions.id, existingPosition.id));
+    }
+
+    // Recalculate supplier balance
+    await this.recalculateSupplierBalance(data.supplierId);
+
+    return transaction;
+  }
+
+  async recordSupplierPayment(data: { supplierId: number; amount: string; paymentMethod: string; referenceNumber?: string; notes?: string }): Promise<SupplierTransaction> {
+    // Create the payment transaction
+    const [transaction] = await db.insert(supplierTransactions).values({
+      supplierId: data.supplierId,
+      type: 'payment',
+      totalAmount: data.amount,
+      paymentMethod: data.paymentMethod,
+      referenceNumber: data.referenceNumber,
+      notes: data.notes,
+    }).returning();
+
+    // Recalculate supplier balance
+    await this.recalculateSupplierBalance(data.supplierId);
+
+    return transaction;
+  }
+
+  // Supplier Stock Positions
+  async getSupplierStockPositions(supplierId: number): Promise<SupplierStockPosition[]> {
+    return await db.select().from(supplierStockPositions)
+      .where(eq(supplierStockPositions.supplierId, supplierId));
+  }
+
+  async getSupplierStockPosition(supplierId: number, productId: number, warehouseId: number): Promise<SupplierStockPosition | undefined> {
+    const [position] = await db.select().from(supplierStockPositions)
+      .where(and(
+        eq(supplierStockPositions.supplierId, supplierId),
+        eq(supplierStockPositions.productId, productId),
+        eq(supplierStockPositions.warehouseId, warehouseId)
+      ));
+    return position || undefined;
+  }
+
+  // Supplier Balances
+  async getSupplierBalance(supplierId: number): Promise<SupplierBalance | undefined> {
+    const [balance] = await db.select().from(supplierBalances)
+      .where(eq(supplierBalances.supplierId, supplierId));
+    return balance || undefined;
+  }
+
+  async getSupplierDashboard(supplierId: number): Promise<{
+    supplier: Supplier;
+    balance: SupplierBalance | undefined;
+    stockPositions: SupplierStockPosition[];
+    recentTransactions: SupplierTransaction[];
+  }> {
+    const supplier = await this.getSupplier(supplierId);
+    if (!supplier) throw new Error('Supplier not found');
+    
+    const balance = await this.getSupplierBalance(supplierId);
+    const stockPositions = await this.getSupplierStockPositions(supplierId);
+    const recentTransactions = (await this.getSupplierTransactions(supplierId)).slice(0, 20);
+
+    return { supplier, balance, stockPositions, recentTransactions };
+  }
+
+  async recalculateSupplierBalance(supplierId: number): Promise<SupplierBalance> {
+    // Get all transactions for this supplier
+    const transactions = await db.select().from(supplierTransactions)
+      .where(eq(supplierTransactions.supplierId, supplierId));
+
+    let totalImports = 0;
+    let totalExports = 0;
+    let totalSales = 0;
+    let totalPayments = 0;
+
+    for (const t of transactions) {
+      const amount = parseFloat(t.totalAmount);
+      switch (t.type) {
+        case 'import':
+          totalImports += amount;
+          break;
+        case 'export':
+          totalExports += amount;
+          break;
+        case 'sale':
+          totalSales += amount;
+          break;
+        case 'payment':
+          totalPayments += amount;
+          break;
+      }
+    }
+
+    // Calculate stock value
+    const stockPositions = await this.getSupplierStockPositions(supplierId);
+    let totalStockValue = 0;
+    for (const pos of stockPositions) {
+      totalStockValue += pos.quantity * parseFloat(pos.avgCost || '0');
+    }
+
+    // Balance = imports - exports - payments (what we still owe)
+    const balance = totalImports - totalExports - totalPayments;
+
+    // Upsert the balance record
+    const existingBalance = await this.getSupplierBalance(supplierId);
+    if (existingBalance) {
+      const [updated] = await db.update(supplierBalances)
+        .set({
+          totalImports: totalImports.toFixed(2),
+          totalExports: totalExports.toFixed(2),
+          totalSales: totalSales.toFixed(2),
+          totalPayments: totalPayments.toFixed(2),
+          balance: balance.toFixed(2),
+          totalStockValue: totalStockValue.toFixed(2),
+          updatedAt: new Date(),
+        })
+        .where(eq(supplierBalances.supplierId, supplierId))
+        .returning();
+      return updated;
+    } else {
+      const [newBalance] = await db.insert(supplierBalances)
+        .values({
+          supplierId,
+          totalImports: totalImports.toFixed(2),
+          totalExports: totalExports.toFixed(2),
+          totalSales: totalSales.toFixed(2),
+          totalPayments: totalPayments.toFixed(2),
+          balance: balance.toFixed(2),
+          totalStockValue: totalStockValue.toFixed(2),
+        })
+        .returning();
+      return newBalance;
+    }
   }
 
   // Returns
