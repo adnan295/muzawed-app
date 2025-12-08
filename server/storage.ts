@@ -514,9 +514,57 @@ export class DatabaseStorage implements IStorage {
     // Insert order items
     for (const item of items) {
       await db.insert(orderItems).values({ ...item, orderId: newOrder.id });
+      
+      // Allocate sale to supplier if stock exists
+      await this.allocateSaleToSupplier(item.productId, item.quantity, item.price, newOrder.id);
     }
 
     return newOrder;
+  }
+
+  async allocateSaleToSupplier(productId: number, quantity: number, salePrice: string, orderId: number): Promise<void> {
+    // Find all supplier stock positions for this product, ordered by oldest import first (FIFO)
+    const positions = await db.select().from(supplierStockPositions)
+      .where(and(
+        eq(supplierStockPositions.productId, productId),
+        sql`${supplierStockPositions.quantity} > 0`
+      ))
+      .orderBy(supplierStockPositions.lastImportDate);
+
+    let remainingQty = quantity;
+
+    for (const position of positions) {
+      if (remainingQty <= 0) break;
+
+      const allocateQty = Math.min(remainingQty, position.quantity);
+      // Use the supplier's original cost price (avgCost), not the sale price
+      const costPrice = position.avgCost || '0';
+      const totalAmount = (allocateQty * parseFloat(costPrice)).toFixed(2);
+
+      // Record sale transaction for this supplier using their cost price
+      await db.insert(supplierTransactions).values({
+        supplierId: position.supplierId,
+        warehouseId: position.warehouseId,
+        productId: productId,
+        type: 'sale',
+        quantity: allocateQty,
+        unitPrice: costPrice,
+        totalAmount,
+        referenceNumber: `ORD-${orderId}`,
+        notes: `مبيعات من الطلب رقم ${orderId}`,
+      });
+
+      // Deduct from supplier stock position
+      const newQty = position.quantity - allocateQty;
+      await db.update(supplierStockPositions)
+        .set({ quantity: newQty, updatedAt: new Date() })
+        .where(eq(supplierStockPositions.id, position.id));
+
+      // Recalculate supplier balance
+      await this.recalculateSupplierBalance(position.supplierId);
+
+      remainingQty -= allocateQty;
+    }
   }
 
   async updateOrderStatus(id: number, status: string): Promise<Order | undefined> {
