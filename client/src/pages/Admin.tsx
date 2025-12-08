@@ -24,7 +24,7 @@ import {
   Gift, Warehouse, Receipt, Copy, ExternalLink, Shield, Lock, Key, UserPlus, TicketIcon,
   MessageCircle, Send, Archive, Printer, QrCode, Barcode, PackageCheck, PackageX, Timer,
   Banknote, PiggyBank, Coins, Crown, Medal, Trophy, Repeat, RotateCcw, Navigation,
-  TruckIcon, MapPinned, Factory, ShoppingBag, FileSpreadsheet, File, MailCheck,
+  TruckIcon, MapPinned, Factory, ShoppingBag, FileSpreadsheet, File, MailCheck, FileDown,
   Sparkles, Flame, ThumbsUp, ThumbsDown, AlertCircle, Info, HelpCircle, CircleDollarSign,
   BadgePercent, Gauge, ArrowUpRight, ArrowDownRight, Hash, Split, Merge,
   GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight, LogOut
@@ -1858,10 +1858,10 @@ export default function Admin() {
             </Card>
           </TabsContent>
 
-          {/* Warehouses Tab */}
+          {/* Warehouses Tab - World Class */}
           <TabsContent value="warehouses">
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {/* Enhanced Stats Dashboard */}
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
               <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
                 <div className="flex items-center justify-between">
                   <div>
@@ -1893,12 +1893,147 @@ export default function Admin() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-orange-100 text-xs">إجمالي السعة</p>
-                    <p className="text-2xl font-bold">{warehousesList.reduce((sum, w) => sum + w.capacity, 0).toLocaleString('ar-SA')}</p>
+                    <p className="text-2xl font-bold">{warehousesList.reduce((sum, w) => sum + (w.capacity || 0), 0).toLocaleString('ar-SA')}</p>
                   </div>
                   <Boxes className="w-8 h-8 text-orange-200" />
                 </div>
               </Card>
+              <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-cyan-500 to-cyan-600 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-cyan-100 text-xs">المنتجات المخزنة</p>
+                    <p className="text-2xl font-bold">{products.length}</p>
+                  </div>
+                  <Package className="w-8 h-8 text-cyan-200" />
+                </div>
+              </Card>
+              <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-red-500 to-red-600 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-red-100 text-xs">نقص في المخزون</p>
+                    <p className="text-2xl font-bold">{products.filter(p => p.stock < 30).length}</p>
+                  </div>
+                  <AlertTriangle className="w-8 h-8 text-red-200" />
+                </div>
+              </Card>
             </div>
+
+            {/* Warehouse Performance Charts */}
+            <div className="grid md:grid-cols-2 gap-6 mb-6">
+              <Card className="p-6 border-none shadow-lg rounded-2xl">
+                <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-primary" />
+                  توزيع السعة حسب المستودع
+                </h3>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={warehousesList.map(w => ({ name: w.name.slice(0, 15), capacity: w.capacity || 0, city: cities.find(c => c.id === w.cityId)?.name || '' }))}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" fontSize={10} />
+                    <YAxis />
+                    <Tooltip content={({ active, payload }) => active && payload?.[0] ? (
+                      <div className="bg-white p-3 rounded-lg shadow-lg border">
+                        <p className="font-bold">{payload[0].payload.name}</p>
+                        <p className="text-sm text-gray-600">{payload[0].payload.city}</p>
+                        <p className="text-primary font-bold">{payload[0].value?.toLocaleString('ar-SA')} وحدة</p>
+                      </div>
+                    ) : null} />
+                    <Bar dataKey="capacity" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Card>
+              
+              <Card className="p-6 border-none shadow-lg rounded-2xl">
+                <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                  <Target className="w-5 h-5 text-primary" />
+                  حالة المخزون
+                </h3>
+                <ResponsiveContainer width="100%" height={220}>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'مخزون كافي', value: products.filter(p => p.stock >= 50).length, fill: '#22c55e' },
+                        { name: 'مخزون متوسط', value: products.filter(p => p.stock >= 30 && p.stock < 50).length, fill: '#f59e0b' },
+                        { name: 'مخزون منخفض', value: products.filter(p => p.stock < 30).length, fill: '#ef4444' },
+                      ]}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    />
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </Card>
+            </div>
+
+            {/* Quick Actions Bar */}
+            <Card className="p-4 mb-6 border-none shadow-lg rounded-2xl bg-gradient-to-r from-gray-50 to-gray-100">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-primary" />
+                  <span className="font-bold">إجراءات سريعة</span>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="rounded-xl gap-2" data-testid="button-stock-transfer">
+                        <ArrowLeftRight className="w-4 h-4" />نقل مخزون
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader><DialogTitle>نقل المخزون بين المستودعات</DialogTitle></DialogHeader>
+                      <div className="space-y-4 mt-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>من مستودع</Label>
+                            <Select>
+                              <SelectTrigger><SelectValue placeholder="اختر المصدر" /></SelectTrigger>
+                              <SelectContent>
+                                {warehousesList.map(w => <SelectItem key={w.id} value={w.id.toString()}>{w.name}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label>إلى مستودع</Label>
+                            <Select>
+                              <SelectTrigger><SelectValue placeholder="اختر الوجهة" /></SelectTrigger>
+                              <SelectContent>
+                                {warehousesList.map(w => <SelectItem key={w.id} value={w.id.toString()}>{w.name}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div>
+                          <Label>المنتج</Label>
+                          <Select>
+                            <SelectTrigger><SelectValue placeholder="اختر المنتج" /></SelectTrigger>
+                            <SelectContent>
+                              {products.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>الكمية</Label>
+                          <Input type="number" placeholder="أدخل الكمية" />
+                        </div>
+                        <Button className="w-full rounded-xl">
+                          <ArrowLeftRight className="w-4 h-4 ml-2" />تنفيذ النقل
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                  <Button variant="outline" className="rounded-xl gap-2">
+                    <FileDown className="w-4 h-4" />تصدير التقرير
+                  </Button>
+                  <Button variant="outline" className="rounded-xl gap-2">
+                    <RefreshCw className="w-4 h-4" />تحديث البيانات
+                  </Button>
+                </div>
+              </div>
+            </Card>
 
             <div className="grid md:grid-cols-2 gap-6">
               {/* Cities Management */}
