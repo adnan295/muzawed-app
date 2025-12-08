@@ -2774,12 +2774,15 @@ export default function Admin() {
 
               {/* Add/Edit Banner Dialog */}
               <Dialog open={showAddBannerDialog} onOpenChange={setShowAddBannerDialog}>
-                <DialogContent className="max-w-lg">
+                <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                       <Layers className="w-5 h-5 text-purple-500" />
                       {editingBanner ? 'تعديل الشريحة' : 'إضافة شريحة جديدة'}
                     </DialogTitle>
+                    <DialogDescription>
+                      أضف شريحة إعلانية جديدة مع إمكانية ربطها بمنتجات ترويجية
+                    </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 mt-4">
                     <div>
@@ -2914,9 +2917,9 @@ export default function Admin() {
                       </div>
                     )}
 
-                    <div className="flex gap-2 pt-4">
+                    <div className="flex gap-3 pt-4 sticky bottom-0 bg-white py-4 border-t border-gray-100 mt-4">
                       <Button 
-                        className="flex-1 rounded-xl"
+                        className="flex-1 rounded-xl bg-green-600 hover:bg-green-700 text-white h-12 text-base font-bold"
                         onClick={async () => {
                           if (!newBanner.title) {
                             toast({ title: 'يرجى إدخال العنوان', variant: 'destructive' });
@@ -2938,9 +2941,9 @@ export default function Admin() {
                         }}
                         data-testid="save-banner-btn"
                       >
-                        {editingBanner ? 'تحديث الشريحة' : 'إضافة الشريحة'}
+                        {editingBanner ? 'تحديث الشريحة' : 'حفظ الشريحة'}
                       </Button>
-                      <Button variant="outline" className="rounded-xl" onClick={() => setShowAddBannerDialog(false)}>
+                      <Button variant="outline" className="rounded-xl h-12" onClick={() => setShowAddBannerDialog(false)}>
                         إلغاء
                       </Button>
                     </div>
