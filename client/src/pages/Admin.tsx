@@ -1525,10 +1525,10 @@ export default function Admin() {
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <Label>السائق المسؤول</Label>
-                              <Select value={newVehicle.driverId} onValueChange={(v) => setNewVehicle({ ...newVehicle, driverId: v })}>
+                              <Select value={newVehicle.driverId || "none"} onValueChange={(v) => setNewVehicle({ ...newVehicle, driverId: v === "none" ? "" : v })}>
                                 <SelectTrigger><SelectValue placeholder="اختر السائق" /></SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="">بدون سائق</SelectItem>
+                                  <SelectItem value="none">بدون سائق</SelectItem>
                                   {driversList.map((driver) => (<SelectItem key={driver.id} value={driver.id.toString()}>{driver.name}</SelectItem>))}
                                 </SelectContent>
                               </Select>
