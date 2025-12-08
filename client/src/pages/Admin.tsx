@@ -199,6 +199,11 @@ export default function Admin() {
   const [dateRange, setDateRange] = useState('week');
   const [selectedTicket, setSelectedTicket] = useState<typeof mockTickets[0] | null>(null);
   const [selectedShipment, setSelectedShipment] = useState<typeof mockShipments[0] | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [orderFilterStatus, setOrderFilterStatus] = useState('all');
+  const [orderSearch, setOrderSearch] = useState('');
+  const [orderDateFilter, setOrderDateFilter] = useState('all');
+  const [orderNotes, setOrderNotes] = useState('');
   const [newProduct, setNewProduct] = useState({
     name: '', categoryId: '', brandId: '', price: '', originalPrice: '',
     image: '', minOrder: '1', unit: 'كرتون', stock: '100',
@@ -2092,7 +2097,7 @@ export default function Admin() {
           {/* Orders Tab - Enhanced */}
           <TabsContent value="orders">
             {/* Stats Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
               <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
                 <div className="flex items-center justify-between">
                   <div>
@@ -2111,6 +2116,15 @@ export default function Admin() {
                   <Clock className="w-8 h-8 text-yellow-200" />
                 </div>
               </Card>
+              <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-orange-100 text-xs">قيد التجهيز</p>
+                    <p className="text-2xl font-bold">{adminOrders.filter((o: any) => o.status === 'processing').length}</p>
+                  </div>
+                  <Package className="w-8 h-8 text-orange-200" />
+                </div>
+              </Card>
               <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 text-white">
                 <div className="flex items-center justify-between">
                   <div>
@@ -2123,20 +2137,40 @@ export default function Admin() {
               <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-green-500 to-green-600 text-white">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-green-100 text-xs">مكتمل</p>
+                    <p className="text-green-100 text-xs">تم التوصيل</p>
                     <p className="text-2xl font-bold">{adminOrders.filter((o: any) => o.status === 'delivered').length}</p>
                   </div>
                   <CheckCircle className="w-8 h-8 text-green-200" />
                 </div>
               </Card>
-              <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+              <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-red-500 to-red-600 text-white">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-emerald-100 text-xs">إجمالي المبيعات</p>
-                    <p className="text-xl font-bold">{adminOrders.reduce((sum: number, o: any) => sum + parseFloat(o.total || 0), 0).toLocaleString('ar-SA')} ر.س</p>
+                    <p className="text-red-100 text-xs">ملغي</p>
+                    <p className="text-2xl font-bold">{adminOrders.filter((o: any) => o.status === 'cancelled').length}</p>
                   </div>
-                  <DollarSign className="w-8 h-8 text-emerald-200" />
+                  <XCircle className="w-8 h-8 text-red-200" />
                 </div>
+              </Card>
+            </div>
+
+            {/* Revenue Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+                <p className="text-emerald-100 text-xs">إجمالي المبيعات</p>
+                <p className="text-2xl font-bold">{adminOrders.reduce((sum: number, o: any) => sum + parseFloat(o.total || 0), 0).toLocaleString('ar-SA')} ر.س</p>
+              </Card>
+              <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-teal-500 to-teal-600 text-white">
+                <p className="text-teal-100 text-xs">مبيعات المكتملة</p>
+                <p className="text-2xl font-bold">{adminOrders.filter((o: any) => o.status === 'delivered').reduce((sum: number, o: any) => sum + parseFloat(o.total || 0), 0).toLocaleString('ar-SA')} ر.س</p>
+              </Card>
+              <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-cyan-500 to-cyan-600 text-white">
+                <p className="text-cyan-100 text-xs">متوسط قيمة الطلب</p>
+                <p className="text-2xl font-bold">{adminOrders.length > 0 ? (adminOrders.reduce((sum: number, o: any) => sum + parseFloat(o.total || 0), 0) / adminOrders.length).toFixed(0) : 0} ر.س</p>
+              </Card>
+              <Card className="p-4 border-none shadow-md rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 text-white">
+                <p className="text-indigo-100 text-xs">معدل الإكمال</p>
+                <p className="text-2xl font-bold">{adminOrders.length > 0 ? ((adminOrders.filter((o: any) => o.status === 'delivered').length / adminOrders.length) * 100).toFixed(1) : 0}%</p>
               </Card>
             </div>
 
@@ -2147,8 +2181,12 @@ export default function Admin() {
                   إدارة الطلبات
                 </h3>
                 <div className="flex flex-wrap items-center gap-3">
-                  <Input className="w-48 bg-gray-50 border-none rounded-xl" placeholder="بحث برقم الطلب..." data-testid="search-orders" />
-                  <Select defaultValue="all">
+                  <div className="relative">
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input className="w-48 bg-gray-50 border-none rounded-xl pr-10" placeholder="بحث برقم الطلب..." 
+                      value={orderSearch} onChange={(e) => setOrderSearch(e.target.value)} data-testid="search-orders" />
+                  </div>
+                  <Select value={orderFilterStatus} onValueChange={setOrderFilterStatus}>
                     <SelectTrigger className="w-36 rounded-xl bg-gray-50 border-none"><SelectValue placeholder="الحالة" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">جميع الحالات</SelectItem>
@@ -2160,8 +2198,20 @@ export default function Admin() {
                       <SelectItem value="cancelled">ملغي</SelectItem>
                     </SelectContent>
                   </Select>
+                  <Select value={orderDateFilter} onValueChange={setOrderDateFilter}>
+                    <SelectTrigger className="w-32 rounded-xl bg-gray-50 border-none"><SelectValue placeholder="التاريخ" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">الكل</SelectItem>
+                      <SelectItem value="today">اليوم</SelectItem>
+                      <SelectItem value="week">هذا الأسبوع</SelectItem>
+                      <SelectItem value="month">هذا الشهر</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" className="rounded-xl gap-2" onClick={() => window.print()}>
+                    <Printer className="w-4 h-4" />طباعة
+                  </Button>
                   <Button variant="outline" className="rounded-xl gap-2">
-                    <FileText className="w-4 h-4" />تصدير
+                    <Download className="w-4 h-4" />تصدير Excel
                   </Button>
                 </div>
               </div>
@@ -2181,7 +2231,27 @@ export default function Admin() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {adminOrders.length > 0 ? adminOrders.map((order: any) => (
+                    {(() => {
+                      const filteredOrders = adminOrders.filter((order: any) => {
+                        const matchesStatus = orderFilterStatus === 'all' || order.status === orderFilterStatus;
+                        const matchesSearch = orderSearch === '' || order.id.toString().includes(orderSearch);
+                        let matchesDate = true;
+                        if (orderDateFilter !== 'all') {
+                          const orderDate = new Date(order.createdAt);
+                          const now = new Date();
+                          if (orderDateFilter === 'today') {
+                            matchesDate = orderDate.toDateString() === now.toDateString();
+                          } else if (orderDateFilter === 'week') {
+                            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                            matchesDate = orderDate >= weekAgo;
+                          } else if (orderDateFilter === 'month') {
+                            const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                            matchesDate = orderDate >= monthAgo;
+                          }
+                        }
+                        return matchesStatus && matchesSearch && matchesDate;
+                      });
+                      return filteredOrders.length > 0 ? filteredOrders.map((order: any) => (
                       <tr key={order.id} className="hover:bg-gray-50" data-testid={`order-row-${order.id}`}>
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-3">
@@ -2248,11 +2318,30 @@ export default function Admin() {
                         </td>
                         <td className="px-4 py-4">
                           <div className="flex gap-1">
-                            <Button size="sm" variant="ghost" className="rounded-lg" title="عرض التفاصيل" data-testid={`view-order-${order.id}`}>
+                            <Button size="sm" variant="ghost" className="rounded-lg text-blue-600 hover:text-blue-700 hover:bg-blue-50" title="عرض التفاصيل" 
+                              onClick={() => setSelectedOrder(order)} data-testid={`view-order-${order.id}`}>
                               <Eye className="w-4 h-4" />
                             </Button>
                             <Button size="sm" variant="ghost" className="rounded-lg" title="طباعة الفاتورة">
-                              <FileText className="w-4 h-4" />
+                              <Printer className="w-4 h-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="rounded-lg text-green-600 hover:text-green-700 hover:bg-green-50" title="تأكيد الطلب"
+                              onClick={async () => {
+                                try {
+                                  await fetch(`/api/orders/${order.id}/status`, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ status: 'confirmed' }),
+                                  });
+                                  toast({ title: 'تم تأكيد الطلب', className: 'bg-green-600 text-white' });
+                                  queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+                                } catch (error) {
+                                  toast({ title: 'حدث خطأ', variant: 'destructive' });
+                                }
+                              }}
+                              data-testid={`confirm-order-${order.id}`}
+                            >
+                              <CheckCircle className="w-4 h-4" />
                             </Button>
                             <Button size="sm" variant="ghost" className="rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50" title="إلغاء الطلب"
                               onClick={async () => {
@@ -2285,7 +2374,8 @@ export default function Admin() {
                           <p className="text-sm">ستظهر الطلبات هنا عند إنشائها من قبل العملاء</p>
                         </td>
                       </tr>
-                    )}
+                    );
+                    })()}
                   </tbody>
                 </table>
               </div>
@@ -2301,6 +2391,147 @@ export default function Admin() {
                 </div>
               )}
             </Card>
+
+            {/* Order Details Dialog */}
+            <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Package className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-xl">تفاصيل الطلب #{selectedOrder?.id}</p>
+                      <p className="text-sm text-gray-500 font-normal">{selectedOrder && new Date(selectedOrder.createdAt).toLocaleString('ar-SA')}</p>
+                    </div>
+                  </DialogTitle>
+                </DialogHeader>
+
+                {selectedOrder && (
+                  <div className="mt-4 space-y-6">
+                    {/* Order Status Timeline */}
+                    <div className="p-4 bg-gray-50 rounded-2xl">
+                      <h4 className="font-bold mb-4 flex items-center gap-2"><Clock className="w-4 h-4" />مسار الطلب</h4>
+                      <div className="flex items-center justify-between relative">
+                        <div className="absolute top-4 right-8 left-8 h-1 bg-gray-200"></div>
+                        {['pending', 'confirmed', 'processing', 'shipped', 'delivered'].map((status, index) => {
+                          const statusLabels: Record<string, string> = { pending: 'قيد الانتظار', confirmed: 'مؤكد', processing: 'قيد التجهيز', shipped: 'قيد التوصيل', delivered: 'تم التوصيل' };
+                          const currentIndex = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'].indexOf(selectedOrder.status);
+                          const isCompleted = index <= currentIndex && selectedOrder.status !== 'cancelled';
+                          return (
+                            <div key={status} className="flex flex-col items-center z-10">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isCompleted ? 'bg-primary text-white' : 'bg-gray-200 text-gray-400'}`}>
+                                {isCompleted ? <CheckCircle className="w-4 h-4" /> : <span className="text-xs">{index + 1}</span>}
+                              </div>
+                              <span className={`text-xs mt-2 ${isCompleted ? 'font-bold text-primary' : 'text-gray-400'}`}>{statusLabels[status]}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                      {/* Customer Info */}
+                      <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                        <h4 className="font-bold mb-3 flex items-center gap-2 text-blue-700"><Users className="w-4 h-4" />بيانات العميل</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between"><span className="text-gray-600">اسم المنشأة:</span><span className="font-bold">{selectedOrder.user?.facilityName || 'غير محدد'}</span></div>
+                          <div className="flex justify-between"><span className="text-gray-600">الهاتف:</span><span className="font-bold font-mono">{selectedOrder.user?.phone || '-'}</span></div>
+                          <div className="flex justify-between"><span className="text-gray-600">السجل التجاري:</span><span className="font-bold">{selectedOrder.user?.commercialRegister || '-'}</span></div>
+                        </div>
+                      </div>
+
+                      {/* Order Summary */}
+                      <div className="p-4 bg-green-50 rounded-2xl border border-green-100">
+                        <h4 className="font-bold mb-3 flex items-center gap-2 text-green-700"><Receipt className="w-4 h-4" />ملخص الطلب</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between"><span className="text-gray-600">المجموع الفرعي:</span><span className="font-bold">{parseFloat(selectedOrder.subtotal || selectedOrder.total).toLocaleString('ar-SA')} ر.س</span></div>
+                          <div className="flex justify-between"><span className="text-gray-600">رسوم التوصيل:</span><span className="font-bold">{parseFloat(selectedOrder.deliveryFee || 0).toLocaleString('ar-SA')} ر.س</span></div>
+                          <div className="flex justify-between"><span className="text-gray-600">الخصم:</span><span className="font-bold text-red-600">-{parseFloat(selectedOrder.discount || 0).toLocaleString('ar-SA')} ر.س</span></div>
+                          <div className="flex justify-between pt-2 border-t border-green-200"><span className="font-bold">الإجمالي:</span><span className="font-bold text-xl text-green-700">{parseFloat(selectedOrder.total).toLocaleString('ar-SA')} ر.س</span></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Order Items */}
+                    <div className="p-4 bg-gray-50 rounded-2xl">
+                      <h4 className="font-bold mb-4 flex items-center gap-2"><ShoppingCart className="w-4 h-4" />المنتجات ({selectedOrder.items?.length || 0})</h4>
+                      {selectedOrder.items && selectedOrder.items.length > 0 ? (
+                        <div className="space-y-3">
+                          {selectedOrder.items.map((item: any, index: number) => (
+                            <div key={index} className="flex items-center justify-between p-3 bg-white rounded-xl border">
+                              <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
+                                  <Package className="w-6 h-6 text-gray-400" />
+                                </div>
+                                <div>
+                                  <p className="font-bold text-sm">{item.product?.name || item.productName || 'منتج'}</p>
+                                  <p className="text-xs text-gray-500">الكمية: {item.quantity}</p>
+                                </div>
+                              </div>
+                              <p className="font-bold text-primary">{parseFloat(item.price || 0).toLocaleString('ar-SA')} ر.س</p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-500 text-center py-4">لا توجد منتجات</p>
+                      )}
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div className="flex flex-wrap gap-3 pt-4 border-t">
+                      <Button className="rounded-xl gap-2" onClick={() => window.print()}>
+                        <Printer className="w-4 h-4" />طباعة الفاتورة
+                      </Button>
+                      <Select defaultValue={selectedOrder.status} onValueChange={async (value) => {
+                        try {
+                          await fetch(`/api/orders/${selectedOrder.id}/status`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ status: value }),
+                          });
+                          toast({ title: 'تم تحديث حالة الطلب', className: 'bg-green-600 text-white' });
+                          queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+                          setSelectedOrder({ ...selectedOrder, status: value });
+                        } catch (error) {
+                          toast({ title: 'حدث خطأ', variant: 'destructive' });
+                        }
+                      }}>
+                        <SelectTrigger className="w-44 rounded-xl"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">قيد الانتظار</SelectItem>
+                          <SelectItem value="confirmed">مؤكد</SelectItem>
+                          <SelectItem value="processing">قيد التجهيز</SelectItem>
+                          <SelectItem value="shipped">قيد التوصيل</SelectItem>
+                          <SelectItem value="delivered">تم التوصيل</SelectItem>
+                          <SelectItem value="cancelled">ملغي</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {selectedOrder.status !== 'cancelled' && (
+                        <Button variant="outline" className="rounded-xl gap-2 text-red-600 hover:bg-red-50" onClick={async () => {
+                          if (confirm('هل أنت متأكد من إلغاء هذا الطلب؟')) {
+                            try {
+                              await fetch(`/api/orders/${selectedOrder.id}/status`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ status: 'cancelled' }),
+                              });
+                              toast({ title: 'تم إلغاء الطلب', className: 'bg-red-600 text-white' });
+                              queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+                              setSelectedOrder(null);
+                            } catch (error) {
+                              toast({ title: 'حدث خطأ', variant: 'destructive' });
+                            }
+                          }
+                        }}>
+                          <XCircle className="w-4 h-4" />إلغاء الطلب
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           {/* Customers Tab */}
