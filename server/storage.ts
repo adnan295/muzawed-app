@@ -88,6 +88,7 @@ export interface IStorage {
   // Categories
   getCategories(): Promise<Category[]>;
   createCategory(category: Omit<Category, 'id'>): Promise<Category>;
+  deleteCategory(id: number): Promise<void>;
 
   // Brands
   getBrands(): Promise<Brand[]>;
@@ -280,6 +281,10 @@ export class DatabaseStorage implements IStorage {
   async createCategory(category: Omit<Category, 'id'>): Promise<Category> {
     const [newCategory] = await db.insert(categories).values(category).returning();
     return newCategory;
+  }
+
+  async deleteCategory(id: number): Promise<void> {
+    await db.delete(categories).where(eq(categories.id, id));
   }
 
   // Brands

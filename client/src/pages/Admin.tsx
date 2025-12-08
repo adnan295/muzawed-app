@@ -186,6 +186,8 @@ export default function Admin() {
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [isAddStaffOpen, setIsAddStaffOpen] = useState(false);
   const [isAddCouponOpen, setIsAddCouponOpen] = useState(false);
+  const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
+  const [newCategory, setNewCategory] = useState({ name: '', icon: '📦', color: 'from-blue-400 to-blue-500' });
   const [isAddPromotionOpen, setIsAddPromotionOpen] = useState(false);
   const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -375,6 +377,36 @@ export default function Admin() {
         setNewProduct({ name: '', categoryId: '', brandId: '', price: '', originalPrice: '', image: '', minOrder: '1', unit: 'كرتون', stock: '100' });
         refetchProducts();
       }
+    } catch (error) {
+      toast({ title: 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const handleAddCategory = async () => {
+    try {
+      const response = await fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newCategory),
+      });
+
+      if (response.ok) {
+        toast({ title: 'تم إضافة القسم بنجاح', className: 'bg-green-600 text-white' });
+        setIsAddCategoryOpen(false);
+        setNewCategory({ name: '', icon: '📦', color: 'from-blue-400 to-blue-500' });
+        queryClient.invalidateQueries({ queryKey: ['categories'] });
+      }
+    } catch (error) {
+      toast({ title: 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteCategory = async (id: number) => {
+    if (!confirm('هل أنت متأكد من حذف هذا القسم؟')) return;
+    try {
+      await fetch(`/api/categories/${id}`, { method: 'DELETE' });
+      toast({ title: 'تم حذف القسم', className: 'bg-green-600 text-white' });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
     } catch (error) {
       toast({ title: 'حدث خطأ', variant: 'destructive' });
     }
@@ -1862,6 +1894,60 @@ export default function Admin() {
                   <p>لا توجد منتجات</p>
                 </div>
               )}
+            </Card>
+
+            {/* Categories Management */}
+            <Card className="p-6 border-none shadow-lg rounded-2xl mt-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="font-bold text-xl">إدارة الأقسام ({categories.length})</h3>
+                <Dialog open={isAddCategoryOpen} onOpenChange={setIsAddCategoryOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="rounded-xl gap-2" data-testid="button-add-category"><Plus className="w-4 h-4" />إضافة قسم</Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader><DialogTitle>إضافة قسم جديد</DialogTitle></DialogHeader>
+                    <div className="space-y-4 mt-4">
+                      <div>
+                        <Label>اسم القسم *</Label>
+                        <Input placeholder="مثال: مشروبات" value={newCategory.name} onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })} data-testid="input-category-name" />
+                      </div>
+                      <div>
+                        <Label>الأيقونة (إيموجي)</Label>
+                        <Input placeholder="📦" value={newCategory.icon} onChange={(e) => setNewCategory({ ...newCategory, icon: e.target.value })} data-testid="input-category-icon" />
+                      </div>
+                      <div>
+                        <Label>اللون</Label>
+                        <Select value={newCategory.color} onValueChange={(v) => setNewCategory({ ...newCategory, color: v })}>
+                          <SelectTrigger data-testid="select-category-color"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="from-blue-400 to-blue-500">أزرق</SelectItem>
+                            <SelectItem value="from-green-400 to-green-500">أخضر</SelectItem>
+                            <SelectItem value="from-red-400 to-red-500">أحمر</SelectItem>
+                            <SelectItem value="from-purple-400 to-purple-500">بنفسجي</SelectItem>
+                            <SelectItem value="from-orange-400 to-orange-500">برتقالي</SelectItem>
+                            <SelectItem value="from-pink-400 to-pink-500">وردي</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button className="w-full rounded-xl" onClick={handleAddCategory} disabled={!newCategory.name} data-testid="button-submit-category">
+                        <Plus className="w-4 h-4 ml-2" />إضافة القسم
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {categories.map((cat) => (
+                  <div key={cat.id} className={`p-4 rounded-2xl bg-gradient-to-br ${cat.color} text-white relative group`} data-testid={`category-card-${cat.id}`}>
+                    <div className="text-3xl mb-2">{cat.icon}</div>
+                    <p className="font-bold text-sm">{cat.name}</p>
+                    <Button size="icon" variant="ghost" className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/20 hover:bg-white/40 text-white w-7 h-7" 
+                      onClick={() => handleDeleteCategory(cat.id)} data-testid={`delete-category-${cat.id}`}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </Card>
           </TabsContent>
 
