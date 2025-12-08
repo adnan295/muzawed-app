@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ProductCardProps {
   product: Product;
@@ -45,74 +46,100 @@ export function ProductCard({ product }: ProductCardProps) {
     : 0;
 
   return (
-    <Card 
-      className="overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow group bg-white rounded-2xl cursor-pointer"
-      onClick={() => setLocation(`/product/${product.id}`)}
+    <motion.div
+      whileHover={{ y: -5 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: "spring", stiffness: 400, damping: 17 }}
     >
-      <div className="relative aspect-square bg-gray-50 p-4">
-        <img 
-          src={product.image} 
-          alt={product.name}
-          className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
-        />
-        {discount > 0 && (
-          <Badge className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 font-bold px-2 py-0.5 text-xs">
-            {discount}% خصم
-          </Badge>
-        )}
-        <div className="absolute bottom-2 left-2">
-           <Badge variant="secondary" className="bg-white/90 text-foreground backdrop-blur-sm text-[10px] shadow-sm border border-gray-100">
-             أقل كمية: {product.minOrder} {product.unit}
-           </Badge>
-        </div>
-      </div>
-      
-      <div className="p-3">
-        <h3 className="font-bold text-sm text-foreground line-clamp-2 min-h-[2.5rem] leading-snug mb-2">
-          {product.name}
-        </h3>
-        
-        <div className="flex items-baseline gap-2 mb-3">
-          <span className="text-primary font-bold text-lg">
-            {product.price} <span className="text-xs font-normal">ر.س</span>
-          </span>
-          {product.originalPrice && (
-            <span className="text-muted-foreground text-xs line-through decoration-red-400">
-              {product.originalPrice}
-            </span>
+      <Card 
+        className="overflow-hidden border-none shadow-sm hover:shadow-xl transition-all duration-300 group bg-white rounded-[1.5rem] cursor-pointer h-full flex flex-col justify-between"
+        onClick={() => setLocation(`/product/${product.id}`)}
+      >
+        <div className="relative aspect-square bg-gray-50/50 p-4">
+          <img 
+            src={product.image} 
+            alt={product.name}
+            className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-500"
+          />
+          {discount > 0 && (
+            <Badge className="absolute top-3 right-3 bg-red-500 hover:bg-red-600 font-bold px-2 py-1 text-xs shadow-lg shadow-red-500/20 animate-pulse">
+              {discount}% خصم
+            </Badge>
           )}
-        </div>
-
-        {quantity === 0 ? (
-          <Button 
-            onClick={handleIncrement}
-            className="w-full bg-gray-100 hover:bg-gray-200 text-foreground font-bold shadow-none h-9 rounded-xl border border-gray-200"
-          >
-            <Plus className="w-4 h-4 ml-1" />
-            أضف للسلة
-          </Button>
-        ) : (
-          <div className="flex items-center justify-between bg-primary/5 rounded-xl p-1 border border-primary/20">
-            <Button 
-              size="icon" 
-              variant="ghost" 
-              className="h-7 w-7 rounded-lg hover:bg-white text-primary"
-              onClick={handleIncrement}
-            >
-              <Plus className="w-4 h-4" />
-            </Button>
-            <span className="font-bold text-sm w-8 text-center tabular-nums">{quantity}</span>
-            <Button 
-              size="icon" 
-              variant="ghost" 
-              className="h-7 w-7 rounded-lg hover:bg-white text-destructive hover:text-destructive"
-              onClick={handleDecrement}
-            >
-              <Minus className="w-4 h-4" />
-            </Button>
+          <div className="absolute bottom-2 left-2">
+             <Badge variant="secondary" className="bg-white/80 text-foreground backdrop-blur-md text-[10px] shadow-sm border border-gray-100 font-bold">
+               {product.minOrder} {product.unit}
+             </Badge>
           </div>
-        )}
-      </div>
-    </Card>
+        </div>
+        
+        <div className="p-4 pt-2 flex flex-col flex-1">
+          <h3 className="font-bold text-sm text-foreground line-clamp-2 min-h-[2.5rem] leading-snug mb-2 group-hover:text-primary transition-colors">
+            {product.name}
+          </h3>
+          
+          <div className="flex items-baseline gap-2 mb-4 mt-auto">
+            <span className="text-primary font-black text-lg">
+              {product.price} <span className="text-xs font-normal text-muted-foreground">ر.س</span>
+            </span>
+            {product.originalPrice && (
+              <span className="text-muted-foreground text-xs line-through decoration-red-400 opacity-60">
+                {product.originalPrice}
+              </span>
+            )}
+          </div>
+
+          <AnimatePresence mode="wait">
+            {quantity === 0 ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <Button 
+                  onClick={handleIncrement}
+                  className="w-full bg-gray-100 hover:bg-primary hover:text-white text-foreground font-bold shadow-none h-10 rounded-xl border border-gray-200 transition-all duration-300"
+                >
+                  <Plus className="w-4 h-4 ml-1" />
+                  أضف للسلة
+                </Button>
+              </motion.div>
+            ) : (
+              <motion.div 
+                className="flex items-center justify-between bg-primary/5 rounded-xl p-1 border border-primary/20"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+              >
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="h-8 w-8 rounded-lg hover:bg-white text-primary hover:shadow-sm"
+                  onClick={handleIncrement}
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+                <motion.span 
+                  key={quantity}
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  className="font-bold text-sm w-8 text-center tabular-nums text-primary"
+                >
+                  {quantity}
+                </motion.span>
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="h-8 w-8 rounded-lg hover:bg-white text-destructive hover:text-destructive hover:shadow-sm"
+                  onClick={handleDecrement}
+                >
+                  <Minus className="w-4 h-4" />
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </Card>
+    </motion.div>
   );
 }
