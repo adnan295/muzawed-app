@@ -6,6 +6,7 @@ import { Product } from '@/lib/data';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { useLocation } from 'wouter';
 
 interface ProductCardProps {
   product: Product;
@@ -14,8 +15,10 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const [quantity, setQuantity] = useState(0);
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
-  const handleIncrement = () => {
+  const handleIncrement = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (quantity === 0) {
       setQuantity(product.minOrder);
       toast({
@@ -28,7 +31,8 @@ export function ProductCard({ product }: ProductCardProps) {
     }
   };
 
-  const handleDecrement = () => {
+  const handleDecrement = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (quantity > product.minOrder) {
       setQuantity(q => q - 1);
     } else {
@@ -41,7 +45,10 @@ export function ProductCard({ product }: ProductCardProps) {
     : 0;
 
   return (
-    <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow group bg-white rounded-2xl">
+    <Card 
+      className="overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow group bg-white rounded-2xl cursor-pointer"
+      onClick={() => setLocation(`/product/${product.id}`)}
+    >
       <div className="relative aspect-square bg-gray-50 p-4">
         <img 
           src={product.image} 
