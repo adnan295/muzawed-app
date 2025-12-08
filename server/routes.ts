@@ -651,6 +651,118 @@ export async function registerRoutes(
     }
   });
 
+  // Supplier Dashboard (detailed view with balance & transactions)
+  app.get("/api/suppliers/:id/dashboard", async (req, res) => {
+    try {
+      const dashboard = await storage.getSupplierDashboard(parseInt(req.params.id));
+      res.json(dashboard);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Supplier Transactions
+  app.get("/api/suppliers/:id/transactions", async (req, res) => {
+    try {
+      const transactions = await storage.getSupplierTransactions(parseInt(req.params.id));
+      res.json(transactions);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Record Supplier Import (goods received from supplier)
+  app.post("/api/suppliers/:id/import", async (req, res) => {
+    try {
+      const { warehouseId, productId, quantity, unitPrice, notes } = req.body;
+      if (!warehouseId || !productId || !quantity || !unitPrice) {
+        return res.status(400).json({ error: "يرجى تعبئة جميع الحقول المطلوبة" });
+      }
+      const transaction = await storage.recordSupplierImport({
+        supplierId: parseInt(req.params.id),
+        warehouseId,
+        productId,
+        quantity: parseInt(quantity),
+        unitPrice: String(unitPrice),
+        notes,
+      });
+      res.status(201).json(transaction);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Record Supplier Export (goods returned to supplier)
+  app.post("/api/suppliers/:id/export", async (req, res) => {
+    try {
+      const { warehouseId, productId, quantity, unitPrice, notes } = req.body;
+      if (!warehouseId || !productId || !quantity || !unitPrice) {
+        return res.status(400).json({ error: "يرجى تعبئة جميع الحقول المطلوبة" });
+      }
+      const transaction = await storage.recordSupplierExport({
+        supplierId: parseInt(req.params.id),
+        warehouseId,
+        productId,
+        quantity: parseInt(quantity),
+        unitPrice: String(unitPrice),
+        notes,
+      });
+      res.status(201).json(transaction);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Record Supplier Payment
+  app.post("/api/suppliers/:id/payment", async (req, res) => {
+    try {
+      const { amount, paymentMethod, referenceNumber, notes } = req.body;
+      if (!amount || !paymentMethod) {
+        return res.status(400).json({ error: "يرجى تعبئة المبلغ وطريقة الدفع" });
+      }
+      const transaction = await storage.recordSupplierPayment({
+        supplierId: parseInt(req.params.id),
+        amount: String(amount),
+        paymentMethod,
+        referenceNumber,
+        notes,
+      });
+      res.status(201).json(transaction);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Supplier Stock Positions
+  app.get("/api/suppliers/:id/stock", async (req, res) => {
+    try {
+      const stockPositions = await storage.getSupplierStockPositions(parseInt(req.params.id));
+      res.json(stockPositions);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Supplier Balance
+  app.get("/api/suppliers/:id/balance", async (req, res) => {
+    try {
+      const balance = await storage.getSupplierBalance(parseInt(req.params.id));
+      res.json(balance || { balance: "0", totalImports: "0", totalExports: "0", totalPayments: "0", totalStockValue: "0" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Recalculate Supplier Balance
+  app.post("/api/suppliers/:id/recalculate", async (req, res) => {
+    try {
+      const balance = await storage.recalculateSupplierBalance(parseInt(req.params.id));
+      res.json(balance);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ==================== Returns Routes ====================
   
   app.get("/api/returns", async (req, res) => {
