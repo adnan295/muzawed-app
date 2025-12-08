@@ -239,6 +239,35 @@ export interface IStorage {
   }>;
   getAllOrders(): Promise<Order[]>;
   getAllUsers(): Promise<User[]>;
+  getCustomerStats(): Promise<{
+    total: number;
+    newThisMonth: number;
+    vipCount: number;
+    activeCount: number;
+    inactiveCount: number;
+    avgCustomerValue: number;
+    retentionRate: number;
+    reorderRate: number;
+    satisfactionRate: number;
+    conversionRate: number;
+  }>;
+  getCustomerDetails(userId: number): Promise<{
+    user: User;
+    totalOrders: number;
+    totalSpent: number;
+    lastOrderDate: Date | null;
+    isVip: boolean;
+    isActive: boolean;
+  } | null>;
+  getTopCustomers(limit?: number): Promise<Array<{
+    user: User;
+    totalSpent: number;
+    orderCount: number;
+  }>>;
+  getCustomerGrowthData(): Promise<Array<{
+    month: string;
+    count: number;
+  }>>;
 
   // Notifications
   getNotifications(userId?: number, staffId?: number): Promise<Notification[]>;
@@ -878,6 +907,184 @@ export class DatabaseStorage implements IStorage {
 
   async getAllUsers(): Promise<User[]> {
     return await db.select().from(users).orderBy(desc(users.createdAt));
+  }
+
+  async getCustomerStats(): Promise<{
+    total: number;
+    newThisMonth: number;
+    vipCount: number;
+    activeCount: number;
+    inactiveCount: number;
+    avgCustomerValue: number;
+    retentionRate: number;
+    reorderRate: number;
+    satisfactionRate: number;
+    conversionRate: number;
+  }> {
+    const allUsers = await db.select().from(users);
+    const total = allUsers.length;
+    
+    // New this month
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const newThisMonth = allUsers.filter(u => new Date(u.createdAt!) >= startOfMonth).length;
+    
+    // Get all orders for analysis
+    const allOrders = await db.select().from(orders);
+    
+    // Calculate total spent per user
+    const userSpending: Record<number, number> = {};
+    const userOrderCount: Record<number, number> = {};
+    const userLastOrder: Record<number, Date> = {};
+    
+    for (const order of allOrders) {
+      if (!userSpending[order.userId]) {
+        userSpending[order.userId] = 0;
+        userOrderCount[order.userId] = 0;
+      }
+      userSpending[order.userId] += parseFloat(order.total);
+      userOrderCount[order.userId]++;
+      const orderDate = new Date(order.createdAt!);
+      if (!userLastOrder[order.userId] || orderDate > userLastOrder[order.userId]) {
+        userLastOrder[order.userId] = orderDate;
+      }
+    }
+    
+    // VIP customers: spent > 500,000 SYP
+    const vipThreshold = 500000;
+    const vipCount = Object.values(userSpending).filter(spent => spent >= vipThreshold).length;
+    
+    // Active: ordered in last 30 days
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const activeCount = Object.entries(userLastOrder).filter(([_, date]) => date >= thirtyDaysAgo).length;
+    
+    // Inactive: no orders in 90 days
+    const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    const usersWithOrders = new Set(Object.keys(userLastOrder).map(Number));
+    const inactiveFromOrders = Object.entries(userLastOrder).filter(([_, date]) => date < ninetyDaysAgo).length;
+    const neverOrdered = allUsers.filter(u => !usersWithOrders.has(u.id)).length;
+    const inactiveCount = inactiveFromOrders + neverOrdered;
+    
+    // Average customer value
+    const totalSpent = Object.values(userSpending).reduce((sum, val) => sum + val, 0);
+    const avgCustomerValue = total > 0 ? Math.round(totalSpent / total) : 0;
+    
+    // Retention rate: users with more than 1 order
+    const retainedUsers = Object.values(userOrderCount).filter(count => count > 1).length;
+    const retentionRate = usersWithOrders.size > 0 ? Math.round((retainedUsers / usersWithOrders.size) * 100) : 0;
+    
+    // Reorder rate
+    const reorderRate = retentionRate;
+    
+    // Satisfaction rate (placeholder - would need reviews system)
+    const satisfactionRate = 92;
+    
+    // Conversion rate: users who ordered / total users
+    const conversionRate = total > 0 ? Math.round((usersWithOrders.size / total) * 100) : 0;
+    
+    return {
+      total,
+      newThisMonth,
+      vipCount,
+      activeCount,
+      inactiveCount,
+      avgCustomerValue,
+      retentionRate,
+      reorderRate,
+      satisfactionRate,
+      conversionRate,
+    };
+  }
+
+  async getCustomerDetails(userId: number): Promise<{
+    user: User;
+    totalOrders: number;
+    totalSpent: number;
+    lastOrderDate: Date | null;
+    isVip: boolean;
+    isActive: boolean;
+  } | null> {
+    const user = await this.getUser(userId);
+    if (!user) return null;
+    
+    const userOrders = await db.select().from(orders).where(eq(orders.userId, userId));
+    const totalOrders = userOrders.length;
+    const totalSpent = userOrders.reduce((sum, o) => sum + parseFloat(o.total), 0);
+    
+    let lastOrderDate: Date | null = null;
+    for (const order of userOrders) {
+      const orderDate = new Date(order.createdAt!);
+      if (!lastOrderDate || orderDate > lastOrderDate) {
+        lastOrderDate = orderDate;
+      }
+    }
+    
+    const vipThreshold = 500000;
+    const isVip = totalSpent >= vipThreshold;
+    
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const isActive = lastOrderDate ? lastOrderDate >= thirtyDaysAgo : false;
+    
+    return { user, totalOrders, totalSpent, lastOrderDate, isVip, isActive };
+  }
+
+  async getTopCustomers(limit: number = 10): Promise<Array<{
+    user: User;
+    totalSpent: number;
+    orderCount: number;
+  }>> {
+    const allUsers = await db.select().from(users);
+    const allOrders = await db.select().from(orders);
+    
+    const userStats: Record<number, { totalSpent: number; orderCount: number }> = {};
+    
+    for (const order of allOrders) {
+      if (!userStats[order.userId]) {
+        userStats[order.userId] = { totalSpent: 0, orderCount: 0 };
+      }
+      userStats[order.userId].totalSpent += parseFloat(order.total);
+      userStats[order.userId].orderCount++;
+    }
+    
+    const userMap = new Map(allUsers.map(u => [u.id, u]));
+    
+    return Object.entries(userStats)
+      .sort(([, a], [, b]) => b.totalSpent - a.totalSpent)
+      .slice(0, limit)
+      .map(([userId, stats]) => ({
+        user: userMap.get(Number(userId))!,
+        totalSpent: stats.totalSpent,
+        orderCount: stats.orderCount,
+      }))
+      .filter(item => item.user);
+  }
+
+  async getCustomerGrowthData(): Promise<Array<{ month: string; count: number }>> {
+    const allUsers = await db.select().from(users);
+    const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+    
+    const monthCounts: Record<string, number> = {};
+    const now = new Date();
+    
+    // Initialize last 6 months
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      monthCounts[key] = 0;
+    }
+    
+    for (const user of allUsers) {
+      const d = new Date(user.createdAt!);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      if (key in monthCounts) {
+        monthCounts[key]++;
+      }
+    }
+    
+    return Object.entries(monthCounts).map(([key, count]) => {
+      const [year, month] = key.split('-').map(Number);
+      return { month: monthNames[month], count };
+    });
   }
 
   // Notifications

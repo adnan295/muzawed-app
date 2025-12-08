@@ -189,6 +189,18 @@ export const returnsAPI = {
   getStats: () => request("/returns/stats"),
 };
 
+// Customers API
+export const customersAPI = {
+  getStats: () => request("/admin/customers/stats"),
+  getTopCustomers: (limit?: number) => request(`/admin/customers/top${limit ? `?limit=${limit}` : ''}`),
+  getGrowthData: () => request("/admin/customers/growth"),
+  getDetails: (id: number) => request(`/admin/customers/${id}/details`),
+  create: (data: any) => request("/admin/customers", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+};
+
 // Shipments API
 export const shipmentsAPI = {
   getAll: () => request("/shipments"),

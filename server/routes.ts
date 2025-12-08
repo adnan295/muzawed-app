@@ -1084,6 +1084,58 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== Customer Statistics Routes ====================
+
+  app.get("/api/admin/customers/stats", async (req, res) => {
+    try {
+      const stats = await storage.getCustomerStats();
+      res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/customers/top", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const topCustomers = await storage.getTopCustomers(limit);
+      res.json(topCustomers);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/customers/growth", async (req, res) => {
+    try {
+      const growthData = await storage.getCustomerGrowthData();
+      res.json(growthData);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/customers/:id/details", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const details = await storage.getCustomerDetails(userId);
+      if (!details) {
+        return res.status(404).json({ error: "العميل غير موجود" });
+      }
+      res.json(details);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/admin/customers", async (req, res) => {
+    try {
+      const newUser = await storage.createUser(req.body);
+      res.status(201).json(newUser);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.put("/api/users/:id", async (req, res) => {
     try {
       const userId = parseInt(req.params.id);

@@ -30,7 +30,7 @@ import {
   GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight, LogOut
 } from 'lucide-react';
 import { Link } from 'wouter';
-import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI } from '@/lib/api';
+import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart, Line, Legend, ComposedChart, RadialBarChart, RadialBar, Treemap, FunnelChart, Funnel, LabelList } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -384,6 +384,44 @@ export default function Admin() {
   const { data: returnsList = [], refetch: refetchReturns } = useQuery<ReturnRequest[]>({
     queryKey: ['returns'],
     queryFn: () => returnsAPI.getAll() as Promise<ReturnRequest[]>,
+  });
+
+  // Customer Stats Queries
+  const { data: customerStats } = useQuery({
+    queryKey: ['customerStats'],
+    queryFn: () => customersAPI.getStats(),
+  });
+
+  const { data: topCustomers = [] } = useQuery({
+    queryKey: ['topCustomers'],
+    queryFn: () => customersAPI.getTopCustomers(5),
+  });
+
+  const { data: customerGrowthData = [] } = useQuery({
+    queryKey: ['customerGrowth'],
+    queryFn: () => customersAPI.getGrowthData(),
+  });
+
+  // Customer search and filter state
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [customerStatusFilter, setCustomerStatusFilter] = useState('all');
+  const [customerCityFilter, setCustomerCityFilter] = useState('all');
+  const [showAddCustomerDialog, setShowAddCustomerDialog] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({
+    phone: '',
+    password: '',
+    facilityName: '',
+    commercialRegister: '',
+    taxNumber: '',
+    cityId: 0,
+  });
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+  const [showCustomerDetails, setShowCustomerDetails] = useState(false);
+
+  const { data: customerDetails } = useQuery({
+    queryKey: ['customerDetails', selectedCustomerId],
+    queryFn: () => selectedCustomerId ? customersAPI.getDetails(selectedCustomerId) : null,
+    enabled: !!selectedCustomerId,
   });
 
   useEffect(() => {
