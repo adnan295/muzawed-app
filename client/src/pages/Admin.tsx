@@ -30,7 +30,7 @@ import {
   GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight, LogOut, MousePointer, EyeOff
 } from 'lucide-react';
 import { Link } from 'wouter';
-import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI, bannersAPI, segmentsAPI, suppliersAPI } from '@/lib/api';
+import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI, bannersAPI, segmentsAPI, suppliersAPI, reportsAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart, Line, Legend, ComposedChart, RadialBarChart, RadialBar, Treemap, FunnelChart, Funnel, LabelList } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -395,6 +395,12 @@ export default function Admin() {
   const { data: suppliersList = [], refetch: refetchSuppliers } = useQuery<any[]>({
     queryKey: ['suppliers'],
     queryFn: () => suppliersAPI.getAll() as Promise<any[]>,
+  });
+
+  // Product Profit Report Query
+  const { data: profitReport, isLoading: profitReportLoading, refetch: refetchProfitReport } = useQuery({
+    queryKey: ['productProfitReport'],
+    queryFn: () => reportsAPI.getProductProfit(),
   });
 
   // Customer Stats Queries
@@ -4054,84 +4060,177 @@ export default function Admin() {
           {/* Reports Tab */}
           <TabsContent value="reports">
             <div className="space-y-6">
-              <Card className="p-6 border-none shadow-lg rounded-2xl">
-                <div className="flex items-center justify-between mb-6">
+              {/* Header with Profit Report Title */}
+              <Card className="p-6 border-none shadow-lg rounded-2xl bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 text-white">
+                <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-bold text-xl flex items-center gap-2"><FileText className="w-5 h-5 text-blue-500" />التقارير والتصدير</h3>
-                    <p className="text-gray-500 text-sm mt-1">إنشاء وتصدير التقارير المتقدمة</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" className="rounded-xl gap-2"><RefreshCw className="w-4 h-4" />تحديث البيانات</Button>
-                    <Button className="rounded-xl gap-2"><Download className="w-4 h-4" />تصدير الكل</Button>
-                  </div>
-                </div>
-
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                  {[
-                    { title: 'تقرير المبيعات', icon: DollarSign, color: 'from-green-500 to-emerald-600', value: '٢,٤٥٠,٠٠٠', change: '+15%' },
-                    { title: 'تقرير المخزون', icon: Package, color: 'from-blue-500 to-cyan-600', value: '٣,٥٤٢ منتج', change: '+8%' },
-                    { title: 'تقرير العملاء', icon: Users, color: 'from-purple-500 to-violet-600', value: '٩,٨٧٦ عميل', change: '+22%' },
-                    { title: 'تقرير الطلبات', icon: ClipboardList, color: 'from-orange-500 to-amber-600', value: '١٢,٣٤٥ طلب', change: '+18%' },
-                  ].map((report, index) => (
-                    <div key={index} className="bg-gray-50 rounded-2xl p-5 border border-gray-100 hover:shadow-md transition-all cursor-pointer group">
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${report.color} flex items-center justify-center text-white mb-3 group-hover:scale-110 transition-transform`}>
-                        <report.icon className="w-6 h-6" />
+                    <h3 className="font-bold text-2xl flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                        <TrendingUp className="w-6 h-6" />
                       </div>
-                      <h4 className="font-bold">{report.title}</h4>
-                      <p className="text-2xl font-bold text-gray-900 mt-2">{report.value}</p>
-                      <p className="text-sm text-green-600 flex items-center gap-1 mt-1"><TrendingUp className="w-3 h-3" />{report.change} من الشهر السابق</p>
-                      <div className="flex gap-2 mt-3">
-                        <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1" data-testid={`button-export-pdf-${index}`}><File className="w-3 h-3" />PDF</Button>
-                        <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1" data-testid={`button-export-excel-${index}`}><FileSpreadsheet className="w-3 h-3" />Excel</Button>
-                      </div>
-                    </div>
-                  ))}
+                      تقرير الأرباح والخسائر
+                    </h3>
+                    <p className="text-purple-200 mt-2">تحليل شامل لأرباح المنتجات بناءً على بيانات المبيعات وتكلفة الموردين</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <Button 
+                      variant="outline" 
+                      className="rounded-xl gap-2 bg-white/10 border-white/30 text-white hover:bg-white/20"
+                      onClick={() => refetchProfitReport()}
+                      data-testid="button-refresh-profit-report"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${profitReportLoading ? 'animate-spin' : ''}`} />
+                      تحديث
+                    </Button>
+                    <Button className="rounded-xl gap-2 bg-white text-purple-600 hover:bg-purple-50" data-testid="button-export-profit-report">
+                      <Download className="w-4 h-4" />تصدير التقرير
+                    </Button>
+                  </div>
                 </div>
               </Card>
 
+              {/* KPI Summary Cards */}
+              <div className="grid md:grid-cols-2 lg:grid-cols-6 gap-4">
+                <Card className="p-5 border-none shadow-lg rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 border-l-4 border-l-green-500">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
+                      <DollarSign className="w-6 h-6 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">إجمالي الإيرادات</p>
+                      <p className="text-2xl font-bold text-green-700" data-testid="text-total-revenue">
+                        {profitReport?.summary.totalRevenue.toLocaleString('ar-SY') || 0} ل.س
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-5 border-none shadow-lg rounded-2xl bg-gradient-to-br from-red-50 to-rose-50 border-l-4 border-l-red-500">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center">
+                      <TrendingDown className="w-6 h-6 text-red-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">إجمالي التكلفة</p>
+                      <p className="text-2xl font-bold text-red-700" data-testid="text-total-cost">
+                        {profitReport?.summary.totalCost.toLocaleString('ar-SY') || 0} ل.س
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className={`p-5 border-none shadow-lg rounded-2xl border-l-4 ${(profitReport?.summary.totalProfit || 0) >= 0 ? 'bg-gradient-to-br from-emerald-50 to-teal-50 border-l-emerald-500' : 'bg-gradient-to-br from-orange-50 to-amber-50 border-l-orange-500'}`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${(profitReport?.summary.totalProfit || 0) >= 0 ? 'bg-emerald-100' : 'bg-orange-100'}`}>
+                      {(profitReport?.summary.totalProfit || 0) >= 0 ? 
+                        <TrendingUp className="w-6 h-6 text-emerald-600" /> : 
+                        <TrendingDown className="w-6 h-6 text-orange-600" />
+                      }
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">صافي الربح</p>
+                      <p className={`text-2xl font-bold ${(profitReport?.summary.totalProfit || 0) >= 0 ? 'text-emerald-700' : 'text-orange-700'}`} data-testid="text-total-profit">
+                        {profitReport?.summary.totalProfit.toLocaleString('ar-SY') || 0} ل.س
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-5 border-none shadow-lg rounded-2xl bg-gradient-to-br from-purple-50 to-violet-50 border-l-4 border-l-purple-500">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
+                      <Percent className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">هامش الربح</p>
+                      <p className="text-2xl font-bold text-purple-700" data-testid="text-avg-margin">
+                        {(profitReport?.summary.avgMargin || 0).toFixed(1)}%
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-5 border-none shadow-lg rounded-2xl bg-gradient-to-br from-blue-50 to-cyan-50 border-l-4 border-l-blue-500">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+                      <ShoppingCart className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">الكمية المباعة</p>
+                      <p className="text-2xl font-bold text-blue-700" data-testid="text-sold-qty">
+                        {profitReport?.summary.totalSoldQty.toLocaleString('ar-SY') || 0}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-5 border-none shadow-lg rounded-2xl bg-gradient-to-br from-amber-50 to-yellow-50 border-l-4 border-l-amber-500">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center">
+                      <Package className="w-6 h-6 text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">المخزون الحالي</p>
+                      <p className="text-2xl font-bold text-amber-700" data-testid="text-stock-qty">
+                        {profitReport?.summary.totalStockQty.toLocaleString('ar-SY') || 0}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Profit Charts */}
               <div className="grid lg:grid-cols-2 gap-6">
                 <Card className="p-6 border-none shadow-lg rounded-2xl">
                   <div className="flex items-center justify-between mb-4">
-                    <h4 className="font-bold flex items-center gap-2"><BarChart3 className="w-5 h-5 text-blue-500" />تحليل المبيعات الشهري</h4>
-                    <Select defaultValue="2024">
-                      <SelectTrigger className="w-32 rounded-xl"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="2024">2024</SelectItem>
-                        <SelectItem value="2023">2023</SelectItem>
-                        <SelectItem value="2022">2022</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <h4 className="font-bold flex items-center gap-2"><BarChart3 className="w-5 h-5 text-purple-500" />أفضل 10 منتجات ربحاً</h4>
                   </div>
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <ComposedChart data={salesData}>
+                      <BarChart data={profitReport?.breakdown.slice(0, 10).map(p => ({
+                        name: p.productName.length > 15 ? p.productName.substring(0, 15) + '...' : p.productName,
+                        profit: p.profit,
+                        revenue: p.revenue,
+                        cost: p.cost
+                      })) || []} layout="vertical">
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis dataKey="name" stroke="#888" fontSize={12} />
-                        <YAxis yAxisId="left" stroke="#888" fontSize={12} />
-                        <YAxis yAxisId="right" orientation="right" stroke="#888" fontSize={12} />
-                        <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                        <XAxis type="number" stroke="#888" fontSize={10} />
+                        <YAxis dataKey="name" type="category" width={100} stroke="#888" fontSize={10} />
+                        <Tooltip 
+                          contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                          formatter={(value: number) => `${value.toLocaleString('ar-SY')} ل.س`}
+                        />
                         <Legend />
-                        <Bar yAxisId="left" dataKey="sales" name="المبيعات" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                        <Line yAxisId="right" type="monotone" dataKey="orders" name="الطلبات" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981' }} />
-                      </ComposedChart>
+                        <Bar dataKey="profit" name="الربح" fill="#10b981" radius={[0, 4, 4, 0]} />
+                      </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </Card>
 
                 <Card className="p-6 border-none shadow-lg rounded-2xl">
                   <div className="flex items-center justify-between mb-4">
-                    <h4 className="font-bold flex items-center gap-2"><PieChart className="w-5 h-5 text-purple-500" />توزيع المبيعات حسب الفئة</h4>
-                    <Button variant="outline" size="sm" className="rounded-xl gap-1"><Download className="w-3 h-3" />تصدير</Button>
+                    <h4 className="font-bold flex items-center gap-2"><PieChart className="w-5 h-5 text-blue-500" />الإيرادات مقابل التكلفة</h4>
                   </div>
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <RechartsPie>
-                        <Pie data={categoryPieData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={5} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                          {categoryPieData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
+                        <Pie 
+                          data={[
+                            { name: 'الإيرادات', value: profitReport?.summary.totalRevenue || 0, color: '#10b981' },
+                            { name: 'التكلفة', value: profitReport?.summary.totalCost || 0, color: '#ef4444' },
+                          ]} 
+                          cx="50%" 
+                          cy="50%" 
+                          innerRadius={60} 
+                          outerRadius={100} 
+                          paddingAngle={5} 
+                          dataKey="value" 
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        >
+                          <Cell fill="#10b981" />
+                          <Cell fill="#ef4444" />
                         </Pie>
-                        <Tooltip />
+                        <Tooltip formatter={(value: number) => `${value.toLocaleString('ar-SY')} ل.س`} />
                         <Legend />
                       </RechartsPie>
                     </ResponsiveContainer>
@@ -4139,133 +4238,97 @@ export default function Admin() {
                 </Card>
               </div>
 
-              <div className="grid lg:grid-cols-2 gap-6">
-                <Card className="p-6 border-none shadow-lg rounded-2xl">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="font-bold flex items-center gap-2"><Activity className="w-5 h-5 text-green-500" />الأداء اليومي</h4>
-                    <Badge className="bg-green-100 text-green-700">مباشر</Badge>
-                  </div>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={hourlyData}>
-                        <defs>
-                          <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis dataKey="hour" stroke="#888" fontSize={10} />
-                        <YAxis stroke="#888" fontSize={10} />
-                        <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                        <Area type="monotone" dataKey="revenue" name="الإيرادات" stroke="#10b981" fillOpacity={1} fill="url(#colorRevenue)" strokeWidth={2} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Card>
-
-                <Card className="p-6 border-none shadow-lg rounded-2xl">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="font-bold flex items-center gap-2"><Target className="w-5 h-5 text-orange-500" />قمع التحويل</h4>
-                    <Button variant="outline" size="sm" className="rounded-xl gap-1"><Eye className="w-3 h-3" />التفاصيل</Button>
-                  </div>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <FunnelChart>
-                        <Tooltip />
-                        <Funnel dataKey="value" data={funnelData} isAnimationActive>
-                          <LabelList position="center" fill="#fff" stroke="none" dataKey="name" />
-                        </Funnel>
-                      </FunnelChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Card>
-              </div>
-
+              {/* Product Profit Breakdown Table */}
               <Card className="p-6 border-none shadow-lg rounded-2xl">
-                <h4 className="font-bold mb-4 flex items-center gap-2"><Settings className="w-5 h-5 text-gray-500" />تقرير مخصص</h4>
-                <div className="grid md:grid-cols-5 gap-4">
+                <div className="flex items-center justify-between mb-6">
                   <div>
-                    <Label>نوع التقرير</Label>
-                    <Select>
-                      <SelectTrigger className="rounded-xl mt-1" data-testid="select-report-type"><SelectValue placeholder="اختر" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="sales">المبيعات</SelectItem>
-                        <SelectItem value="inventory">المخزون</SelectItem>
-                        <SelectItem value="customers">العملاء</SelectItem>
-                        <SelectItem value="financial">المالي</SelectItem>
-                        <SelectItem value="orders">الطلبات</SelectItem>
-                        <SelectItem value="products">المنتجات</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <h4 className="font-bold text-xl flex items-center gap-2">
+                      <Package className="w-5 h-5 text-blue-500" />
+                      تفاصيل أرباح المنتجات
+                    </h4>
+                    <p className="text-gray-500 text-sm mt-1">{profitReport?.breakdown.length || 0} منتج</p>
                   </div>
-                  <div>
-                    <Label>من تاريخ</Label>
-                    <Input type="date" className="rounded-xl mt-1" data-testid="input-date-from" />
-                  </div>
-                  <div>
-                    <Label>إلى تاريخ</Label>
-                    <Input type="date" className="rounded-xl mt-1" data-testid="input-date-to" />
-                  </div>
-                  <div>
-                    <Label>التجميع</Label>
-                    <Select>
-                      <SelectTrigger className="rounded-xl mt-1" data-testid="select-grouping"><SelectValue placeholder="اختر" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="daily">يومي</SelectItem>
-                        <SelectItem value="weekly">أسبوعي</SelectItem>
-                        <SelectItem value="monthly">شهري</SelectItem>
-                        <SelectItem value="yearly">سنوي</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>الصيغة</Label>
-                    <Select>
-                      <SelectTrigger className="rounded-xl mt-1" data-testid="select-format"><SelectValue placeholder="اختر" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pdf">PDF</SelectItem>
-                        <SelectItem value="excel">Excel (.xlsx)</SelectItem>
-                        <SelectItem value="csv">CSV</SelectItem>
-                        <SelectItem value="json">JSON</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="flex gap-3 mt-4">
-                  <Button className="rounded-xl gap-2" data-testid="button-generate-report"><Download className="w-4 h-4" />إنشاء التقرير</Button>
-                  <Button variant="outline" className="rounded-xl gap-2" data-testid="button-schedule-report"><Calendar className="w-4 h-4" />جدولة التقرير</Button>
-                  <Button variant="outline" className="rounded-xl gap-2" data-testid="button-email-report"><Mail className="w-4 h-4" />إرسال بالبريد</Button>
-                </div>
-              </Card>
-
-              <Card className="p-6 border-none shadow-lg rounded-2xl">
-                <h4 className="font-bold mb-4 flex items-center gap-2"><ClipboardList className="w-5 h-5 text-blue-500" />التقارير المجدولة</h4>
-                <div className="space-y-3">
-                  {[
-                    { name: 'تقرير المبيعات اليومي', schedule: 'يومياً - 9:00 ص', recipients: 'ahmed@sary.sa, sara@sary.sa', status: 'active' },
-                    { name: 'تقرير المخزون الأسبوعي', schedule: 'أسبوعياً - الأحد', recipients: 'warehouse@sary.sa', status: 'active' },
-                    { name: 'تقرير الأداء الشهري', schedule: 'شهرياً - اليوم الأول', recipients: 'management@sary.sa', status: 'paused' },
-                  ].map((report, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                          <FileText className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <p className="font-bold">{report.name}</p>
-                          <p className="text-sm text-gray-500">{report.schedule} • {report.recipients}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Badge className={report.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>
-                          {report.status === 'active' ? 'نشط' : 'متوقف'}
-                        </Badge>
-                        <Button variant="outline" size="sm" className="rounded-lg"><Edit className="w-4 h-4" /></Button>
-                        <Button variant="outline" size="sm" className="rounded-lg text-red-500 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button>
-                      </div>
+                  <div className="flex gap-2">
+                    <div className="relative">
+                      <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Input className="pr-10 w-64 bg-gray-50 border-none rounded-xl" placeholder="بحث عن منتج..." data-testid="input-search-profit" />
                     </div>
-                  ))}
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-right border-b border-gray-200 bg-gray-50">
+                        <th className="p-4 font-bold text-gray-600 rounded-tr-xl">المنتج</th>
+                        <th className="p-4 font-bold text-gray-600">الفئة</th>
+                        <th className="p-4 font-bold text-gray-600">المخزون</th>
+                        <th className="p-4 font-bold text-gray-600">المباع</th>
+                        <th className="p-4 font-bold text-gray-600">سعر البيع</th>
+                        <th className="p-4 font-bold text-gray-600">سعر التكلفة</th>
+                        <th className="p-4 font-bold text-gray-600">الإيرادات</th>
+                        <th className="p-4 font-bold text-gray-600">التكلفة</th>
+                        <th className="p-4 font-bold text-gray-600">الربح</th>
+                        <th className="p-4 font-bold text-gray-600 rounded-tl-xl">الهامش</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {profitReportLoading ? (
+                        <tr>
+                          <td colSpan={10} className="p-8 text-center">
+                            <RefreshCw className="w-8 h-8 animate-spin mx-auto text-purple-500" />
+                            <p className="text-gray-500 mt-2">جاري تحميل البيانات...</p>
+                          </td>
+                        </tr>
+                      ) : profitReport?.breakdown.length === 0 ? (
+                        <tr>
+                          <td colSpan={10} className="p-8 text-center text-gray-500">
+                            لا توجد بيانات مبيعات حتى الآن
+                          </td>
+                        </tr>
+                      ) : (
+                        profitReport?.breakdown.map((product, index) => (
+                          <tr key={product.productId} className="border-b border-gray-100 hover:bg-gray-50 transition-colors" data-testid={`row-product-profit-${product.productId}`}>
+                            <td className="p-4">
+                              <div className="flex items-center gap-3">
+                                {product.productImage ? (
+                                  <img src={product.productImage} alt={product.productName} className="w-10 h-10 rounded-lg object-cover" />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                                    <Package className="w-5 h-5 text-gray-400" />
+                                  </div>
+                                )}
+                                <span className="font-medium">{product.productName}</span>
+                              </div>
+                            </td>
+                            <td className="p-4">
+                              <Badge variant="outline" className="rounded-lg">{product.categoryName || '-'}</Badge>
+                            </td>
+                            <td className="p-4 font-medium">{product.stockQty.toLocaleString('ar-SY')}</td>
+                            <td className="p-4">
+                              <span className={`font-medium ${product.soldQty > 0 ? 'text-blue-600' : 'text-gray-400'}`}>
+                                {product.soldQty.toLocaleString('ar-SY')}
+                              </span>
+                            </td>
+                            <td className="p-4 font-medium">{parseFloat(product.salePrice).toLocaleString('ar-SY')} ل.س</td>
+                            <td className="p-4 font-medium text-red-600">{product.avgCostPrice.toLocaleString('ar-SY')} ل.س</td>
+                            <td className="p-4 font-medium text-green-600">{product.revenue.toLocaleString('ar-SY')} ل.س</td>
+                            <td className="p-4 font-medium text-red-600">{product.cost.toLocaleString('ar-SY')} ل.س</td>
+                            <td className="p-4">
+                              <span className={`font-bold ${product.profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                {product.profit >= 0 ? '+' : ''}{product.profit.toLocaleString('ar-SY')} ل.س
+                              </span>
+                            </td>
+                            <td className="p-4">
+                              <Badge className={`rounded-lg ${product.margin >= 20 ? 'bg-green-100 text-green-700' : product.margin >= 10 ? 'bg-yellow-100 text-yellow-700' : product.margin > 0 ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-700'}`}>
+                                {product.margin.toFixed(1)}%
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </Card>
             </div>

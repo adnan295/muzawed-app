@@ -177,9 +177,50 @@ Shopping & Orders:
 - Positive balance = amount owed to supplier
 - Stock value calculated from quantity × average cost
 
+## Product Profit/Loss Report System
+
+**API Endpoint**
+- `GET /api/reports/product-profit` - Returns comprehensive profit/loss analysis for all products
+
+**Report Summary Data**
+- `totalRevenue`: Sum of all sales revenue (sale price × quantity sold)
+- `totalCost`: Sum of all supplier costs (cost price × quantity sold)
+- `totalProfit`: Net profit (revenue - cost)
+- `avgMargin`: Average profit margin percentage
+- `totalSoldQty`: Total quantity of products sold
+- `totalStockQty`: Total products in stock
+
+**Product Breakdown Data (per product)**
+- `productId`, `productName`, `productImage`, `categoryName`
+- `stockQty`: Current stock quantity
+- `soldQty`: Total quantity sold
+- `remainingQty`: Current remaining stock
+- `revenue`: Total revenue from this product
+- `cost`: Total supplier cost for sold units
+- `profit`: Net profit (revenue - cost)
+- `margin`: Profit margin percentage
+- `salePrice`: Current sale price
+- `avgCostPrice`: Average supplier cost price
+
+**Automatic Sales Allocation**
+- When an order is created, the system automatically allocates sales to supplier accounts
+- Uses FIFO (First In, First Out) approach to select supplier stock positions
+- Records 'sale' transactions in supplier_transactions using the **supplier's original cost price** (avgCost), not the sale price
+- This enables accurate profit margin calculation
+
+**Admin Dashboard Reports Tab**
+- World-class UI with gradient header and 6 real-time KPI cards
+- Interactive charts: Top 10 products by profit (bar chart), Revenue vs Cost pie chart
+- Detailed product-by-product breakdown table with all profit metrics
+- Color-coded profit margins: green (≥20%), yellow (≥10%), orange (<10%)
+- Refresh button to update data in real-time
+
 ## Recent Updates
 
 **December 2024**
+- Added Product Profit/Loss Report with real-time data from supplier transactions
+- Automatic sales allocation to supplier accounts when orders are placed
+- World-class Reports tab UI with KPIs, charts, and detailed breakdown table
 - Added multi-warehouse architecture with cities and warehouses management
 - Admin dashboard: Cities and Warehouses tab with real data CRUD operations
 - Customer city selection: Users can select their city in Profile, products filter by city's warehouse

@@ -1787,6 +1787,153 @@ export class DatabaseStorage implements IStorage {
   async clearBannerProducts(bannerId: number): Promise<void> {
     await db.delete(bannerProducts).where(eq(bannerProducts.bannerId, bannerId));
   }
+
+  // Product Profit Report - تقرير أرباح المنتجات
+  async getProductProfitReport(): Promise<{
+    summary: {
+      totalRevenue: number;
+      totalCost: number;
+      totalProfit: number;
+      avgMargin: number;
+      totalSoldQty: number;
+      totalStockQty: number;
+    };
+    breakdown: Array<{
+      productId: number;
+      productName: string;
+      productImage: string | null;
+      categoryName: string | null;
+      stockQty: number;
+      soldQty: number;
+      remainingQty: number;
+      revenue: number;
+      cost: number;
+      profit: number;
+      margin: number;
+      salePrice: string;
+      avgCostPrice: number;
+    }>;
+  }> {
+    // Get all products with their categories
+    const allProducts = await db.select({
+      id: products.id,
+      name: products.name,
+      image: products.image,
+      price: products.price,
+      stock: products.stock,
+      categoryId: products.categoryId,
+    }).from(products);
+
+    // Get categories for lookup
+    const allCategories = await db.select().from(categories);
+    const categoryMap = new Map(allCategories.map(c => [c.id, c.name]));
+
+    // Get all sale transactions from supplier_transactions
+    const saleTransactions = await db.select({
+      productId: supplierTransactions.productId,
+      quantity: supplierTransactions.quantity,
+      unitPrice: supplierTransactions.unitPrice,
+      totalAmount: supplierTransactions.totalAmount,
+    }).from(supplierTransactions)
+      .where(eq(supplierTransactions.type, 'sale'));
+
+    // Get all order items for revenue calculation (actual sale prices)
+    const allOrderItems = await db.select({
+      productId: orderItems.productId,
+      quantity: orderItems.quantity,
+      price: orderItems.price,
+    }).from(orderItems)
+      .innerJoin(orders, eq(orderItems.orderId, orders.id));
+
+    // Aggregate sales by product
+    const productSales = new Map<number, { soldQty: number; revenue: number; cost: number }>();
+
+    // Calculate revenue from order items (actual sale price)
+    for (const item of allOrderItems) {
+      const current = productSales.get(item.productId) || { soldQty: 0, revenue: 0, cost: 0 };
+      current.soldQty += item.quantity;
+      current.revenue += item.quantity * parseFloat(item.price);
+      productSales.set(item.productId, current);
+    }
+
+    // Calculate cost from supplier sale transactions (supplier cost price)
+    for (const tx of saleTransactions) {
+      if (!tx.productId) continue;
+      const current = productSales.get(tx.productId) || { soldQty: 0, revenue: 0, cost: 0 };
+      current.cost += parseFloat(tx.totalAmount || '0');
+      productSales.set(tx.productId, current);
+    }
+
+    // Get supplier stock positions for average cost
+    const stockPositions = await db.select({
+      productId: supplierStockPositions.productId,
+      avgCost: supplierStockPositions.avgCost,
+      quantity: supplierStockPositions.quantity,
+    }).from(supplierStockPositions);
+
+    // Map average cost by product (weighted average if multiple suppliers)
+    const productAvgCost = new Map<number, { totalCost: number; totalQty: number }>();
+    for (const pos of stockPositions) {
+      const current = productAvgCost.get(pos.productId) || { totalCost: 0, totalQty: 0 };
+      const avgCostNum = parseFloat(pos.avgCost || '0');
+      current.totalCost += avgCostNum * pos.quantity;
+      current.totalQty += pos.quantity;
+      productAvgCost.set(pos.productId, current);
+    }
+
+    // Build breakdown
+    const breakdown = allProducts.map(product => {
+      const sales = productSales.get(product.id) || { soldQty: 0, revenue: 0, cost: 0 };
+      const costData = productAvgCost.get(product.id);
+      const avgCostPrice = costData && costData.totalQty > 0 
+        ? costData.totalCost / costData.totalQty 
+        : 0;
+      
+      const stockQty = product.stock || 0;
+      const soldQty = sales.soldQty;
+      const remainingQty = stockQty;
+      const revenue = sales.revenue;
+      const cost = sales.cost;
+      const profit = revenue - cost;
+      const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+
+      return {
+        productId: product.id,
+        productName: product.name,
+        productImage: product.image,
+        categoryName: product.categoryId ? categoryMap.get(product.categoryId) || null : null,
+        stockQty,
+        soldQty,
+        remainingQty,
+        revenue,
+        cost,
+        profit,
+        margin,
+        salePrice: product.price,
+        avgCostPrice,
+      };
+    });
+
+    // Calculate summary
+    const totalRevenue = breakdown.reduce((sum, p) => sum + p.revenue, 0);
+    const totalCost = breakdown.reduce((sum, p) => sum + p.cost, 0);
+    const totalProfit = totalRevenue - totalCost;
+    const avgMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+    const totalSoldQty = breakdown.reduce((sum, p) => sum + p.soldQty, 0);
+    const totalStockQty = breakdown.reduce((sum, p) => sum + p.stockQty, 0);
+
+    return {
+      summary: {
+        totalRevenue,
+        totalCost,
+        totalProfit,
+        avgMargin,
+        totalSoldQty,
+        totalStockQty,
+      },
+      breakdown: breakdown.sort((a, b) => b.profit - a.profit), // Sort by profit descending
+    };
+  }
 }
 
 export const storage = new DatabaseStorage();

@@ -258,6 +258,31 @@ export const reportsAPI = {
     method: "POST",
     body: JSON.stringify(data),
   }),
+  getProductProfit: () => request<{
+    summary: {
+      totalRevenue: number;
+      totalCost: number;
+      totalProfit: number;
+      avgMargin: number;
+      totalSoldQty: number;
+      totalStockQty: number;
+    };
+    breakdown: Array<{
+      productId: number;
+      productName: string;
+      productImage: string | null;
+      categoryName: string | null;
+      stockQty: number;
+      soldQty: number;
+      remainingQty: number;
+      revenue: number;
+      cost: number;
+      profit: number;
+      margin: number;
+      salePrice: string;
+      avgCostPrice: number;
+    }>;
+  }>("/reports/product-profit"),
 };
 
 // Staff API

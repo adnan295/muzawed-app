@@ -1000,6 +1000,16 @@ export async function registerRoutes(
     }
   });
 
+  // Product Profit Report - تقرير أرباح المنتجات
+  app.get("/api/reports/product-profit", async (req, res) => {
+    try {
+      const report = await storage.getProductProfitReport();
+      res.json(report);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ==================== Staff Routes ====================
   
   app.get("/api/staff", async (req, res) => {
