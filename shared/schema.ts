@@ -502,6 +502,60 @@ export const insertSupplierSchema = createInsertSchema(suppliers).omit({ id: tru
 export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
 export type Supplier = typeof suppliers.$inferSelect;
 
+// Supplier Transactions table - tracks imports, exports, sales, and payments
+export const supplierTransactions = pgTable("supplier_transactions", {
+  id: serial("id").primaryKey(),
+  supplierId: integer("supplier_id").notNull().references(() => suppliers.id),
+  warehouseId: integer("warehouse_id").references(() => warehouses.id),
+  productId: integer("product_id").references(() => products.id),
+  type: text("type").notNull(), // import, export, sale, payment
+  quantity: integer("quantity").default(0), // for product transactions
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }), // price per unit
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(), // total transaction value
+  paymentMethod: text("payment_method"), // cash, bank_transfer, check - for payments
+  referenceNumber: text("reference_number"), // invoice/receipt number
+  notes: text("notes"),
+  createdBy: integer("created_by").references(() => staff.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertSupplierTransactionSchema = createInsertSchema(supplierTransactions).omit({ id: true, createdAt: true });
+export type InsertSupplierTransaction = z.infer<typeof insertSupplierTransactionSchema>;
+export type SupplierTransaction = typeof supplierTransactions.$inferSelect;
+
+// Supplier Stock Positions - tracks how much stock from each supplier is in each warehouse
+export const supplierStockPositions = pgTable("supplier_stock_positions", {
+  id: serial("id").primaryKey(),
+  supplierId: integer("supplier_id").notNull().references(() => suppliers.id),
+  productId: integer("product_id").notNull().references(() => products.id),
+  warehouseId: integer("warehouse_id").notNull().references(() => warehouses.id),
+  quantity: integer("quantity").default(0).notNull(), // current stock from this supplier
+  avgCost: decimal("avg_cost", { precision: 10, scale: 2 }), // average purchase cost
+  lastImportDate: timestamp("last_import_date"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertSupplierStockPositionSchema = createInsertSchema(supplierStockPositions).omit({ id: true, updatedAt: true });
+export type InsertSupplierStockPosition = z.infer<typeof insertSupplierStockPositionSchema>;
+export type SupplierStockPosition = typeof supplierStockPositions.$inferSelect;
+
+// Supplier Balances - cached summary of supplier financial position
+export const supplierBalances = pgTable("supplier_balances", {
+  id: serial("id").primaryKey(),
+  supplierId: integer("supplier_id").notNull().references(() => suppliers.id).unique(),
+  totalImports: decimal("total_imports", { precision: 12, scale: 2 }).default("0").notNull(), // total value of imported goods
+  totalExports: decimal("total_exports", { precision: 12, scale: 2 }).default("0").notNull(), // total value of returned goods
+  totalSales: decimal("total_sales", { precision: 12, scale: 2 }).default("0").notNull(), // total sales from their goods
+  totalPayments: decimal("total_payments", { precision: 12, scale: 2 }).default("0").notNull(), // total payments made to supplier
+  balance: decimal("balance", { precision: 12, scale: 2 }).default("0").notNull(), // amount we owe them (imports - exports - payments)
+  totalStockValue: decimal("total_stock_value", { precision: 12, scale: 2 }).default("0").notNull(), // current value of their goods in our warehouse
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertSupplierBalanceSchema = createInsertSchema(supplierBalances).omit({ id: true, updatedAt: true });
+export type InsertSupplierBalance = z.infer<typeof insertSupplierBalanceSchema>;
+export type SupplierBalance = typeof supplierBalances.$inferSelect;
+
 // Purchase Orders table
 export const purchaseOrders = pgTable("purchase_orders", {
   id: serial("id").primaryKey(),
