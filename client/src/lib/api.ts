@@ -439,7 +439,7 @@ export const vehiclesAPI = {
 // Banners API
 export const bannersAPI = {
   getAll: () => request("/banners"),
-  getActive: () => request("/banners/active"),
+  getActive: (cityId?: number) => request(`/banners/active${cityId ? `?cityId=${cityId}` : ''}`),
   getById: (id: number) => request(`/banners/${id}`),
   getStats: () => request("/banners/stats"),
   create: (data: any) => request("/banners", {

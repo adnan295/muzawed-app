@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import Autoplay from 'embla-carousel-autoplay';
 import { useQuery } from '@tanstack/react-query';
 import { bannersAPI } from '@/lib/api';
+import { useAuth } from '@/lib/AuthContext';
 
 // Default fallback images
 import deliveryImg from '@assets/stock_images/grocery_delivery_tru_61152cdf.jpg';
@@ -58,9 +59,12 @@ const DEFAULT_BANNERS: BannerProps[] = [
 ];
 
 export function AdsCarousel() {
+  const { user } = useAuth();
+  const userCityId = user?.cityId;
+  
   const { data: apiBanners = [] } = useQuery({
-    queryKey: ['/api/banners/active'],
-    queryFn: bannersAPI.getActive,
+    queryKey: ['/api/banners/active', userCityId],
+    queryFn: () => bannersAPI.getActive(userCityId),
   });
 
   const banners: BannerProps[] = apiBanners.length > 0 

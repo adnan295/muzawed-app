@@ -430,6 +430,7 @@ export default function Admin() {
     startDate: '',
     endDate: '',
     targetAudience: 'all',
+    targetCityId: null as number | null,
   });
 
   const { data: bannerStats } = useQuery({
@@ -2494,7 +2495,7 @@ export default function Admin() {
                         حذف ({selectedBannerIds.length})
                       </Button>
                     )}
-                    <Button className="rounded-xl gap-2" onClick={() => { setEditingBanner(null); setNewBanner({ title: '', subtitle: '', image: '', buttonText: 'اطلب الآن', buttonLink: '', colorClass: 'from-primary to-purple-800', position: bannersList.length, isActive: true, startDate: '', endDate: '', targetAudience: 'all' }); setShowAddBannerDialog(true); }} data-testid="add-banner-btn">
+                    <Button className="rounded-xl gap-2" onClick={() => { setEditingBanner(null); setNewBanner({ title: '', subtitle: '', image: '', buttonText: 'اطلب الآن', buttonLink: '', colorClass: 'from-primary to-purple-800', position: bannersList.length, isActive: true, startDate: '', endDate: '', targetAudience: 'all', targetCityId: null }); setShowAddBannerDialog(true); }} data-testid="add-banner-btn">
                       <Plus className="w-4 h-4" />
                       إضافة شريحة
                     </Button>
@@ -2626,6 +2627,12 @@ export default function Admin() {
                           </div>
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-xs text-gray-500">الترتيب: {banner.position + 1}</span>
+                            <span className={`text-xs px-2 py-1 rounded-full ${banner.targetCityId ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                              <MapPin className="w-3 h-3 inline ml-1" />
+                              {banner.targetCityId 
+                                ? cities.find((c: any) => c.id === banner.targetCityId)?.name || 'غير معروف'
+                                : 'جميع المحافظات'}
+                            </span>
                           </div>
                           
                           {/* Reorder Buttons */}
@@ -2676,7 +2683,7 @@ export default function Admin() {
                               size="sm" 
                               variant="outline" 
                               className="flex-1 rounded-lg text-xs"
-                              onClick={() => { setEditingBanner(banner); setNewBanner({ title: banner.title, subtitle: banner.subtitle || '', image: banner.image || '', buttonText: banner.buttonText || 'اطلب الآن', buttonLink: banner.buttonLink || '', colorClass: banner.colorClass || 'from-primary to-purple-800', position: banner.position, isActive: banner.isActive, startDate: banner.startDate ? new Date(banner.startDate).toISOString().slice(0, 16) : '', endDate: banner.endDate ? new Date(banner.endDate).toISOString().slice(0, 16) : '', targetAudience: banner.targetAudience || 'all' }); setShowAddBannerDialog(true); }}
+                              onClick={() => { setEditingBanner(banner); setNewBanner({ title: banner.title, subtitle: banner.subtitle || '', image: banner.image || '', buttonText: banner.buttonText || 'اطلب الآن', buttonLink: banner.buttonLink || '', colorClass: banner.colorClass || 'from-primary to-purple-800', position: banner.position, isActive: banner.isActive, startDate: banner.startDate ? new Date(banner.startDate).toISOString().slice(0, 16) : '', endDate: banner.endDate ? new Date(banner.endDate).toISOString().slice(0, 16) : '', targetAudience: banner.targetAudience || 'all', targetCityId: banner.targetCityId || null }); setShowAddBannerDialog(true); }}
                               data-testid={`edit-banner-${banner.id}`}
                             >
                               <Edit className="w-3 h-3 ml-1" />
@@ -2798,6 +2805,7 @@ export default function Admin() {
                           startDate: '',
                           endDate: '',
                           targetAudience: 'all',
+                          targetCityId: null,
                         });
                         setShowAddBannerDialog(true);
                       }}
@@ -2942,6 +2950,28 @@ export default function Admin() {
                           <SelectItem value="returning">العملاء العائدون</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    {/* Target City/Governorate */}
+                    <div>
+                      <Label className="flex items-center gap-2"><MapPin className="w-4 h-4" /> المحافظة المستهدفة</Label>
+                      <Select 
+                        value={newBanner.targetCityId?.toString() || 'all'} 
+                        onValueChange={(v) => setNewBanner({...newBanner, targetCityId: v === 'all' ? null : parseInt(v)})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="اختر المحافظة" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">جميع المحافظات</SelectItem>
+                          {cities.map((city: any) => (
+                            <SelectItem key={city.id} value={city.id.toString()}>
+                              {city.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-500 mt-1">اختر محافظة معينة أو "جميع المحافظات" لعرض الشريحة للجميع</p>
                     </div>
 
                     {/* Preview */}

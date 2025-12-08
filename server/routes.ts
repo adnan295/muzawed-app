@@ -1533,7 +1533,8 @@ export async function registerRoutes(
 
   app.get("/api/banners/active", async (req, res) => {
     try {
-      const activeBanners = await storage.getActiveBanners();
+      const cityId = req.query.cityId ? parseInt(req.query.cityId as string) : undefined;
+      const activeBanners = await storage.getActiveBanners(cityId);
       res.json(activeBanners);
     } catch (error: any) {
       res.status(500).json({ error: error.message });

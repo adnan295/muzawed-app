@@ -311,7 +311,7 @@ export interface IStorage {
 
   // Banners
   getBanners(): Promise<Banner[]>;
-  getActiveBanners(): Promise<Banner[]>;
+  getActiveBanners(cityId?: number): Promise<Banner[]>;
   getBanner(id: number): Promise<Banner | undefined>;
   createBanner(banner: InsertBanner): Promise<Banner>;
   updateBanner(id: number, banner: Partial<InsertBanner>): Promise<Banner | undefined>;
@@ -1250,7 +1250,7 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(banners).orderBy(banners.position);
   }
 
-  async getActiveBanners(): Promise<Banner[]> {
+  async getActiveBanners(cityId?: number): Promise<Banner[]> {
     const now = new Date();
     return await db.select().from(banners).where(
       and(
@@ -1262,7 +1262,12 @@ export class DatabaseStorage implements IStorage {
         or(
           sql`${banners.endDate} IS NULL`,
           gte(banners.endDate, now)
-        )
+        ),
+        // Filter by city: show if targetCityId is null (all cities) or matches user's city
+        cityId ? or(
+          sql`${banners.targetCityId} IS NULL`,
+          eq(banners.targetCityId, cityId)
+        ) : sql`1=1`
       )
     ).orderBy(banners.position);
   }

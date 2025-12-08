@@ -666,6 +666,7 @@ export const banners = pgTable("banners", {
   purchaseCount: integer("purchase_count").default(0).notNull(), // عدد المشتريات من الباقة
   purchaseTotal: decimal("purchase_total", { precision: 12, scale: 2 }).default("0").notNull(), // إجمالي المبيعات
   targetAudience: text("target_audience").default("all"), // all, vip, new, returning
+  targetCityId: integer("target_city_id").references(() => cities.id), // null = all cities, otherwise specific city
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
