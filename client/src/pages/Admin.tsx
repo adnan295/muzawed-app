@@ -30,7 +30,7 @@ import {
   GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight, LogOut
 } from 'lucide-react';
 import { Link } from 'wouter';
-import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI } from '@/lib/api';
+import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart, Line, Legend, ComposedChart, RadialBarChart, RadialBar, Treemap, FunnelChart, Funnel, LabelList } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -115,6 +115,22 @@ interface Vehicle {
   mileage: number;
   notes?: string;
   isActive: boolean;
+}
+
+interface ReturnRequest {
+  id: number;
+  returnNumber: string;
+  orderId: number;
+  userId: number;
+  reason: string;
+  status: string;
+  refundAmount?: string;
+  refundMethod?: string;
+  notes?: string;
+  images?: string[];
+  processedBy?: number;
+  createdAt: string;
+  processedAt?: string;
 }
 
 const salesData = [
@@ -363,6 +379,11 @@ export default function Admin() {
   const { data: vehiclesList = [], refetch: refetchVehicles } = useQuery<Vehicle[]>({
     queryKey: ['vehicles'],
     queryFn: () => vehiclesAPI.getAll() as Promise<Vehicle[]>,
+  });
+
+  const { data: returnsList = [], refetch: refetchReturns } = useQuery<ReturnRequest[]>({
+    queryKey: ['returns'],
+    queryFn: () => returnsAPI.getAll() as Promise<ReturnRequest[]>,
   });
 
   useEffect(() => {
@@ -829,6 +850,69 @@ export default function Admin() {
       case 'out_of_service': return 'خارج الخدمة';
       default: return status;
     }
+  };
+
+  // Returns handlers
+  const handleApproveReturn = async (id: number) => {
+    try {
+      await returnsAPI.approve(id, 'wallet', 'تمت الموافقة على الاسترجاع');
+      toast({ title: 'تمت الموافقة على طلب الاسترجاع', className: 'bg-green-600 text-white' });
+      refetchReturns();
+    } catch (error: any) {
+      toast({ title: error.message || 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const handleRejectReturn = async (id: number) => {
+    const reason = prompt('سبب الرفض:');
+    if (!reason) return;
+    try {
+      await returnsAPI.reject(id, reason);
+      toast({ title: 'تم رفض طلب الاسترجاع', className: 'bg-red-600 text-white' });
+      refetchReturns();
+    } catch (error: any) {
+      toast({ title: error.message || 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const getReturnStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+      case 'approved': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'rejected': return 'bg-red-100 text-red-700 border-red-200';
+      case 'refunded': return 'bg-green-100 text-green-700 border-green-200';
+      default: return 'bg-gray-100 text-gray-700 border-gray-200';
+    }
+  };
+
+  const getReturnStatusText = (status: string) => {
+    switch (status) {
+      case 'pending': return 'قيد المراجعة';
+      case 'approved': return 'تمت الموافقة';
+      case 'rejected': return 'مرفوض';
+      case 'refunded': return 'تم الاسترداد';
+      default: return status;
+    }
+  };
+
+  const getReturnReasonText = (reason: string) => {
+    switch (reason) {
+      case 'defective': return 'منتج معيب';
+      case 'wrong_item': return 'منتج خاطئ';
+      case 'damaged': return 'تالف';
+      case 'not_as_described': return 'لا يطابق الوصف';
+      case 'other': return 'أخرى';
+      default: return reason;
+    }
+  };
+
+  const returnsStats = {
+    total: returnsList.length,
+    pending: returnsList.filter(r => r.status === 'pending').length,
+    approved: returnsList.filter(r => r.status === 'approved').length,
+    rejected: returnsList.filter(r => r.status === 'rejected').length,
+    refunded: returnsList.filter(r => r.status === 'refunded').length,
+    totalRefundAmount: returnsList.filter(r => r.status === 'refunded').reduce((sum, r) => sum + parseFloat(r.refundAmount || '0'), 0),
   };
 
   return (
@@ -1889,60 +1973,281 @@ export default function Admin() {
             </div>
           </TabsContent>
 
-          {/* Returns Tab */}
+          {/* Returns Tab - World Class */}
           <TabsContent value="returns">
-            <Card className="p-6 border-none shadow-lg rounded-2xl">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="font-bold text-xl flex items-center gap-2"><RotateCcw className="w-5 h-5 text-red-500" />إدارة المرتجعات والاستردادات</h3>
-                  <p className="text-gray-500 text-sm mt-1">{mockReturns.length} طلب استرجاع</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" className="rounded-xl text-sm">الكل</Button>
-                  <Button variant="outline" className="rounded-xl text-sm bg-yellow-50 border-yellow-200 text-yellow-700">قيد المراجعة</Button>
-                </div>
+            <div className="space-y-6">
+              {/* Returns KPIs Dashboard */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-gray-50 to-white">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center">
+                      <RotateCcw className="w-6 h-6 text-gray-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">{returnsStats.total}</p>
+                      <p className="text-xs text-gray-500">إجمالي الطلبات</p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-yellow-50 to-white">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-yellow-100 flex items-center justify-center">
+                      <Clock className="w-6 h-6 text-yellow-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-yellow-700">{returnsStats.pending}</p>
+                      <p className="text-xs text-yellow-600">قيد المراجعة</p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-blue-50 to-white">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+                      <CheckCircle className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-blue-700">{returnsStats.approved}</p>
+                      <p className="text-xs text-blue-600">موافق عليها</p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-red-50 to-white">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center">
+                      <XCircle className="w-6 h-6 text-red-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-red-700">{returnsStats.rejected}</p>
+                      <p className="text-xs text-red-600">مرفوضة</p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-green-50 to-white">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
+                      <Wallet className="w-6 h-6 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-green-700">{returnsStats.refunded}</p>
+                      <p className="text-xs text-green-600">تم الاسترداد</p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-purple-50 to-white">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
+                      <Banknote className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-xl font-bold text-purple-700">{returnsStats.totalRefundAmount.toLocaleString('ar-SY')}</p>
+                      <p className="text-xs text-purple-600">إجمالي المسترد</p>
+                    </div>
+                  </div>
+                </Card>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="text-right border-b border-gray-100">
-                      <th className="pb-4 font-bold text-gray-600">رقم الطلب</th>
-                      <th className="pb-4 font-bold text-gray-600">العميل</th>
-                      <th className="pb-4 font-bold text-gray-600">السبب</th>
-                      <th className="pb-4 font-bold text-gray-600">المبلغ</th>
-                      <th className="pb-4 font-bold text-gray-600">التاريخ</th>
-                      <th className="pb-4 font-bold text-gray-600">الحالة</th>
-                      <th className="pb-4 font-bold text-gray-600">الإجراءات</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mockReturns.map((ret) => (
-                      <tr key={ret.id} className="border-b border-gray-50 hover:bg-gray-50">
-                        <td className="py-4">
-                          <div>
-                            <p className="font-bold font-mono text-primary">{ret.returnNumber}</p>
-                            <p className="text-xs text-gray-500">طلب #{ret.orderId}</p>
-                          </div>
-                        </td>
-                        <td className="py-4">{ret.customer}</td>
-                        <td className="py-4"><Badge variant="outline">{ret.reason}</Badge></td>
-                        <td className="py-4 font-bold">{ret.amount} ل.س</td>
-                        <td className="py-4 text-gray-500">{ret.date}</td>
-                        <td className="py-4">{getStatusBadge(ret.status)}</td>
-                        <td className="py-4">
-                          <div className="flex items-center gap-1">
-                            <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg hover:bg-blue-50 hover:text-blue-600"><Eye className="w-4 h-4" /></Button>
-                            <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg hover:bg-green-50 hover:text-green-600"><CheckCircle className="w-4 h-4" /></Button>
-                            <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg hover:bg-red-50 hover:text-red-600"><XCircle className="w-4 h-4" /></Button>
-                          </div>
-                        </td>
-                      </tr>
+              {/* Returns Analytics Charts */}
+              <div className="grid lg:grid-cols-3 gap-6">
+                {/* Returns Status Distribution */}
+                <Card className="p-6 border-none shadow-lg rounded-2xl">
+                  <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                    <PieChart className="w-5 h-5 text-primary" />
+                    توزيع حالات المرتجعات
+                  </h3>
+                  <div className="h-[200px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartsPie>
+                        <Pie
+                          data={[
+                            { name: 'قيد المراجعة', value: returnsStats.pending, fill: '#fbbf24' },
+                            { name: 'موافق عليها', value: returnsStats.approved, fill: '#3b82f6' },
+                            { name: 'مرفوضة', value: returnsStats.rejected, fill: '#ef4444' },
+                            { name: 'مستردة', value: returnsStats.refunded, fill: '#22c55e' },
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={80}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </RechartsPie>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
+
+                {/* Returns by Reason */}
+                <Card className="p-6 border-none shadow-lg rounded-2xl">
+                  <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-orange-500" />
+                    أسباب الاسترجاع
+                  </h3>
+                  <div className="space-y-3">
+                    {[
+                      { reason: 'منتج معيب', count: returnsList.filter(r => r.reason === 'defective').length, color: 'bg-red-500' },
+                      { reason: 'منتج خاطئ', count: returnsList.filter(r => r.reason === 'wrong_item').length, color: 'bg-orange-500' },
+                      { reason: 'تالف', count: returnsList.filter(r => r.reason === 'damaged').length, color: 'bg-yellow-500' },
+                      { reason: 'لا يطابق الوصف', count: returnsList.filter(r => r.reason === 'not_as_described').length, color: 'bg-blue-500' },
+                      { reason: 'أخرى', count: returnsList.filter(r => r.reason === 'other').length, color: 'bg-gray-500' },
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-center gap-3">
+                        <div className={`w-3 h-3 rounded-full ${item.color}`}></div>
+                        <span className="flex-1 text-sm">{item.reason}</span>
+                        <span className="font-bold">{item.count}</span>
+                        <div className="w-20">
+                          <Progress value={returnsStats.total > 0 ? (item.count / returnsStats.total) * 100 : 0} className="h-2" />
+                        </div>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                </Card>
+
+                {/* Quick Actions */}
+                <Card className="p-6 border-none shadow-lg rounded-2xl">
+                  <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-yellow-500" />
+                    إجراءات سريعة
+                  </h3>
+                  <div className="space-y-3">
+                    <Button className="w-full rounded-xl justify-start gap-3 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 border border-yellow-200" variant="outline">
+                      <Clock className="w-5 h-5" />
+                      مراجعة الطلبات المعلقة ({returnsStats.pending})
+                    </Button>
+                    <Button className="w-full rounded-xl justify-start gap-3 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200" variant="outline">
+                      <Wallet className="w-5 h-5" />
+                      معالجة عمليات الاسترداد ({returnsStats.approved})
+                    </Button>
+                    <Button className="w-full rounded-xl justify-start gap-3 bg-green-50 text-green-700 hover:bg-green-100 border border-green-200" variant="outline">
+                      <Download className="w-5 h-5" />
+                      تصدير تقرير المرتجعات
+                    </Button>
+                    <Button className="w-full rounded-xl justify-start gap-3 bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200" variant="outline">
+                      <BarChart3 className="w-5 h-5" />
+                      تحليل أنماط الاسترجاع
+                    </Button>
+                  </div>
+                </Card>
               </div>
-            </Card>
+
+              {/* Returns Table */}
+              <Card className="p-6 border-none shadow-lg rounded-2xl">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="font-bold text-xl flex items-center gap-2">
+                      <RotateCcw className="w-5 h-5 text-red-500" />
+                      قائمة طلبات الاسترجاع
+                    </h3>
+                    <p className="text-gray-500 text-sm mt-1">{returnsList.length} طلب استرجاع</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="relative">
+                      <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Input placeholder="بحث..." className="pr-10 rounded-xl w-48" />
+                    </div>
+                    <Select defaultValue="all">
+                      <SelectTrigger className="w-36 rounded-xl">
+                        <SelectValue placeholder="الحالة" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">جميع الحالات</SelectItem>
+                        <SelectItem value="pending">قيد المراجعة</SelectItem>
+                        <SelectItem value="approved">موافق عليها</SelectItem>
+                        <SelectItem value="rejected">مرفوضة</SelectItem>
+                        <SelectItem value="refunded">مستردة</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {returnsList.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="text-right border-b border-gray-100">
+                          <th className="pb-4 font-bold text-gray-600">رقم الطلب</th>
+                          <th className="pb-4 font-bold text-gray-600">الطلب الأصلي</th>
+                          <th className="pb-4 font-bold text-gray-600">السبب</th>
+                          <th className="pb-4 font-bold text-gray-600">المبلغ</th>
+                          <th className="pb-4 font-bold text-gray-600">التاريخ</th>
+                          <th className="pb-4 font-bold text-gray-600">الحالة</th>
+                          <th className="pb-4 font-bold text-gray-600">الإجراءات</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {returnsList.map((ret) => (
+                          <tr key={ret.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors" data-testid={`return-row-${ret.id}`}>
+                            <td className="py-4">
+                              <div>
+                                <p className="font-bold font-mono text-primary">{ret.returnNumber}</p>
+                                <p className="text-xs text-gray-400">#{ret.id}</p>
+                              </div>
+                            </td>
+                            <td className="py-4">
+                              <Badge variant="outline" className="font-mono">طلب #{ret.orderId}</Badge>
+                            </td>
+                            <td className="py-4">
+                              <Badge variant="outline" className="bg-gray-50">{getReturnReasonText(ret.reason)}</Badge>
+                            </td>
+                            <td className="py-4">
+                              <span className="font-bold text-lg">{parseFloat(ret.refundAmount || '0').toLocaleString('ar-SY')}</span>
+                              <span className="text-xs text-gray-500 mr-1">ل.س</span>
+                            </td>
+                            <td className="py-4 text-gray-500 text-sm">
+                              {new Date(ret.createdAt).toLocaleDateString('ar-SY')}
+                            </td>
+                            <td className="py-4">
+                              <Badge className={`${getReturnStatusColor(ret.status)} border`}>
+                                {getReturnStatusText(ret.status)}
+                              </Badge>
+                            </td>
+                            <td className="py-4">
+                              <div className="flex items-center gap-1">
+                                <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg hover:bg-blue-50 hover:text-blue-600">
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                                {ret.status === 'pending' && (
+                                  <>
+                                    <Button 
+                                      size="icon" 
+                                      variant="ghost" 
+                                      className="h-9 w-9 rounded-lg hover:bg-green-50 hover:text-green-600"
+                                      onClick={() => handleApproveReturn(ret.id)}
+                                      data-testid={`approve-return-${ret.id}`}
+                                    >
+                                      <CheckCircle className="w-4 h-4" />
+                                    </Button>
+                                    <Button 
+                                      size="icon" 
+                                      variant="ghost" 
+                                      className="h-9 w-9 rounded-lg hover:bg-red-50 hover:text-red-600"
+                                      onClick={() => handleRejectReturn(ret.id)}
+                                      data-testid={`reject-return-${ret.id}`}
+                                    >
+                                      <XCircle className="w-4 h-4" />
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-16">
+                    <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                      <RotateCcw className="w-10 h-10 text-gray-300" />
+                    </div>
+                    <h4 className="font-bold text-lg text-gray-600 mb-2">لا توجد طلبات استرجاع</h4>
+                    <p className="text-gray-500 text-sm">ستظهر طلبات الاسترجاع هنا عند وجودها</p>
+                  </div>
+                )}
+              </Card>
+            </div>
           </TabsContent>
 
           {/* Customer Segments Tab */}

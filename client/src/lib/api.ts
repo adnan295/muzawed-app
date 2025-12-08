@@ -178,6 +178,15 @@ export const returnsAPI = {
     method: "PUT",
     body: JSON.stringify(data),
   }),
+  approve: (id: number, refundMethod: string, notes?: string) => request(`/returns/${id}/approve`, {
+    method: "POST",
+    body: JSON.stringify({ refundMethod, notes }),
+  }),
+  reject: (id: number, notes: string) => request(`/returns/${id}/reject`, {
+    method: "POST",
+    body: JSON.stringify({ notes }),
+  }),
+  getStats: () => request("/returns/stats"),
 };
 
 // Shipments API

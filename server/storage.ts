@@ -160,6 +160,7 @@ export interface IStorage {
   getReturn(id: number): Promise<Return | undefined>;
   createReturn(ret: InsertReturn): Promise<Return>;
   updateReturn(id: number, ret: Partial<InsertReturn>): Promise<Return | undefined>;
+  deleteReturn(id: number): Promise<void>;
 
   // Shipments
   getShipments(): Promise<Shipment[]>;
@@ -577,6 +578,10 @@ export class DatabaseStorage implements IStorage {
   async updateReturn(id: number, retData: Partial<InsertReturn>): Promise<Return | undefined> {
     const [updated] = await db.update(returns).set(retData).where(eq(returns.id, id)).returning();
     return updated || undefined;
+  }
+
+  async deleteReturn(id: number): Promise<void> {
+    await db.delete(returns).where(eq(returns.id, id));
   }
 
   // Shipments

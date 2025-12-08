@@ -693,6 +693,76 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/returns/stats", async (req, res) => {
+    try {
+      const allReturns = await storage.getReturns();
+      const stats = {
+        total: allReturns.length,
+        pending: allReturns.filter(r => r.status === 'pending').length,
+        approved: allReturns.filter(r => r.status === 'approved').length,
+        rejected: allReturns.filter(r => r.status === 'rejected').length,
+        refunded: allReturns.filter(r => r.status === 'refunded').length,
+        totalRefundAmount: allReturns.filter(r => r.status === 'refunded').reduce((sum, r) => sum + parseFloat(r.refundAmount || '0'), 0),
+      };
+      res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/returns/:id/approve", async (req, res) => {
+    try {
+      const { refundMethod, notes } = req.body;
+      const ret = await storage.updateReturn(parseInt(req.params.id), {
+        status: 'approved',
+        refundMethod,
+        notes,
+        processedAt: new Date(),
+      });
+      if (!ret) return res.status(404).json({ error: "طلب الاسترجاع غير موجود" });
+      res.json(ret);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/returns/:id/reject", async (req, res) => {
+    try {
+      const { notes } = req.body;
+      const ret = await storage.updateReturn(parseInt(req.params.id), {
+        status: 'rejected',
+        notes,
+        processedAt: new Date(),
+      });
+      if (!ret) return res.status(404).json({ error: "طلب الاسترجاع غير موجود" });
+      res.json(ret);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/returns/:id/refund", async (req, res) => {
+    try {
+      const ret = await storage.updateReturn(parseInt(req.params.id), {
+        status: 'refunded',
+        processedAt: new Date(),
+      });
+      if (!ret) return res.status(404).json({ error: "طلب الاسترجاع غير موجود" });
+      res.json(ret);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/returns/:id", async (req, res) => {
+    try {
+      await storage.deleteReturn(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ==================== Shipments Routes ====================
   
   app.get("/api/shipments", async (req, res) => {
