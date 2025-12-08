@@ -200,6 +200,21 @@ export default function Admin() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const { data: products = [], refetch: refetchProducts } = useQuery<Product[]>({
+    queryKey: ['products'],
+    queryFn: () => productsAPI.getAll() as Promise<Product[]>,
+  });
+
+  const { data: categories = [] } = useQuery<Category[]>({
+    queryKey: ['categories'],
+    queryFn: () => categoriesAPI.getAll() as Promise<Category[]>,
+  });
+
+  const { data: brands = [] } = useQuery<Brand[]>({
+    queryKey: ['brands'],
+    queryFn: () => brandsAPI.getAll() as Promise<Brand[]>,
+  });
+
   useEffect(() => {
     const adminAuth = localStorage.getItem('adminAuth');
     if (adminAuth) {
@@ -228,6 +243,10 @@ export default function Admin() {
     setLocation('/admin/login');
   };
 
+  const totalProducts = products.length;
+  const totalStock = products.reduce((acc, p) => acc + p.stock, 0);
+  const lowStockProducts = products.filter(p => p.stock < 30);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -242,25 +261,6 @@ export default function Admin() {
   if (!isAuthenticated) {
     return null;
   }
-
-  const { data: products = [], refetch: refetchProducts } = useQuery<Product[]>({
-    queryKey: ['products'],
-    queryFn: () => productsAPI.getAll() as Promise<Product[]>,
-  });
-
-  const { data: categories = [] } = useQuery<Category[]>({
-    queryKey: ['categories'],
-    queryFn: () => categoriesAPI.getAll() as Promise<Category[]>,
-  });
-
-  const { data: brands = [] } = useQuery<Brand[]>({
-    queryKey: ['brands'],
-    queryFn: () => brandsAPI.getAll() as Promise<Brand[]>,
-  });
-
-  const totalProducts = products.length;
-  const totalStock = products.reduce((acc, p) => acc + p.stock, 0);
-  const lowStockProducts = products.filter(p => p.stock < 30);
 
   const mockOrders = [
     { id: 1001, customer: 'سوبر ماركت الفيصل', phone: '0501234567', items: 5, total: '1,250.00', status: 'pending', time: '10 دقائق', address: 'الرياض' },
