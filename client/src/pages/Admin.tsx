@@ -23,7 +23,7 @@ import {
   ChevronDown, Mail, Phone, MapPin, Building, CreditCard, Wallet, UserCog, Headphones,
   Gift, Warehouse, Receipt, Copy, ExternalLink, Shield, Lock, Key, UserPlus, TicketIcon,
   MessageCircle, Send, Archive, Printer, QrCode, Barcode, PackageCheck, PackageX, Timer,
-  Banknote, PiggyBank, Coins, Crown, Medal, Trophy, Repeat, RotateCcw, Navigation, UserX,
+  Banknote, PiggyBank, Coins, Crown, Medal, Trophy, Repeat, RotateCcw, Navigation, UserMinus,
   TruckIcon, MapPinned, Factory, ShoppingBag, FileSpreadsheet, File, MailCheck, FileDown,
   Sparkles, Flame, ThumbsUp, ThumbsDown, AlertCircle, Info, HelpCircle, CircleDollarSign,
   BadgePercent, Gauge, ArrowUpRight, ArrowDownRight, Hash, Split, Merge,
@@ -4680,7 +4680,7 @@ export default function Admin() {
                       <Users className="w-6 h-6 text-blue-600" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-blue-700">{adminUsers.length}</p>
+                      <p className="text-2xl font-bold text-blue-700">{customerStats?.total || adminUsers.length}</p>
                       <p className="text-xs text-blue-600">إجمالي العملاء</p>
                     </div>
                   </div>
@@ -4691,13 +4691,7 @@ export default function Admin() {
                       <UserPlus className="w-6 h-6 text-green-600" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-green-700">
-                        {adminUsers.filter((u: any) => {
-                          const created = new Date(u.createdAt);
-                          const now = new Date();
-                          return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
-                        }).length}
-                      </p>
+                      <p className="text-2xl font-bold text-green-700">{customerStats?.newThisMonth || 0}</p>
                       <p className="text-xs text-green-600">جدد هذا الشهر</p>
                     </div>
                   </div>
@@ -4708,9 +4702,7 @@ export default function Admin() {
                       <Crown className="w-6 h-6 text-purple-600" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-purple-700">
-                        {Math.floor(adminUsers.length * 0.15)}
-                      </p>
+                      <p className="text-2xl font-bold text-purple-700">{customerStats?.vipCount || 0}</p>
                       <p className="text-xs text-purple-600">عملاء VIP</p>
                     </div>
                   </div>
@@ -4721,9 +4713,7 @@ export default function Admin() {
                       <Activity className="w-6 h-6 text-orange-600" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-orange-700">
-                        {Math.floor(adminUsers.length * 0.65)}
-                      </p>
+                      <p className="text-2xl font-bold text-orange-700">{customerStats?.activeCount || 0}</p>
                       <p className="text-xs text-orange-600">نشط</p>
                     </div>
                   </div>
@@ -4731,12 +4721,10 @@ export default function Admin() {
                 <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-red-50 to-white">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center">
-                      <UserX className="w-6 h-6 text-red-600" />
+                      <UserMinus className="w-6 h-6 text-red-600" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-red-700">
-                        {Math.floor(adminUsers.length * 0.08)}
-                      </p>
+                      <p className="text-2xl font-bold text-red-700">{customerStats?.inactiveCount || 0}</p>
                       <p className="text-xs text-red-600">غير نشط</p>
                     </div>
                   </div>
@@ -4748,7 +4736,7 @@ export default function Admin() {
                     </div>
                     <div>
                       <p className="text-xl font-bold text-teal-700">
-                        {(adminUsers.length * 125000).toLocaleString('ar-SY')}
+                        {(customerStats?.avgCustomerValue || 0).toLocaleString('ar-SY')}
                       </p>
                       <p className="text-xs text-teal-600">متوسط قيمة العميل</p>
                     </div>
@@ -4766,7 +4754,7 @@ export default function Admin() {
                   </h3>
                   <div className="h-[200px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={salesData}>
+                      <AreaChart data={customerGrowthData}>
                         <defs>
                           <linearGradient id="customerGradient" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
@@ -4774,10 +4762,10 @@ export default function Admin() {
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis dataKey="name" stroke="#9ca3af" fontSize={10} />
+                        <XAxis dataKey="month" stroke="#9ca3af" fontSize={10} />
                         <YAxis stroke="#9ca3af" fontSize={10} />
                         <Tooltip />
-                        <Area type="monotone" dataKey="customers" stroke="#8b5cf6" fill="url(#customerGradient)" strokeWidth={2} />
+                        <Area type="monotone" dataKey="count" stroke="#8b5cf6" fill="url(#customerGradient)" strokeWidth={2} name="عدد العملاء" />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
@@ -4794,10 +4782,10 @@ export default function Admin() {
                       <RechartsPie>
                         <Pie
                           data={[
-                            { name: 'VIP', value: Math.floor(adminUsers.length * 0.15), fill: '#8b5cf6' },
-                            { name: 'مميز', value: Math.floor(adminUsers.length * 0.25), fill: '#3b82f6' },
-                            { name: 'عادي', value: Math.floor(adminUsers.length * 0.45), fill: '#22c55e' },
-                            { name: 'جديد', value: Math.floor(adminUsers.length * 0.15), fill: '#f59e0b' },
+                            { name: 'VIP', value: customerStats?.vipCount || 0, fill: '#8b5cf6' },
+                            { name: 'نشط', value: customerStats?.activeCount || 0, fill: '#22c55e' },
+                            { name: 'غير نشط', value: customerStats?.inactiveCount || 0, fill: '#ef4444' },
+                            { name: 'جديد', value: customerStats?.newThisMonth || 0, fill: '#f59e0b' },
                           ]}
                           cx="50%"
                           cy="50%"
@@ -4820,7 +4808,12 @@ export default function Admin() {
                     إجراءات سريعة
                   </h3>
                   <div className="space-y-3">
-                    <Button className="w-full rounded-xl justify-start gap-3 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200" variant="outline">
+                    <Button 
+                      className="w-full rounded-xl justify-start gap-3 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200" 
+                      variant="outline"
+                      onClick={() => setShowAddCustomerDialog(true)}
+                      data-testid="button-add-customer"
+                    >
                       <UserPlus className="w-5 h-5" />
                       إضافة عميل جديد
                     </Button>
@@ -4828,7 +4821,21 @@ export default function Admin() {
                       <Mail className="w-5 h-5" />
                       إرسال حملة تسويقية
                     </Button>
-                    <Button className="w-full rounded-xl justify-start gap-3 bg-green-50 text-green-700 hover:bg-green-100 border border-green-200" variant="outline">
+                    <Button 
+                      className="w-full rounded-xl justify-start gap-3 bg-green-50 text-green-700 hover:bg-green-100 border border-green-200" 
+                      variant="outline"
+                      onClick={() => {
+                        const csv = adminUsers.map((u: any) => `${u.facilityName},${u.phone},${u.commercialRegister || ''},${new Date(u.createdAt).toLocaleDateString('ar-SY')}`).join('\n');
+                        const blob = new Blob([`الاسم,الهاتف,السجل التجاري,تاريخ التسجيل\n${csv}`], { type: 'text/csv;charset=utf-8;' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = 'customers.csv';
+                        link.click();
+                        toast({ title: 'تم تصدير قائمة العملاء بنجاح', className: 'bg-green-600 text-white' });
+                      }}
+                      data-testid="button-export-customers"
+                    >
                       <Download className="w-5 h-5" />
                       تصدير قائمة العملاء
                     </Button>
@@ -4845,34 +4852,34 @@ export default function Admin() {
                 <Card className="p-5 border-none shadow-lg rounded-2xl">
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-sm text-gray-500">معدل الاحتفاظ</span>
-                    <Badge className="bg-green-100 text-green-700">+5.2%</Badge>
+                    <Badge className="bg-green-100 text-green-700">حقيقي</Badge>
                   </div>
-                  <p className="text-3xl font-bold mb-2">78%</p>
-                  <Progress value={78} className="h-2" />
+                  <p className="text-3xl font-bold mb-2">{customerStats?.retentionRate || 0}%</p>
+                  <Progress value={customerStats?.retentionRate || 0} className="h-2" />
                 </Card>
                 <Card className="p-5 border-none shadow-lg rounded-2xl">
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-sm text-gray-500">معدل إعادة الطلب</span>
-                    <Badge className="bg-blue-100 text-blue-700">+3.8%</Badge>
+                    <Badge className="bg-blue-100 text-blue-700">حقيقي</Badge>
                   </div>
-                  <p className="text-3xl font-bold mb-2">65%</p>
-                  <Progress value={65} className="h-2" />
+                  <p className="text-3xl font-bold mb-2">{customerStats?.reorderRate || 0}%</p>
+                  <Progress value={customerStats?.reorderRate || 0} className="h-2" />
                 </Card>
                 <Card className="p-5 border-none shadow-lg rounded-2xl">
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-sm text-gray-500">رضا العملاء</span>
                     <Badge className="bg-purple-100 text-purple-700">4.8/5</Badge>
                   </div>
-                  <p className="text-3xl font-bold mb-2">92%</p>
-                  <Progress value={92} className="h-2" />
+                  <p className="text-3xl font-bold mb-2">{customerStats?.satisfactionRate || 0}%</p>
+                  <Progress value={customerStats?.satisfactionRate || 0} className="h-2" />
                 </Card>
                 <Card className="p-5 border-none shadow-lg rounded-2xl">
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-sm text-gray-500">معدل التحويل</span>
-                    <Badge className="bg-orange-100 text-orange-700">+2.1%</Badge>
+                    <Badge className="bg-orange-100 text-orange-700">حقيقي</Badge>
                   </div>
-                  <p className="text-3xl font-bold mb-2">34%</p>
-                  <Progress value={34} className="h-2" />
+                  <p className="text-3xl font-bold mb-2">{customerStats?.conversionRate || 0}%</p>
+                  <Progress value={customerStats?.conversionRate || 0} className="h-2" />
                 </Card>
               </div>
 
@@ -4889,9 +4896,15 @@ export default function Admin() {
                   <div className="flex flex-wrap gap-2">
                     <div className="relative">
                       <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input placeholder="بحث بالاسم أو الهاتف..." className="pr-10 rounded-xl w-56" />
+                      <Input 
+                        placeholder="بحث بالاسم أو الهاتف..." 
+                        className="pr-10 rounded-xl w-56" 
+                        value={customerSearch}
+                        onChange={(e) => setCustomerSearch(e.target.value)}
+                        data-testid="input-customer-search"
+                      />
                     </div>
-                    <Select defaultValue="all">
+                    <Select value={customerStatusFilter} onValueChange={setCustomerStatusFilter}>
                       <SelectTrigger className="w-32 rounded-xl">
                         <SelectValue placeholder="الحالة" />
                       </SelectTrigger>
@@ -4902,7 +4915,7 @@ export default function Admin() {
                         <SelectItem value="vip">VIP</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Select defaultValue="all">
+                    <Select value={customerCityFilter} onValueChange={setCustomerCityFilter}>
                       <SelectTrigger className="w-32 rounded-xl">
                         <SelectValue placeholder="المدينة" />
                       </SelectTrigger>
@@ -4913,7 +4926,11 @@ export default function Admin() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <Button className="rounded-xl gap-2 bg-primary">
+                    <Button 
+                      className="rounded-xl gap-2 bg-primary"
+                      onClick={() => setShowAddCustomerDialog(true)}
+                      data-testid="button-add-customer-header"
+                    >
                       <UserPlus className="w-4 h-4" />
                       إضافة عميل
                     </Button>
@@ -4937,11 +4954,20 @@ export default function Admin() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
-                        {adminUsers.slice(0, 20).map((user: any, index: number) => {
-                          const isVip = index < Math.floor(adminUsers.length * 0.15);
-                          const isActive = index < Math.floor(adminUsers.length * 0.65);
-                          const orderCount = Math.floor(Math.random() * 50) + 1;
-                          const totalSpent = orderCount * (Math.floor(Math.random() * 100000) + 50000);
+                        {adminUsers
+                          .filter((user: any) => {
+                            const matchesSearch = !customerSearch || 
+                              user.facilityName?.toLowerCase().includes(customerSearch.toLowerCase()) ||
+                              user.phone?.includes(customerSearch);
+                            const matchesCity = customerCityFilter === 'all' || user.cityId?.toString() === customerCityFilter;
+                            return matchesSearch && matchesCity;
+                          })
+                          .slice(0, 20).map((user: any, index: number) => {
+                          const topCustomer = topCustomers.find((tc: any) => tc.user?.id === user.id);
+                          const isVip = topCustomer ? topCustomer.totalSpent >= 500000 : false;
+                          const isActive = topCustomer ? topCustomer.orderCount > 0 : false;
+                          const orderCount = topCustomer?.orderCount || 0;
+                          const totalSpent = topCustomer?.totalSpent || 0;
                           const userCity = cities.find((c: any) => c.id === user.cityId);
                           
                           return (
@@ -4995,16 +5021,24 @@ export default function Admin() {
                               </td>
                               <td className="px-4 py-4">
                                 <div className="flex items-center gap-1">
-                                  <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg hover:bg-blue-50 hover:text-blue-600">
+                                  <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg hover:bg-blue-50 hover:text-blue-600"
+                                    onClick={() => { setSelectedCustomerId(user.id); setShowCustomerDetails(true); }}
+                                    data-testid={`view-customer-${user.id}`}>
                                     <Eye className="w-4 h-4" />
                                   </Button>
-                                  <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg hover:bg-green-50 hover:text-green-600">
+                                  <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg hover:bg-green-50 hover:text-green-600"
+                                    onClick={() => window.open(`tel:${user.phone}`)}
+                                    data-testid={`call-customer-${user.id}`}>
                                     <Phone className="w-4 h-4" />
                                   </Button>
-                                  <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg hover:bg-purple-50 hover:text-purple-600">
+                                  <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg hover:bg-purple-50 hover:text-purple-600"
+                                    onClick={() => toast({ title: 'لم يتم تحديد البريد الإلكتروني' })}
+                                    data-testid={`email-customer-${user.id}`}>
                                     <Mail className="w-4 h-4" />
                                   </Button>
-                                  <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg hover:bg-orange-50 hover:text-orange-600">
+                                  <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg hover:bg-orange-50 hover:text-orange-600"
+                                    onClick={() => toast({ title: 'سيتم إضافة ميزة التعديل قريباً' })}
+                                    data-testid={`edit-customer-${user.id}`}>
                                     <Edit className="w-4 h-4" />
                                   </Button>
                                 </div>
@@ -5052,27 +5086,26 @@ export default function Admin() {
                     أفضل العملاء (حسب المشتريات)
                   </h3>
                   <div className="space-y-3">
-                    {adminUsers.slice(0, 5).map((user: any, index: number) => {
-                      const totalSpent = (5 - index) * 850000 + Math.floor(Math.random() * 100000);
-                      return (
-                        <div key={user.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white ${index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : index === 2 ? 'bg-orange-400' : 'bg-gray-300'}`}>
-                            {index + 1}
-                          </div>
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white font-bold">
-                            {user.facilityName?.charAt(0) || 'ع'}
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-bold text-sm">{user.facilityName || 'عميل'}</p>
-                            <p className="text-xs text-gray-500">{user.phone}</p>
-                          </div>
-                          <div className="text-left">
-                            <p className="font-bold text-primary">{totalSpent.toLocaleString('ar-SY')}</p>
-                            <p className="text-xs text-gray-400">ل.س</p>
-                          </div>
+                    {topCustomers.length > 0 ? topCustomers.map((tc: any, index: number) => (
+                      <div key={tc.user?.id || index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer" onClick={() => { setSelectedCustomerId(tc.user?.id); setShowCustomerDetails(true); }}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white ${index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : index === 2 ? 'bg-orange-400' : 'bg-gray-300'}`}>
+                          {index + 1}
                         </div>
-                      );
-                    })}
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white font-bold">
+                          {tc.user?.facilityName?.charAt(0) || 'ع'}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-bold text-sm">{tc.user?.facilityName || 'عميل'}</p>
+                          <p className="text-xs text-gray-500">{tc.user?.phone}</p>
+                        </div>
+                        <div className="text-left">
+                          <p className="font-bold text-primary">{tc.totalSpent.toLocaleString('ar-SY')}</p>
+                          <p className="text-xs text-gray-400">ل.س</p>
+                        </div>
+                      </div>
+                    )) : (
+                      <p className="text-center text-gray-400 py-4">لا توجد بيانات مشتريات بعد</p>
+                    )}
                   </div>
                 </Card>
 
@@ -5100,6 +5133,185 @@ export default function Admin() {
                   </div>
                 </Card>
               </div>
+
+              {/* Add Customer Dialog */}
+              <Dialog open={showAddCustomerDialog} onOpenChange={setShowAddCustomerDialog}>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <UserPlus className="w-5 h-5 text-primary" />
+                      إضافة عميل جديد
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 mt-4">
+                    <div>
+                      <Label>اسم المنشأة *</Label>
+                      <Input 
+                        value={newCustomer.facilityName} 
+                        onChange={(e) => setNewCustomer({...newCustomer, facilityName: e.target.value})}
+                        placeholder="أدخل اسم المنشأة"
+                        data-testid="input-new-customer-name"
+                      />
+                    </div>
+                    <div>
+                      <Label>رقم الهاتف *</Label>
+                      <Input 
+                        value={newCustomer.phone} 
+                        onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})}
+                        placeholder="مثال: 0912345678"
+                        data-testid="input-new-customer-phone"
+                      />
+                    </div>
+                    <div>
+                      <Label>كلمة المرور *</Label>
+                      <Input 
+                        type="password"
+                        value={newCustomer.password} 
+                        onChange={(e) => setNewCustomer({...newCustomer, password: e.target.value})}
+                        placeholder="أدخل كلمة المرور"
+                        data-testid="input-new-customer-password"
+                      />
+                    </div>
+                    <div>
+                      <Label>السجل التجاري</Label>
+                      <Input 
+                        value={newCustomer.commercialRegister} 
+                        onChange={(e) => setNewCustomer({...newCustomer, commercialRegister: e.target.value})}
+                        placeholder="رقم السجل التجاري (اختياري)"
+                      />
+                    </div>
+                    <div>
+                      <Label>الرقم الضريبي</Label>
+                      <Input 
+                        value={newCustomer.taxNumber} 
+                        onChange={(e) => setNewCustomer({...newCustomer, taxNumber: e.target.value})}
+                        placeholder="الرقم الضريبي (اختياري)"
+                      />
+                    </div>
+                    <div>
+                      <Label>المدينة</Label>
+                      <Select value={newCustomer.cityId?.toString() || ''} onValueChange={(v) => setNewCustomer({...newCustomer, cityId: parseInt(v)})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="اختر المدينة" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {cities.map((city: any) => (
+                            <SelectItem key={city.id} value={city.id.toString()}>{city.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex gap-2 pt-4">
+                      <Button 
+                        className="flex-1 rounded-xl"
+                        onClick={async () => {
+                          if (!newCustomer.phone || !newCustomer.password || !newCustomer.facilityName) {
+                            toast({ title: 'يرجى ملء الحقول المطلوبة', variant: 'destructive' });
+                            return;
+                          }
+                          try {
+                            await customersAPI.create(newCustomer);
+                            toast({ title: 'تم إضافة العميل بنجاح', className: 'bg-green-600 text-white' });
+                            setShowAddCustomerDialog(false);
+                            setNewCustomer({ phone: '', password: '', facilityName: '', commercialRegister: '', taxNumber: '', cityId: 0 });
+                            // Refetch users
+                            window.location.reload();
+                          } catch (error: any) {
+                            toast({ title: error.message || 'حدث خطأ', variant: 'destructive' });
+                          }
+                        }}
+                        data-testid="button-save-new-customer"
+                      >
+                        حفظ العميل
+                      </Button>
+                      <Button variant="outline" className="rounded-xl" onClick={() => setShowAddCustomerDialog(false)}>
+                        إلغاء
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Customer Details Dialog */}
+              <Dialog open={showCustomerDetails} onOpenChange={setShowCustomerDetails}>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Eye className="w-5 h-5 text-primary" />
+                      تفاصيل العميل
+                    </DialogTitle>
+                  </DialogHeader>
+                  {customerDetails ? (
+                    <div className="space-y-4 mt-4">
+                      <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
+                        <div className={`w-16 h-16 rounded-xl flex items-center justify-center text-white font-bold text-2xl ${customerDetails.isVip ? 'bg-gradient-to-br from-purple-500 to-indigo-600' : 'bg-gradient-to-br from-primary to-blue-600'}`}>
+                          {customerDetails.user?.facilityName?.charAt(0) || 'ع'}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-bold text-lg">{customerDetails.user?.facilityName || 'عميل'}</h4>
+                            {customerDetails.isVip && <Crown className="w-5 h-5 text-yellow-500" />}
+                          </div>
+                          <p className="text-gray-500">{customerDetails.user?.phone}</p>
+                          <Badge className={customerDetails.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}>
+                            {customerDetails.isActive ? 'نشط' : 'غير نشط'}
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="p-4 bg-blue-50 rounded-xl text-center">
+                          <p className="text-2xl font-bold text-blue-700">{customerDetails.totalOrders}</p>
+                          <p className="text-xs text-blue-600">إجمالي الطلبات</p>
+                        </div>
+                        <div className="p-4 bg-green-50 rounded-xl text-center">
+                          <p className="text-xl font-bold text-green-700">{customerDetails.totalSpent.toLocaleString('ar-SY')}</p>
+                          <p className="text-xs text-green-600">إجمالي المشتريات (ل.س)</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex justify-between py-2 border-b border-gray-100">
+                          <span className="text-gray-500">السجل التجاري</span>
+                          <span className="font-bold">{customerDetails.user?.commercialRegister || 'غير محدد'}</span>
+                        </div>
+                        <div className="flex justify-between py-2 border-b border-gray-100">
+                          <span className="text-gray-500">الرقم الضريبي</span>
+                          <span className="font-bold">{customerDetails.user?.taxNumber || 'غير محدد'}</span>
+                        </div>
+                        <div className="flex justify-between py-2 border-b border-gray-100">
+                          <span className="text-gray-500">آخر طلب</span>
+                          <span className="font-bold">{customerDetails.lastOrderDate ? new Date(customerDetails.lastOrderDate).toLocaleDateString('ar-SY') : 'لا يوجد'}</span>
+                        </div>
+                        <div className="flex justify-between py-2">
+                          <span className="text-gray-500">تاريخ التسجيل</span>
+                          <span className="font-bold">{new Date(customerDetails.user?.createdAt).toLocaleDateString('ar-SY')}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 pt-4">
+                        <Button variant="outline" className="flex-1 rounded-xl gap-2">
+                          <Phone className="w-4 h-4" />
+                          اتصال
+                        </Button>
+                        <Button variant="outline" className="flex-1 rounded-xl gap-2">
+                          <Mail className="w-4 h-4" />
+                          رسالة
+                        </Button>
+                        <Button className="flex-1 rounded-xl gap-2">
+                          <Edit className="w-4 h-4" />
+                          تعديل
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <RefreshCw className="w-8 h-8 animate-spin mx-auto text-gray-400" />
+                      <p className="text-gray-500 mt-2">جاري التحميل...</p>
+                    </div>
+                  )}
+                </DialogContent>
+              </Dialog>
             </div>
           </TabsContent>
 
