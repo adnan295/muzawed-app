@@ -1890,5 +1890,135 @@ export async function registerRoutes(
     }
   });
 
+  // ===== Expense Categories - فئات المصاريف =====
+  app.get("/api/expense-categories", async (req, res) => {
+    try {
+      const categoriesList = await storage.getExpenseCategories();
+      res.json(categoriesList);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/expense-categories/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const category = await storage.getExpenseCategory(id);
+      if (!category) {
+        return res.status(404).json({ error: "الفئة غير موجودة" });
+      }
+      res.json(category);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/expense-categories", async (req, res) => {
+    try {
+      const category = await storage.createExpenseCategory(req.body);
+      res.status(201).json(category);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/expense-categories/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updated = await storage.updateExpenseCategory(id, req.body);
+      if (!updated) {
+        return res.status(404).json({ error: "الفئة غير موجودة" });
+      }
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/expense-categories/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteExpenseCategory(id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ===== Expenses - المصاريف =====
+  app.get("/api/expenses", async (req, res) => {
+    try {
+      const filters: any = {};
+      if (req.query.categoryId) filters.categoryId = parseInt(req.query.categoryId as string);
+      if (req.query.warehouseId) filters.warehouseId = parseInt(req.query.warehouseId as string);
+      if (req.query.startDate) filters.startDate = new Date(req.query.startDate as string);
+      if (req.query.endDate) filters.endDate = new Date(req.query.endDate as string);
+      
+      const expensesList = await storage.getExpenses(Object.keys(filters).length > 0 ? filters : undefined);
+      res.json(expensesList);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/expenses/summary", async (req, res) => {
+    try {
+      const filters: any = {};
+      if (req.query.warehouseId) filters.warehouseId = parseInt(req.query.warehouseId as string);
+      if (req.query.startDate) filters.startDate = new Date(req.query.startDate as string);
+      if (req.query.endDate) filters.endDate = new Date(req.query.endDate as string);
+      
+      const summary = await storage.getExpenseSummary(Object.keys(filters).length > 0 ? filters : undefined);
+      res.json(summary);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/expenses/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const expense = await storage.getExpense(id);
+      if (!expense) {
+        return res.status(404).json({ error: "المصروف غير موجود" });
+      }
+      res.json(expense);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/expenses", async (req, res) => {
+    try {
+      const expense = await storage.createExpense(req.body);
+      res.status(201).json(expense);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/expenses/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updated = await storage.updateExpense(id, req.body);
+      if (!updated) {
+        return res.status(404).json({ error: "المصروف غير موجود" });
+      }
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/expenses/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteExpense(id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }
