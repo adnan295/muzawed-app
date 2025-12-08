@@ -215,6 +215,11 @@ export interface IStorage {
   updateProductInventory(id: number, inventory: Partial<InsertProductInventory>): Promise<ProductInventory | undefined>;
   deleteProductInventory(id: number): Promise<void>;
   getProductsByCity(cityId: number): Promise<Product[]>;
+  
+  // Product with Inventory (transactional)
+  createProductWithInventory(product: InsertProduct, inventoryItems: { warehouseId: number; stock: number }[]): Promise<Product>;
+  updateProductWithInventory(id: number, product: Partial<InsertProduct>, inventoryItems: { warehouseId: number; stock: number }[]): Promise<Product | undefined>;
+  getProductWithInventory(id: number): Promise<{ product: Product; inventory: ProductInventory[] } | undefined>;
 
   // Stats
   getDashboardStats(): Promise<{
@@ -766,6 +771,50 @@ export class DatabaseStorage implements IStorage {
     if (productIds.length === 0) return [];
     
     return await db.select().from(products).where(sql`${products.id} = ANY(${productIds})`);
+  }
+
+  // Product with Inventory (transactional)
+  async createProductWithInventory(product: InsertProduct, inventoryItems: { warehouseId: number; stock: number }[]): Promise<Product> {
+    const [newProduct] = await db.insert(products).values(product).returning();
+    
+    if (inventoryItems.length > 0) {
+      const inventoryRecords = inventoryItems.map(item => ({
+        productId: newProduct.id,
+        warehouseId: item.warehouseId,
+        stock: item.stock,
+        isActive: true,
+      }));
+      await db.insert(productInventory).values(inventoryRecords);
+    }
+    
+    return newProduct;
+  }
+
+  async updateProductWithInventory(id: number, productData: Partial<InsertProduct>, inventoryItems: { warehouseId: number; stock: number }[]): Promise<Product | undefined> {
+    const [updatedProduct] = await db.update(products).set(productData).where(eq(products.id, id)).returning();
+    if (!updatedProduct) return undefined;
+    
+    await db.delete(productInventory).where(eq(productInventory.productId, id));
+    
+    if (inventoryItems.length > 0) {
+      const inventoryRecords = inventoryItems.map(item => ({
+        productId: id,
+        warehouseId: item.warehouseId,
+        stock: item.stock,
+        isActive: true,
+      }));
+      await db.insert(productInventory).values(inventoryRecords);
+    }
+    
+    return updatedProduct;
+  }
+
+  async getProductWithInventory(id: number): Promise<{ product: Product; inventory: ProductInventory[] } | undefined> {
+    const [product] = await db.select().from(products).where(eq(products.id, id));
+    if (!product) return undefined;
+    
+    const inventory = await db.select().from(productInventory).where(eq(productInventory.productId, id));
+    return { product, inventory };
   }
 
   // Stats
