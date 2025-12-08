@@ -130,6 +130,10 @@ export const adminAPI = {
   getStats: () => request("/admin/stats"),
   getOrders: () => request("/admin/orders"),
   getUsers: () => request("/admin/users"),
+  updateUser: (id: number, data: any) => request(`/users/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }),
 };
 
 // Promotions API
@@ -437,6 +441,7 @@ export const bannersAPI = {
   getAll: () => request("/banners"),
   getActive: () => request("/banners/active"),
   getById: (id: number) => request(`/banners/${id}`),
+  getStats: () => request("/banners/stats"),
   create: (data: any) => request("/banners", {
     method: "POST",
     body: JSON.stringify(data),
@@ -447,5 +452,22 @@ export const bannersAPI = {
   }),
   delete: (id: number) => request(`/banners/${id}`, {
     method: "DELETE",
+  }),
+  duplicate: (id: number) => request(`/banners/${id}/duplicate`, {
+    method: "POST",
+  }),
+  trackView: (id: number) => request(`/banners/${id}/view`, {
+    method: "POST",
+  }),
+  trackClick: (id: number) => request(`/banners/${id}/click`, {
+    method: "POST",
+  }),
+  reorder: (bannerIds: number[]) => request("/banners/reorder", {
+    method: "POST",
+    body: JSON.stringify({ bannerIds }),
+  }),
+  bulkDelete: (ids: number[]) => request("/banners/bulk-delete", {
+    method: "POST",
+    body: JSON.stringify({ ids }),
   }),
 };

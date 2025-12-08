@@ -163,9 +163,18 @@ Shopping & Orders:
 - Added inventory management with low-stock alerts API
 - Enhanced reports tab with advanced charts (composed charts, pie charts, funnel charts, area charts)
 - Added scheduled reports management UI
-- Added banners/slides management system:
-  * `banners` table for storing promotional slides
-  * Full CRUD API for banners (`/api/banners`, `/api/banners/active`)
-  * Admin dashboard "الشرائح" tab with KPIs, add/edit/delete functionality
-  * AdsCarousel component fetches banners from API (falls back to defaults if empty)
-  * Banner customization: title, subtitle, image, button text, gradient colors, position, active status
+- Added comprehensive banners/slides management system:
+  * `banners` table with advanced fields: scheduling (startDate, endDate), view/click tracking, target audience
+  * Full CRUD API for banners with additional endpoints: duplicate, reorder, bulk-delete, stats, view/click tracking
+  * Admin dashboard "الشرائح" tab with:
+    - 6 KPIs: total, active, inactive, views, clicks, CTR (click-through rate)
+    - Search and filter (by status: all/active/inactive)
+    - Bulk selection and delete for multiple banners
+    - Duplicate banner functionality
+    - Drag-free reordering with up/down buttons
+    - Scheduling support: set start and end dates for time-limited campaigns
+    - Target audience selection: all customers, VIP, new, or returning
+    - 4 ready-to-use banner templates
+    - Live preview in add/edit dialog
+  * AdsCarousel component with view/click analytics tracking
+  * Automatic view tracking when banner is displayed, click tracking on button click

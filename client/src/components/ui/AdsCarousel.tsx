@@ -80,6 +80,8 @@ export function AdsCarousel() {
   ]);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
+  const [trackedViews, setTrackedViews] = useState<Set<string | number>>(new Set());
+
   const onSelect = useCallback(() => {
     if (!emblaApi) return;
     setSelectedIndex(emblaApi.selectedScrollSnap());
@@ -93,6 +95,23 @@ export function AdsCarousel() {
       emblaApi.off('select', onSelect);
     };
   }, [emblaApi, onSelect]);
+
+  useEffect(() => {
+    const currentBanner = banners[selectedIndex];
+    if (currentBanner && typeof currentBanner.id === 'number' && !trackedViews.has(currentBanner.id)) {
+      bannersAPI.trackView(currentBanner.id).catch(() => {});
+      setTrackedViews(prev => new Set(prev).add(currentBanner.id));
+    }
+  }, [selectedIndex, banners, trackedViews]);
+
+  const handleBannerClick = (banner: BannerProps) => {
+    if (typeof banner.id === 'number') {
+      bannersAPI.trackClick(banner.id).catch(() => {});
+    }
+    if (banner.buttonLink) {
+      window.location.href = banner.buttonLink;
+    }
+  };
 
   return (
     <div className="relative" dir="rtl">
@@ -117,7 +136,11 @@ export function AdsCarousel() {
                     </span>
                     <h2 className="text-xl font-bold mb-1 leading-tight text-shadow-sm">{banner.title}</h2>
                     <p className="text-white/90 text-[11px] mb-3 line-clamp-1">{banner.subtitle}</p>
-                    <Button size="sm" className="bg-white text-foreground hover:bg-white/90 font-bold rounded-lg text-[10px] h-7 px-4 shadow-sm">
+                    <Button 
+                      size="sm" 
+                      className="bg-white text-foreground hover:bg-white/90 font-bold rounded-lg text-[10px] h-7 px-4 shadow-sm"
+                      onClick={() => handleBannerClick(banner)}
+                    >
                       {banner.buttonText}
                     </Button>
                   </div>

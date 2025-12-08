@@ -1540,6 +1540,16 @@ export async function registerRoutes(
     }
   });
 
+  // Get banner stats - must be before :id route
+  app.get("/api/banners/stats", async (req, res) => {
+    try {
+      const stats = await storage.getBannerStats();
+      res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/banners/:id", async (req, res) => {
     try {
       const banner = await storage.getBanner(parseInt(req.params.id));
@@ -1574,6 +1584,61 @@ export async function registerRoutes(
   app.delete("/api/banners/:id", async (req, res) => {
     try {
       await storage.deleteBanner(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Duplicate banner
+  app.post("/api/banners/:id/duplicate", async (req, res) => {
+    try {
+      const banner = await storage.duplicateBanner(parseInt(req.params.id));
+      if (!banner) return res.status(404).json({ error: "الشريحة غير موجودة" });
+      res.status(201).json(banner);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Increment banner views
+  app.post("/api/banners/:id/view", async (req, res) => {
+    try {
+      await storage.incrementBannerViews(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Increment banner clicks
+  app.post("/api/banners/:id/click", async (req, res) => {
+    try {
+      await storage.incrementBannerClicks(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Reorder banners
+  app.post("/api/banners/reorder", async (req, res) => {
+    try {
+      const { bannerIds } = req.body;
+      if (!Array.isArray(bannerIds)) return res.status(400).json({ error: "bannerIds must be an array" });
+      await storage.reorderBanners(bannerIds);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Bulk delete banners
+  app.post("/api/banners/bulk-delete", async (req, res) => {
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids)) return res.status(400).json({ error: "ids must be an array" });
+      await storage.deleteBanners(ids);
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

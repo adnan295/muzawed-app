@@ -27,7 +27,7 @@ import {
   TruckIcon, MapPinned, Factory, ShoppingBag, FileSpreadsheet, File, MailCheck, FileDown,
   Sparkles, Flame, ThumbsUp, ThumbsDown, AlertCircle, Info, HelpCircle, CircleDollarSign,
   BadgePercent, Gauge, ArrowUpRight, ArrowDownRight, Hash, Split, Merge,
-  GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight, LogOut
+  GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight, LogOut, MousePointer, EyeOff
 } from 'lucide-react';
 import { Link } from 'wouter';
 import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI, bannersAPI } from '@/lib/api';
@@ -415,6 +415,9 @@ export default function Admin() {
   const [showAddCustomerDialog, setShowAddCustomerDialog] = useState(false);
   const [showAddBannerDialog, setShowAddBannerDialog] = useState(false);
   const [editingBanner, setEditingBanner] = useState<any>(null);
+  const [selectedBannerIds, setSelectedBannerIds] = useState<number[]>([]);
+  const [bannerSearch, setBannerSearch] = useState('');
+  const [bannerStatusFilter, setBannerStatusFilter] = useState('all');
   const [newBanner, setNewBanner] = useState({
     title: '',
     subtitle: '',
@@ -424,6 +427,22 @@ export default function Admin() {
     colorClass: 'from-primary to-purple-800',
     position: 0,
     isActive: true,
+    startDate: '',
+    endDate: '',
+    targetAudience: 'all',
+  });
+
+  const { data: bannerStats } = useQuery({
+    queryKey: ['bannerStats'],
+    queryFn: () => bannersAPI.getStats(),
+  });
+
+  const filteredBanners = bannersList.filter((b: any) => {
+    const matchesSearch = bannerSearch === '' || b.title?.toLowerCase().includes(bannerSearch.toLowerCase());
+    const matchesStatus = bannerStatusFilter === 'all' || 
+      (bannerStatusFilter === 'active' && b.isActive) || 
+      (bannerStatusFilter === 'inactive' && !b.isActive);
+    return matchesSearch && matchesStatus;
   });
   const [newCustomer, setNewCustomer] = useState({
     phone: '',
@@ -435,6 +454,8 @@ export default function Admin() {
   });
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [showCustomerDetails, setShowCustomerDetails] = useState(false);
+  const [showEditCustomerDialog, setShowEditCustomerDialog] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<any>(null);
 
   const { data: customerDetails } = useQuery({
     queryKey: ['customerDetails', selectedCustomerId],
@@ -2313,7 +2334,7 @@ export default function Admin() {
           <TabsContent value="banners">
             <div className="space-y-6">
               {/* KPIs */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-purple-50 to-white">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
@@ -2353,8 +2374,30 @@ export default function Admin() {
                       <Eye className="w-6 h-6 text-blue-600" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-blue-700">∞</p>
+                      <p className="text-2xl font-bold text-blue-700">{bannerStats?.totalViews?.toLocaleString() || 0}</p>
                       <p className="text-xs text-blue-600">المشاهدات</p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-orange-50 to-white">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center">
+                      <MousePointer className="w-6 h-6 text-orange-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-orange-700">{bannerStats?.totalClicks?.toLocaleString() || 0}</p>
+                      <p className="text-xs text-orange-600">النقرات</p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-teal-50 to-white">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center">
+                      <TrendingUp className="w-6 h-6 text-teal-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-teal-700">{(bannerStats?.avgCtr || 0).toFixed(1)}%</p>
+                      <p className="text-xs text-teal-600">معدل النقر</p>
                     </div>
                   </div>
                 </Card>
@@ -2362,7 +2405,7 @@ export default function Admin() {
 
               {/* Banners Management Card */}
               <Card className="p-6 border-none shadow-lg rounded-2xl">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
                   <div>
                     <h3 className="font-bold text-xl flex items-center gap-2">
                       <Layers className="w-5 h-5 text-purple-500" />
@@ -2370,16 +2413,94 @@ export default function Admin() {
                     </h3>
                     <p className="text-gray-500 text-sm mt-1">تحكم في البانرات التي تظهر في الصفحة الرئيسية</p>
                   </div>
-                  <Button className="rounded-xl gap-2" onClick={() => { setEditingBanner(null); setNewBanner({ title: '', subtitle: '', image: '', buttonText: 'اطلب الآن', buttonLink: '', colorClass: 'from-primary to-purple-800', position: bannersList.length, isActive: true }); setShowAddBannerDialog(true); }} data-testid="add-banner-btn">
-                    <Plus className="w-4 h-4" />
-                    إضافة شريحة
-                  </Button>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {selectedBannerIds.length > 0 && (
+                      <Button 
+                        variant="outline" 
+                        className="rounded-xl gap-2 text-red-600 hover:bg-red-50"
+                        onClick={async () => {
+                          if (!confirm(`هل أنت متأكد من حذف ${selectedBannerIds.length} شريحة؟`)) return;
+                          try {
+                            await bannersAPI.bulkDelete(selectedBannerIds);
+                            toast({ title: `تم حذف ${selectedBannerIds.length} شريحة`, className: 'bg-green-600 text-white' });
+                            setSelectedBannerIds([]);
+                            refetchBanners();
+                          } catch (error) {
+                            toast({ title: 'حدث خطأ', variant: 'destructive' });
+                          }
+                        }}
+                        data-testid="bulk-delete-banners-btn"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        حذف ({selectedBannerIds.length})
+                      </Button>
+                    )}
+                    <Button className="rounded-xl gap-2" onClick={() => { setEditingBanner(null); setNewBanner({ title: '', subtitle: '', image: '', buttonText: 'اطلب الآن', buttonLink: '', colorClass: 'from-primary to-purple-800', position: bannersList.length, isActive: true, startDate: '', endDate: '', targetAudience: 'all' }); setShowAddBannerDialog(true); }} data-testid="add-banner-btn">
+                      <Plus className="w-4 h-4" />
+                      إضافة شريحة
+                    </Button>
+                  </div>
                 </div>
 
-                {bannersList.length > 0 ? (
+                {/* Search and Filter */}
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
+                  <div className="relative flex-1">
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input 
+                      placeholder="بحث في الشرائح..." 
+                      className="pr-10 rounded-xl"
+                      value={bannerSearch}
+                      onChange={(e) => setBannerSearch(e.target.value)}
+                      data-testid="banner-search-input"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant={bannerStatusFilter === 'all' ? 'default' : 'outline'} 
+                      size="sm" 
+                      className="rounded-xl"
+                      onClick={() => setBannerStatusFilter('all')}
+                    >
+                      الكل
+                    </Button>
+                    <Button 
+                      variant={bannerStatusFilter === 'active' ? 'default' : 'outline'} 
+                      size="sm" 
+                      className="rounded-xl"
+                      onClick={() => setBannerStatusFilter('active')}
+                    >
+                      نشط
+                    </Button>
+                    <Button 
+                      variant={bannerStatusFilter === 'inactive' ? 'default' : 'outline'} 
+                      size="sm" 
+                      className="rounded-xl"
+                      onClick={() => setBannerStatusFilter('inactive')}
+                    >
+                      معطل
+                    </Button>
+                  </div>
+                </div>
+
+                {filteredBanners.length > 0 ? (
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {bannersList.map((banner: any) => (
-                      <div key={banner.id} className="relative group overflow-hidden rounded-2xl shadow-md border border-gray-100 hover:shadow-lg transition-all" data-testid={`banner-card-${banner.id}`}>
+                    {filteredBanners.map((banner: any, index: number) => (
+                      <div key={banner.id} className={`relative group overflow-hidden rounded-2xl shadow-md border ${selectedBannerIds.includes(banner.id) ? 'border-primary ring-2 ring-primary/20' : 'border-gray-100'} hover:shadow-lg transition-all`} data-testid={`banner-card-${banner.id}`}>
+                        {/* Selection Checkbox */}
+                        <div className="absolute top-2 right-2 z-20">
+                          <Checkbox 
+                            checked={selectedBannerIds.includes(banner.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedBannerIds([...selectedBannerIds, banner.id]);
+                              } else {
+                                setSelectedBannerIds(selectedBannerIds.filter(id => id !== banner.id));
+                              }
+                            }}
+                            className="bg-white/90"
+                          />
+                        </div>
+                        
                         {/* Banner Preview */}
                         <div className={`h-32 bg-gradient-to-l ${banner.colorClass || 'from-primary to-purple-800'} p-4 flex flex-col justify-center text-white relative overflow-hidden`}>
                           {banner.image && (
@@ -2390,10 +2511,13 @@ export default function Admin() {
                             <p className="text-white/80 text-xs line-clamp-1">{banner.subtitle}</p>
                           </div>
                           {/* Status Badge */}
-                          <div className="absolute top-2 left-2">
+                          <div className="absolute top-2 left-2 flex gap-1">
                             <Badge className={banner.isActive ? 'bg-green-500 text-white' : 'bg-gray-500 text-white'}>
                               {banner.isActive ? 'نشط' : 'معطل'}
                             </Badge>
+                            {banner.startDate && new Date(banner.startDate) > new Date() && (
+                              <Badge className="bg-yellow-500 text-white">مجدول</Badge>
+                            )}
                           </div>
                         </div>
                         
@@ -2401,20 +2525,83 @@ export default function Admin() {
                         <div className="p-4 bg-white">
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-xs text-gray-500">الترتيب: {banner.position + 1}</span>
-                            <span className="text-xs text-gray-400">{banner.buttonText || 'بدون زر'}</span>
+                            <div className="flex items-center gap-2 text-xs text-gray-400">
+                              <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> {banner.viewCount || 0}</span>
+                              <span className="flex items-center gap-1"><MousePointer className="w-3 h-3" /> {banner.clickCount || 0}</span>
+                            </div>
+                          </div>
+                          
+                          {/* Reorder Buttons */}
+                          <div className="flex items-center justify-center gap-1 mb-2">
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="rounded-lg h-7 w-7 p-0"
+                              disabled={index === 0}
+                              onClick={async () => {
+                                const newOrder = filteredBanners.map((b: any) => b.id);
+                                [newOrder[index], newOrder[index - 1]] = [newOrder[index - 1], newOrder[index]];
+                                try {
+                                  await bannersAPI.reorder(newOrder);
+                                  refetchBanners();
+                                  toast({ title: 'تم تغيير الترتيب', className: 'bg-blue-600 text-white' });
+                                } catch (error) {
+                                  toast({ title: 'حدث خطأ', variant: 'destructive' });
+                                }
+                              }}
+                            >
+                              <ChevronUp className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="rounded-lg h-7 w-7 p-0"
+                              disabled={index === filteredBanners.length - 1}
+                              onClick={async () => {
+                                const newOrder = filteredBanners.map((b: any) => b.id);
+                                [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+                                try {
+                                  await bannersAPI.reorder(newOrder);
+                                  refetchBanners();
+                                  toast({ title: 'تم تغيير الترتيب', className: 'bg-blue-600 text-white' });
+                                } catch (error) {
+                                  toast({ title: 'حدث خطأ', variant: 'destructive' });
+                                }
+                              }}
+                            >
+                              <ChevronDown className="w-4 h-4" />
+                            </Button>
                           </div>
                           
                           {/* Actions */}
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
                             <Button 
                               size="sm" 
                               variant="outline" 
                               className="flex-1 rounded-lg text-xs"
-                              onClick={() => { setEditingBanner(banner); setNewBanner({ title: banner.title, subtitle: banner.subtitle || '', image: banner.image || '', buttonText: banner.buttonText || 'اطلب الآن', buttonLink: banner.buttonLink || '', colorClass: banner.colorClass || 'from-primary to-purple-800', position: banner.position, isActive: banner.isActive }); setShowAddBannerDialog(true); }}
+                              onClick={() => { setEditingBanner(banner); setNewBanner({ title: banner.title, subtitle: banner.subtitle || '', image: banner.image || '', buttonText: banner.buttonText || 'اطلب الآن', buttonLink: banner.buttonLink || '', colorClass: banner.colorClass || 'from-primary to-purple-800', position: banner.position, isActive: banner.isActive, startDate: banner.startDate ? new Date(banner.startDate).toISOString().slice(0, 16) : '', endDate: banner.endDate ? new Date(banner.endDate).toISOString().slice(0, 16) : '', targetAudience: banner.targetAudience || 'all' }); setShowAddBannerDialog(true); }}
                               data-testid={`edit-banner-${banner.id}`}
                             >
                               <Edit className="w-3 h-3 ml-1" />
                               تعديل
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="rounded-lg text-xs"
+                              title="نسخ الشريحة"
+                              onClick={async () => {
+                                try {
+                                  await bannersAPI.duplicate(banner.id);
+                                  toast({ title: 'تم نسخ الشريحة', className: 'bg-blue-600 text-white' });
+                                  refetchBanners();
+                                } catch (error) {
+                                  toast({ title: 'حدث خطأ', variant: 'destructive' });
+                                }
+                              }}
+                              data-testid={`duplicate-banner-${banner.id}`}
+                            >
+                              <Copy className="w-3 h-3" />
                             </Button>
                             <Button 
                               size="sm" 
@@ -2461,14 +2648,58 @@ export default function Admin() {
                     <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-purple-50 flex items-center justify-center">
                       <Layers className="w-12 h-12 text-purple-300" />
                     </div>
-                    <h4 className="font-bold text-xl text-gray-600 mb-2">لا توجد شرائح إعلانية</h4>
-                    <p className="text-gray-500 mb-4">ابدأ بإضافة شرائح لعرضها في الصفحة الرئيسية</p>
-                    <Button className="rounded-xl gap-2" onClick={() => setShowAddBannerDialog(true)}>
-                      <Plus className="w-4 h-4" />
-                      إضافة أول شريحة
-                    </Button>
+                    <h4 className="font-bold text-xl text-gray-600 mb-2">{bannerSearch || bannerStatusFilter !== 'all' ? 'لا توجد نتائج' : 'لا توجد شرائح إعلانية'}</h4>
+                    <p className="text-gray-500 mb-4">{bannerSearch || bannerStatusFilter !== 'all' ? 'جرب تغيير معايير البحث' : 'ابدأ بإضافة شرائح لعرضها في الصفحة الرئيسية'}</p>
+                    {!bannerSearch && bannerStatusFilter === 'all' && (
+                      <Button className="rounded-xl gap-2" onClick={() => setShowAddBannerDialog(true)}>
+                        <Plus className="w-4 h-4" />
+                        إضافة أول شريحة
+                      </Button>
+                    )}
                   </div>
                 )}
+              </Card>
+
+              {/* Banner Templates */}
+              <Card className="p-6 border-none shadow-lg rounded-2xl">
+                <h3 className="font-bold text-lg flex items-center gap-2 mb-4">
+                  <Sparkles className="w-5 h-5 text-yellow-500" />
+                  قوالب جاهزة
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { title: 'عروض رمضان', subtitle: 'خصومات تصل إلى 50%', color: 'from-emerald-600 to-teal-700', buttonText: 'تسوق الآن' },
+                    { title: 'منتجات جديدة', subtitle: 'اكتشف أحدث المنتجات', color: 'from-blue-600 to-indigo-700', buttonText: 'اكتشف' },
+                    { title: 'تخفيضات نهاية الأسبوع', subtitle: 'لفترة محدودة', color: 'from-red-600 to-rose-700', buttonText: 'احصل عليها' },
+                    { title: 'شحن مجاني', subtitle: 'للطلبات فوق 500,000 ل.س', color: 'from-purple-600 to-violet-700', buttonText: 'اطلب الآن' },
+                  ].map((template, i) => (
+                    <div 
+                      key={i}
+                      className={`h-24 bg-gradient-to-l ${template.color} rounded-xl p-3 text-white cursor-pointer hover:scale-105 transition-transform`}
+                      onClick={() => {
+                        setEditingBanner(null);
+                        setNewBanner({
+                          title: template.title,
+                          subtitle: template.subtitle,
+                          image: '',
+                          buttonText: template.buttonText,
+                          buttonLink: '',
+                          colorClass: template.color,
+                          position: bannersList.length,
+                          isActive: true,
+                          startDate: '',
+                          endDate: '',
+                          targetAudience: 'all',
+                        });
+                        setShowAddBannerDialog(true);
+                      }}
+                      data-testid={`banner-template-${i}`}
+                    >
+                      <h4 className="font-bold text-sm">{template.title}</h4>
+                      <p className="text-white/80 text-xs">{template.subtitle}</p>
+                    </div>
+                  ))}
+                </div>
               </Card>
 
               {/* Add/Edit Banner Dialog */}
@@ -2559,6 +2790,47 @@ export default function Admin() {
                         />
                         <Label>نشط</Label>
                       </div>
+                    </div>
+
+                    {/* Scheduling */}
+                    <div className="p-3 bg-gray-50 rounded-xl space-y-3">
+                      <Label className="flex items-center gap-2"><Calendar className="w-4 h-4" /> جدولة العرض (اختياري)</Label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-xs text-gray-500">تاريخ البدء</Label>
+                          <Input 
+                            type="datetime-local"
+                            value={newBanner.startDate} 
+                            onChange={(e) => setNewBanner({...newBanner, startDate: e.target.value})}
+                            className="text-sm"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-gray-500">تاريخ الانتهاء</Label>
+                          <Input 
+                            type="datetime-local"
+                            value={newBanner.endDate} 
+                            onChange={(e) => setNewBanner({...newBanner, endDate: e.target.value})}
+                            className="text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Target Audience */}
+                    <div>
+                      <Label className="flex items-center gap-2"><Users className="w-4 h-4" /> الجمهور المستهدف</Label>
+                      <Select value={newBanner.targetAudience} onValueChange={(v) => setNewBanner({...newBanner, targetAudience: v})}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">جميع العملاء</SelectItem>
+                          <SelectItem value="vip">عملاء VIP</SelectItem>
+                          <SelectItem value="new">العملاء الجدد</SelectItem>
+                          <SelectItem value="returning">العملاء العائدون</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     {/* Preview */}
@@ -3698,7 +3970,7 @@ export default function Admin() {
                               </div>
                               <div>
                                 <p className="font-bold">{warehouse.name}</p>
-                                <p className="text-xs text-gray-500">{warehouse.code} • {city?.name || 'غير محدد'}</p>
+                                <p className="text-xs text-gray-500">#{warehouse.id} • {city?.name || 'غير محدد'}</p>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -3713,8 +3985,8 @@ export default function Admin() {
                           </div>
                           <div className="grid grid-cols-2 gap-2 text-sm">
                             <div className="bg-white rounded-lg p-2 text-center">
-                              <p className="text-xs text-gray-500">السعة</p>
-                              <p className="font-bold">{warehouse.capacity.toLocaleString('ar-SY')}</p>
+                              <p className="text-xs text-gray-500">العنوان</p>
+                              <p className="font-bold text-xs">{warehouse.address || 'غير محدد'}</p>
                             </div>
                             <div className="bg-white rounded-lg p-2 text-center">
                               <p className="text-xs text-gray-500">الهاتف</p>
@@ -5280,7 +5552,22 @@ export default function Admin() {
                               user.facilityName?.toLowerCase().includes(customerSearch.toLowerCase()) ||
                               user.phone?.includes(customerSearch);
                             const matchesCity = customerCityFilter === 'all' || user.cityId?.toString() === customerCityFilter;
-                            return matchesSearch && matchesCity;
+                            
+                            // Status filter logic
+                            const tc = topCustomers.find((tc: any) => tc.user?.id === user.id);
+                            const userIsVip = tc ? tc.totalSpent >= 500000 : false;
+                            const userIsActive = tc ? tc.orderCount > 0 : false;
+                            
+                            let matchesStatus = true;
+                            if (customerStatusFilter === 'vip') {
+                              matchesStatus = userIsVip;
+                            } else if (customerStatusFilter === 'active') {
+                              matchesStatus = userIsActive && !userIsVip;
+                            } else if (customerStatusFilter === 'inactive') {
+                              matchesStatus = !userIsActive;
+                            }
+                            
+                            return matchesSearch && matchesCity && matchesStatus;
                           })
                           .slice(0, 20).map((user: any, index: number) => {
                           const topCustomer = topCustomers.find((tc: any) => tc.user?.id === user.id);
@@ -5357,7 +5644,17 @@ export default function Admin() {
                                     <Mail className="w-4 h-4" />
                                   </Button>
                                   <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg hover:bg-orange-50 hover:text-orange-600"
-                                    onClick={() => toast({ title: 'سيتم إضافة ميزة التعديل قريباً' })}
+                                    onClick={() => {
+                                      setEditingCustomer({
+                                        id: user.id,
+                                        phone: user.phone || '',
+                                        facilityName: user.facilityName || '',
+                                        commercialRegister: user.commercialRegister || '',
+                                        taxNumber: user.taxNumber || '',
+                                        cityId: user.cityId || 0,
+                                      });
+                                      setShowEditCustomerDialog(true);
+                                    }}
                                     data-testid={`edit-customer-${user.id}`}>
                                     <Edit className="w-4 h-4" />
                                   </Button>
@@ -5549,6 +5846,93 @@ export default function Admin() {
                       </Button>
                     </div>
                   </div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Edit Customer Dialog */}
+              <Dialog open={showEditCustomerDialog} onOpenChange={setShowEditCustomerDialog}>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Edit className="w-5 h-5 text-orange-500" />
+                      تعديل بيانات العميل
+                    </DialogTitle>
+                  </DialogHeader>
+                  {editingCustomer && (
+                    <div className="space-y-4 mt-4">
+                      <div>
+                        <Label>اسم المنشأة</Label>
+                        <Input 
+                          value={editingCustomer.facilityName} 
+                          onChange={(e) => setEditingCustomer({...editingCustomer, facilityName: e.target.value})}
+                          data-testid="input-edit-customer-name"
+                        />
+                      </div>
+                      <div>
+                        <Label>رقم الهاتف</Label>
+                        <Input 
+                          value={editingCustomer.phone} 
+                          onChange={(e) => setEditingCustomer({...editingCustomer, phone: e.target.value})}
+                          data-testid="input-edit-customer-phone"
+                        />
+                      </div>
+                      <div>
+                        <Label>السجل التجاري</Label>
+                        <Input 
+                          value={editingCustomer.commercialRegister} 
+                          onChange={(e) => setEditingCustomer({...editingCustomer, commercialRegister: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label>الرقم الضريبي</Label>
+                        <Input 
+                          value={editingCustomer.taxNumber} 
+                          onChange={(e) => setEditingCustomer({...editingCustomer, taxNumber: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label>المدينة</Label>
+                        <Select value={editingCustomer.cityId?.toString() || ''} onValueChange={(v) => setEditingCustomer({...editingCustomer, cityId: parseInt(v)})}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر المدينة" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {cities.map((city: any) => (
+                              <SelectItem key={city.id} value={city.id.toString()}>{city.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex gap-2 pt-4">
+                        <Button 
+                          className="flex-1 rounded-xl bg-orange-500 hover:bg-orange-600"
+                          onClick={async () => {
+                            try {
+                              await adminAPI.updateUser(editingCustomer.id, {
+                                phone: editingCustomer.phone,
+                                facilityName: editingCustomer.facilityName,
+                                commercialRegister: editingCustomer.commercialRegister,
+                                taxNumber: editingCustomer.taxNumber,
+                                cityId: editingCustomer.cityId || null,
+                              });
+                              toast({ title: 'تم تحديث بيانات العميل بنجاح', className: 'bg-green-600 text-white' });
+                              setShowEditCustomerDialog(false);
+                              setEditingCustomer(null);
+                              window.location.reload();
+                            } catch (error: any) {
+                              toast({ title: error.message || 'حدث خطأ', variant: 'destructive' });
+                            }
+                          }}
+                          data-testid="button-save-edit-customer"
+                        >
+                          حفظ التعديلات
+                        </Button>
+                        <Button variant="outline" className="rounded-xl" onClick={() => { setShowEditCustomerDialog(false); setEditingCustomer(null); }}>
+                          إلغاء
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </DialogContent>
               </Dialog>
 

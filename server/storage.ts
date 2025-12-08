@@ -313,6 +313,12 @@ export interface IStorage {
   createBanner(banner: InsertBanner): Promise<Banner>;
   updateBanner(id: number, banner: Partial<InsertBanner>): Promise<Banner | undefined>;
   deleteBanner(id: number): Promise<void>;
+  duplicateBanner(id: number): Promise<Banner | undefined>;
+  incrementBannerViews(id: number): Promise<void>;
+  incrementBannerClicks(id: number): Promise<void>;
+  reorderBanners(bannerIds: number[]): Promise<void>;
+  deleteBanners(ids: number[]): Promise<void>;
+  getBannerStats(): Promise<{ totalViews: number; totalClicks: number; avgCtr: number }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1267,6 +1273,74 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBanner(id: number): Promise<void> {
     await db.delete(banners).where(eq(banners.id, id));
+  }
+
+  async duplicateBanner(id: number): Promise<Banner | undefined> {
+    const banner = await this.getBanner(id);
+    if (!banner) return undefined;
+    
+    const maxPosition = await db.select({ max: sql<number>`MAX(${banners.position})` }).from(banners);
+    const newPosition = (maxPosition[0]?.max || 0) + 1;
+    
+    const [newBanner] = await db.insert(banners).values({
+      title: `${banner.title} (نسخة)`,
+      subtitle: banner.subtitle,
+      image: banner.image,
+      buttonText: banner.buttonText,
+      buttonLink: banner.buttonLink,
+      colorClass: banner.colorClass,
+      position: newPosition,
+      isActive: false,
+      startDate: banner.startDate,
+      endDate: banner.endDate,
+      targetAudience: banner.targetAudience,
+      viewCount: 0,
+      clickCount: 0,
+    }).returning();
+    return newBanner;
+  }
+
+  async incrementBannerViews(id: number): Promise<void> {
+    await db.update(banners)
+      .set({ viewCount: sql`${banners.viewCount} + 1` })
+      .where(eq(banners.id, id));
+  }
+
+  async incrementBannerClicks(id: number): Promise<void> {
+    await db.update(banners)
+      .set({ clickCount: sql`${banners.clickCount} + 1` })
+      .where(eq(banners.id, id));
+  }
+
+  async reorderBanners(bannerIds: number[]): Promise<void> {
+    for (let i = 0; i < bannerIds.length; i++) {
+      await db.update(banners)
+        .set({ position: i })
+        .where(eq(banners.id, bannerIds[i]));
+    }
+  }
+
+  async deleteBanners(ids: number[]): Promise<void> {
+    for (const id of ids) {
+      await db.delete(banners).where(eq(banners.id, id));
+    }
+  }
+
+  async getBannerStats(): Promise<{ totalViews: number; totalClicks: number; avgCtr: number }> {
+    // Get all banners and calculate stats manually to avoid SQL parsing issues
+    const allBanners = await db.select().from(banners);
+    
+    let totalViews = 0;
+    let totalClicks = 0;
+    
+    for (const banner of allBanners) {
+      totalViews += banner.viewCount || 0;
+      totalClicks += banner.clickCount || 0;
+    }
+    
+    const avgCtr = totalViews > 0 ? (totalClicks / totalViews) * 100 : 0;
+    
+    return { totalViews, totalClicks, avgCtr };
   }
 }
 

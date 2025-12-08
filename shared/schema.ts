@@ -660,6 +660,9 @@ export const banners = pgTable("banners", {
   isActive: boolean("is_active").default(true).notNull(),
   startDate: timestamp("start_date"),
   endDate: timestamp("end_date"),
+  viewCount: integer("view_count").default(0).notNull(),
+  clickCount: integer("click_count").default(0).notNull(),
+  targetAudience: text("target_audience").default("all"), // all, vip, new, returning
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
