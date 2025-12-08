@@ -148,6 +148,35 @@ Shopping & Orders:
 - Admin dashboard includes full CRUD for cities and warehouses management
 - API endpoints for filtering products by city (`/api/products/by-city/:cityId`)
 
+## Supplier Ledger System
+
+**Database Tables**
+- `supplier_transactions`: Records all supplier movements (imports, exports, payments) with type, amounts, quantities, and references
+- `supplier_stock_positions`: Tracks current inventory levels per supplier/product/warehouse with average cost
+- `supplier_balances`: Materialized balance summary per supplier (total imports, exports, payments, outstanding balance)
+
+**Key Features**
+- Record imports: When goods arrive from supplier, creates transaction and updates stock position
+- Record exports: When goods return to supplier, creates transaction and decreases stock
+- Record payments: Tracks payments made to suppliers, reduces outstanding balance
+- Balance recalculation: Automatic balance updates after each transaction
+- Supplier dashboard: Unified view showing balance summary, stock positions, and transaction history
+
+**API Endpoints**
+- `GET /api/suppliers/:id/dashboard` - Full supplier dashboard with balance, stock, and recent transactions
+- `GET /api/suppliers/:id/transactions` - Transaction history for a supplier
+- `GET /api/suppliers/:id/stock` - Current stock positions per warehouse
+- `GET /api/suppliers/:id/balance` - Financial balance summary
+- `POST /api/suppliers/:id/import` - Record goods received from supplier
+- `POST /api/suppliers/:id/export` - Record goods returned to supplier
+- `POST /api/suppliers/:id/payment` - Record payment made to supplier
+- `POST /api/suppliers/:id/recalculate` - Force balance recalculation
+
+**Balance Calculation Logic**
+- Outstanding Balance = Total Imports - Total Exports - Total Payments
+- Positive balance = amount owed to supplier
+- Stock value calculated from quantity × average cost
+
 ## Recent Updates
 
 **December 2024**
