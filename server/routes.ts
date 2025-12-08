@@ -71,11 +71,20 @@ export async function registerRoutes(
 
   app.get("/api/products/:id", async (req, res) => {
     try {
-      const product = await storage.getProduct(parseInt(req.params.id));
-      if (!product) {
-        return res.status(404).json({ error: "المنتج غير موجود" });
+      const withInventory = req.query.withInventory === 'true';
+      if (withInventory) {
+        const result = await storage.getProductWithInventory(parseInt(req.params.id));
+        if (!result) {
+          return res.status(404).json({ error: "المنتج غير موجود" });
+        }
+        res.json(result);
+      } else {
+        const product = await storage.getProduct(parseInt(req.params.id));
+        if (!product) {
+          return res.status(404).json({ error: "المنتج غير موجود" });
+        }
+        res.json(product);
       }
-      res.json(product);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -93,8 +102,14 @@ export async function registerRoutes(
 
   app.post("/api/products", async (req, res) => {
     try {
-      const product = await storage.createProduct(req.body);
-      res.status(201).json(product);
+      const { inventory, ...productData } = req.body;
+      if (inventory && Array.isArray(inventory) && inventory.length > 0) {
+        const product = await storage.createProductWithInventory(productData, inventory);
+        res.status(201).json(product);
+      } else {
+        const product = await storage.createProduct(productData);
+        res.status(201).json(product);
+      }
     } catch (error: any) {
       if (error.name === "ZodError") {
         return res.status(400).json({ error: fromError(error).toString() });
@@ -105,11 +120,20 @@ export async function registerRoutes(
 
   app.put("/api/products/:id", async (req, res) => {
     try {
-      const product = await storage.updateProduct(parseInt(req.params.id), req.body);
-      if (!product) {
-        return res.status(404).json({ error: "المنتج غير موجود" });
+      const { inventory, ...productData } = req.body;
+      if (inventory && Array.isArray(inventory)) {
+        const product = await storage.updateProductWithInventory(parseInt(req.params.id), productData, inventory);
+        if (!product) {
+          return res.status(404).json({ error: "المنتج غير موجود" });
+        }
+        res.json(product);
+      } else {
+        const product = await storage.updateProduct(parseInt(req.params.id), productData);
+        if (!product) {
+          return res.status(404).json({ error: "المنتج غير موجود" });
+        }
+        res.json(product);
       }
-      res.json(product);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
