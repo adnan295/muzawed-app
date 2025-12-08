@@ -431,3 +431,21 @@ export const vehiclesAPI = {
     body: JSON.stringify({ driverId }),
   }),
 };
+
+// Banners API
+export const bannersAPI = {
+  getAll: () => request("/banners"),
+  getActive: () => request("/banners/active"),
+  getById: (id: number) => request(`/banners/${id}`),
+  create: (data: any) => request("/banners", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+  update: (id: number, data: any) => request(`/banners/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }),
+  delete: (id: number) => request(`/banners/${id}`, {
+    method: "DELETE",
+  }),
+};

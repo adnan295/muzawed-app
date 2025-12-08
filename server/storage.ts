@@ -78,6 +78,9 @@ import {
   type Vehicle,
   type InsertVehicle,
   vehicles,
+  type Banner,
+  type InsertBanner,
+  banners,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte, count, or } from "drizzle-orm";
@@ -302,6 +305,14 @@ export interface IStorage {
   getVehiclesByWarehouse(warehouseId: number): Promise<Vehicle[]>;
   getAvailableVehicles(): Promise<Vehicle[]>;
   assignVehicleToDriver(vehicleId: number, driverId: number): Promise<Vehicle | undefined>;
+
+  // Banners
+  getBanners(): Promise<Banner[]>;
+  getActiveBanners(): Promise<Banner[]>;
+  getBanner(id: number): Promise<Banner | undefined>;
+  createBanner(banner: InsertBanner): Promise<Banner>;
+  updateBanner(id: number, banner: Partial<InsertBanner>): Promise<Banner | undefined>;
+  deleteBanner(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1215,6 +1226,47 @@ export class DatabaseStorage implements IStorage {
   async assignVehicleToDriver(vehicleId: number, driverId: number): Promise<Vehicle | undefined> {
     const [updated] = await db.update(vehicles).set({ driverId, status: 'in_use' }).where(eq(vehicles.id, vehicleId)).returning();
     return updated || undefined;
+  }
+
+  // Banners
+  async getBanners(): Promise<Banner[]> {
+    return await db.select().from(banners).orderBy(banners.position);
+  }
+
+  async getActiveBanners(): Promise<Banner[]> {
+    const now = new Date();
+    return await db.select().from(banners).where(
+      and(
+        eq(banners.isActive, true),
+        or(
+          sql`${banners.startDate} IS NULL`,
+          lte(banners.startDate, now)
+        ),
+        or(
+          sql`${banners.endDate} IS NULL`,
+          gte(banners.endDate, now)
+        )
+      )
+    ).orderBy(banners.position);
+  }
+
+  async getBanner(id: number): Promise<Banner | undefined> {
+    const [banner] = await db.select().from(banners).where(eq(banners.id, id));
+    return banner || undefined;
+  }
+
+  async createBanner(banner: InsertBanner): Promise<Banner> {
+    const [newBanner] = await db.insert(banners).values(banner).returning();
+    return newBanner;
+  }
+
+  async updateBanner(id: number, banner: Partial<InsertBanner>): Promise<Banner | undefined> {
+    const [updated] = await db.update(banners).set(banner).where(eq(banners.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async deleteBanner(id: number): Promise<void> {
+    await db.delete(banners).where(eq(banners.id, id));
   }
 }
 

@@ -3,25 +3,28 @@ import useEmblaCarousel from 'embla-carousel-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Autoplay from 'embla-carousel-autoplay';
+import { useQuery } from '@tanstack/react-query';
+import { bannersAPI } from '@/lib/api';
 
-// Imports
+// Default fallback images
 import deliveryImg from '@assets/stock_images/grocery_delivery_tru_61152cdf.jpg';
 import promoImg from '@assets/stock_images/supermarket_promotio_94a2e34b.jpg';
 import freshImg from '@assets/stock_images/fresh_fruits_and_veg_5edc76b9.jpg';
 import cleaningImg from '@assets/stock_images/cleaning_products_sa_fdf8a31e.jpg';
 
 interface BannerProps {
-  id: string;
+  id: string | number;
   image: string;
   title: string;
   subtitle: string;
   buttonText: string;
   colorClass: string;
+  buttonLink?: string;
 }
 
-const BANNERS: BannerProps[] = [
+const DEFAULT_BANNERS: BannerProps[] = [
   {
-    id: '1',
+    id: 'default-1',
     image: deliveryImg,
     title: 'مقاضيك واصلة لباب محلك',
     subtitle: 'توصيل مجاني للطلبات فوق 500000 ليرة',
@@ -29,7 +32,7 @@ const BANNERS: BannerProps[] = [
     colorClass: 'from-primary to-purple-800',
   },
   {
-    id: '2',
+    id: 'default-2',
     image: promoImg,
     title: 'عروض نهاية الشهر الكبرى',
     subtitle: 'خصومات تصل إلى 50% على المنتجات الأساسية',
@@ -37,7 +40,7 @@ const BANNERS: BannerProps[] = [
     colorClass: 'from-red-600 to-orange-600',
   },
   {
-    id: '3',
+    id: 'default-3',
     image: freshImg,
     title: 'خضار وفواكه طازجة يومياً',
     subtitle: 'من المزرعة إلى متجرك مباشرة',
@@ -45,7 +48,7 @@ const BANNERS: BannerProps[] = [
     colorClass: 'from-green-600 to-emerald-800',
   },
   {
-    id: '4',
+    id: 'default-4',
     image: cleaningImg,
     title: 'نظافة وتوفير',
     subtitle: 'أفضل أسعار المنظفات بالجملة',
@@ -55,6 +58,23 @@ const BANNERS: BannerProps[] = [
 ];
 
 export function AdsCarousel() {
+  const { data: apiBanners = [] } = useQuery({
+    queryKey: ['/api/banners/active'],
+    queryFn: bannersAPI.getActive,
+  });
+
+  const banners: BannerProps[] = apiBanners.length > 0 
+    ? apiBanners.map((b: any) => ({
+        id: b.id,
+        image: b.image || deliveryImg,
+        title: b.title,
+        subtitle: b.subtitle || '',
+        buttonText: b.buttonText || 'اطلب الآن',
+        colorClass: b.colorClass || 'from-primary to-purple-800',
+        buttonLink: b.buttonLink,
+      }))
+    : DEFAULT_BANNERS;
+
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, direction: 'rtl' }, [
     Autoplay({ delay: 5000, stopOnInteraction: false })
   ]);
@@ -78,7 +98,7 @@ export function AdsCarousel() {
     <div className="relative" dir="rtl">
       <div className="overflow-hidden rounded-2xl shadow-md" ref={emblaRef}>
         <div className="flex touch-pan-y">
-          {BANNERS.map((banner) => (
+          {banners.map((banner) => (
             <div className="flex-[0_0_100%] min-w-0 relative aspect-[2.4/1]" key={banner.id}>
                <div className={cn(
                  "relative h-full w-full overflow-hidden bg-gradient-to-l text-white p-5 flex flex-col justify-center items-start",
@@ -109,7 +129,7 @@ export function AdsCarousel() {
 
       {/* Dots */}
       <div className="flex justify-center gap-1.5 mt-3">
-        {BANNERS.map((_, index) => (
+        {banners.map((_, index) => (
           <button
             key={index}
             className={cn(

@@ -7,7 +7,7 @@ import {
   insertSupplierSchema, insertReturnSchema, insertShipmentSchema, insertCustomerSegmentSchema,
   insertReportSchema, insertStaffSchema, insertSupportTicketSchema, insertCouponSchema,
   insertWarehouseSchema, insertNotificationSchema, insertActivityLogSchema,
-  insertCitySchema, insertProductInventorySchema, insertDriverSchema
+  insertCitySchema, insertProductInventorySchema, insertDriverSchema, insertBannerSchema
 } from "@shared/schema";
 import { fromError } from "zod-validation-error";
 
@@ -1515,6 +1515,66 @@ export async function registerRoutes(
     try {
       const products = await storage.getProductsByCity(parseInt(req.params.cityId));
       res.json(products);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== Banners/Slides Routes ====================
+
+  app.get("/api/banners", async (req, res) => {
+    try {
+      const bannersList = await storage.getBanners();
+      res.json(bannersList);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/banners/active", async (req, res) => {
+    try {
+      const activeBanners = await storage.getActiveBanners();
+      res.json(activeBanners);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/banners/:id", async (req, res) => {
+    try {
+      const banner = await storage.getBanner(parseInt(req.params.id));
+      if (!banner) return res.status(404).json({ error: "الشريحة غير موجودة" });
+      res.json(banner);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/banners", async (req, res) => {
+    try {
+      const validData = insertBannerSchema.parse(req.body);
+      const banner = await storage.createBanner(validData);
+      res.status(201).json(banner);
+    } catch (error: any) {
+      if (error.name === "ZodError") return res.status(400).json({ error: fromError(error).toString() });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/banners/:id", async (req, res) => {
+    try {
+      const banner = await storage.updateBanner(parseInt(req.params.id), req.body);
+      if (!banner) return res.status(404).json({ error: "الشريحة غير موجودة" });
+      res.json(banner);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/banners/:id", async (req, res) => {
+    try {
+      await storage.deleteBanner(parseInt(req.params.id));
+      res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

@@ -646,3 +646,23 @@ export const vehicles = pgTable("vehicles", {
 export const insertVehicleSchema = createInsertSchema(vehicles).omit({ id: true, createdAt: true });
 export type InsertVehicle = z.infer<typeof insertVehicleSchema>;
 export type Vehicle = typeof vehicles.$inferSelect;
+
+// Banners/Slides table - الشرائح الإعلانية
+export const banners = pgTable("banners", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  subtitle: text("subtitle"),
+  image: text("image"),
+  buttonText: text("button_text"),
+  buttonLink: text("button_link"),
+  colorClass: text("color_class").default("from-primary to-purple-800"),
+  position: integer("position").default(0).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertBannerSchema = createInsertSchema(banners).omit({ id: true, createdAt: true });
+export type InsertBanner = z.infer<typeof insertBannerSchema>;
+export type Banner = typeof banners.$inferSelect;

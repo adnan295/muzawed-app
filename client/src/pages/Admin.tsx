@@ -30,7 +30,7 @@ import {
   GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight, LogOut
 } from 'lucide-react';
 import { Link } from 'wouter';
-import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI } from '@/lib/api';
+import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI, bannersAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart, Line, Legend, ComposedChart, RadialBarChart, RadialBar, Treemap, FunnelChart, Funnel, LabelList } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -386,6 +386,12 @@ export default function Admin() {
     queryFn: () => returnsAPI.getAll() as Promise<ReturnRequest[]>,
   });
 
+  // Banners Query
+  const { data: bannersList = [], refetch: refetchBanners } = useQuery({
+    queryKey: ['banners'],
+    queryFn: () => bannersAPI.getAll(),
+  });
+
   // Customer Stats Queries
   const { data: customerStats } = useQuery({
     queryKey: ['customerStats'],
@@ -407,6 +413,18 @@ export default function Admin() {
   const [customerStatusFilter, setCustomerStatusFilter] = useState('all');
   const [customerCityFilter, setCustomerCityFilter] = useState('all');
   const [showAddCustomerDialog, setShowAddCustomerDialog] = useState(false);
+  const [showAddBannerDialog, setShowAddBannerDialog] = useState(false);
+  const [editingBanner, setEditingBanner] = useState<any>(null);
+  const [newBanner, setNewBanner] = useState({
+    title: '',
+    subtitle: '',
+    image: '',
+    buttonText: 'اطلب الآن',
+    buttonLink: '',
+    colorClass: 'from-primary to-purple-800',
+    position: 0,
+    isActive: true,
+  });
   const [newCustomer, setNewCustomer] = useState({
     phone: '',
     password: '',
@@ -1094,8 +1112,11 @@ export default function Admin() {
               <TabsTrigger value="customers" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
                 <Users className="w-4 h-4 ml-2" />العملاء
               </TabsTrigger>
+              <TabsTrigger value="banners" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
+                <Layers className="w-4 h-4 ml-2" />الشرائح
+              </TabsTrigger>
               <TabsTrigger value="segments" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
-                <Split className="w-4 h-4 ml-2" />الشرائح
+                <Split className="w-4 h-4 ml-2" />شرائح العملاء
               </TabsTrigger>
               <TabsTrigger value="suppliers" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
                 <Handshake className="w-4 h-4 ml-2" />الموردين
@@ -2285,6 +2306,305 @@ export default function Admin() {
                   </div>
                 )}
               </Card>
+            </div>
+          </TabsContent>
+
+          {/* Banners/Slides Tab */}
+          <TabsContent value="banners">
+            <div className="space-y-6">
+              {/* KPIs */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-purple-50 to-white">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
+                      <Layers className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-purple-700">{bannersList.length}</p>
+                      <p className="text-xs text-purple-600">إجمالي الشرائح</p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-green-50 to-white">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
+                      <CheckCircle className="w-6 h-6 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-green-700">{bannersList.filter((b: any) => b.isActive).length}</p>
+                      <p className="text-xs text-green-600">نشط</p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-gray-50 to-white">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center">
+                      <XCircle className="w-6 h-6 text-gray-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-gray-700">{bannersList.filter((b: any) => !b.isActive).length}</p>
+                      <p className="text-xs text-gray-600">معطل</p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-blue-50 to-white">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+                      <Eye className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-blue-700">∞</p>
+                      <p className="text-xs text-blue-600">المشاهدات</p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Banners Management Card */}
+              <Card className="p-6 border-none shadow-lg rounded-2xl">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="font-bold text-xl flex items-center gap-2">
+                      <Layers className="w-5 h-5 text-purple-500" />
+                      إدارة الشرائح الإعلانية
+                    </h3>
+                    <p className="text-gray-500 text-sm mt-1">تحكم في البانرات التي تظهر في الصفحة الرئيسية</p>
+                  </div>
+                  <Button className="rounded-xl gap-2" onClick={() => { setEditingBanner(null); setNewBanner({ title: '', subtitle: '', image: '', buttonText: 'اطلب الآن', buttonLink: '', colorClass: 'from-primary to-purple-800', position: bannersList.length, isActive: true }); setShowAddBannerDialog(true); }} data-testid="add-banner-btn">
+                    <Plus className="w-4 h-4" />
+                    إضافة شريحة
+                  </Button>
+                </div>
+
+                {bannersList.length > 0 ? (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {bannersList.map((banner: any) => (
+                      <div key={banner.id} className="relative group overflow-hidden rounded-2xl shadow-md border border-gray-100 hover:shadow-lg transition-all" data-testid={`banner-card-${banner.id}`}>
+                        {/* Banner Preview */}
+                        <div className={`h-32 bg-gradient-to-l ${banner.colorClass || 'from-primary to-purple-800'} p-4 flex flex-col justify-center text-white relative overflow-hidden`}>
+                          {banner.image && (
+                            <img src={banner.image} alt={banner.title} className="absolute right-0 top-0 h-full w-2/3 object-cover opacity-20" />
+                          )}
+                          <div className="relative z-10">
+                            <h4 className="font-bold text-lg line-clamp-1">{banner.title}</h4>
+                            <p className="text-white/80 text-xs line-clamp-1">{banner.subtitle}</p>
+                          </div>
+                          {/* Status Badge */}
+                          <div className="absolute top-2 left-2">
+                            <Badge className={banner.isActive ? 'bg-green-500 text-white' : 'bg-gray-500 text-white'}>
+                              {banner.isActive ? 'نشط' : 'معطل'}
+                            </Badge>
+                          </div>
+                        </div>
+                        
+                        {/* Banner Info */}
+                        <div className="p-4 bg-white">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs text-gray-500">الترتيب: {banner.position + 1}</span>
+                            <span className="text-xs text-gray-400">{banner.buttonText || 'بدون زر'}</span>
+                          </div>
+                          
+                          {/* Actions */}
+                          <div className="flex items-center gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="flex-1 rounded-lg text-xs"
+                              onClick={() => { setEditingBanner(banner); setNewBanner({ title: banner.title, subtitle: banner.subtitle || '', image: banner.image || '', buttonText: banner.buttonText || 'اطلب الآن', buttonLink: banner.buttonLink || '', colorClass: banner.colorClass || 'from-primary to-purple-800', position: banner.position, isActive: banner.isActive }); setShowAddBannerDialog(true); }}
+                              data-testid={`edit-banner-${banner.id}`}
+                            >
+                              <Edit className="w-3 h-3 ml-1" />
+                              تعديل
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="rounded-lg text-xs"
+                              onClick={async () => {
+                                try {
+                                  await bannersAPI.update(banner.id, { isActive: !banner.isActive });
+                                  toast({ title: banner.isActive ? 'تم تعطيل الشريحة' : 'تم تفعيل الشريحة', className: 'bg-blue-600 text-white' });
+                                  refetchBanners();
+                                } catch (error) {
+                                  toast({ title: 'حدث خطأ', variant: 'destructive' });
+                                }
+                              }}
+                              data-testid={`toggle-banner-${banner.id}`}
+                            >
+                              {banner.isActive ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="rounded-lg text-xs text-red-600 hover:bg-red-50"
+                              onClick={async () => {
+                                if (!confirm('هل أنت متأكد من حذف هذه الشريحة؟')) return;
+                                try {
+                                  await bannersAPI.delete(banner.id);
+                                  toast({ title: 'تم حذف الشريحة', className: 'bg-green-600 text-white' });
+                                  refetchBanners();
+                                } catch (error) {
+                                  toast({ title: 'حدث خطأ', variant: 'destructive' });
+                                }
+                              }}
+                              data-testid={`delete-banner-${banner.id}`}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-16">
+                    <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-purple-50 flex items-center justify-center">
+                      <Layers className="w-12 h-12 text-purple-300" />
+                    </div>
+                    <h4 className="font-bold text-xl text-gray-600 mb-2">لا توجد شرائح إعلانية</h4>
+                    <p className="text-gray-500 mb-4">ابدأ بإضافة شرائح لعرضها في الصفحة الرئيسية</p>
+                    <Button className="rounded-xl gap-2" onClick={() => setShowAddBannerDialog(true)}>
+                      <Plus className="w-4 h-4" />
+                      إضافة أول شريحة
+                    </Button>
+                  </div>
+                )}
+              </Card>
+
+              {/* Add/Edit Banner Dialog */}
+              <Dialog open={showAddBannerDialog} onOpenChange={setShowAddBannerDialog}>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Layers className="w-5 h-5 text-purple-500" />
+                      {editingBanner ? 'تعديل الشريحة' : 'إضافة شريحة جديدة'}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 mt-4">
+                    <div>
+                      <Label>العنوان الرئيسي *</Label>
+                      <Input 
+                        value={newBanner.title} 
+                        onChange={(e) => setNewBanner({...newBanner, title: e.target.value})}
+                        placeholder="مثال: عروض نهاية الشهر"
+                        data-testid="input-banner-title"
+                      />
+                    </div>
+                    <div>
+                      <Label>العنوان الفرعي</Label>
+                      <Input 
+                        value={newBanner.subtitle} 
+                        onChange={(e) => setNewBanner({...newBanner, subtitle: e.target.value})}
+                        placeholder="مثال: خصومات تصل إلى 50%"
+                        data-testid="input-banner-subtitle"
+                      />
+                    </div>
+                    <div>
+                      <Label>رابط الصورة</Label>
+                      <Input 
+                        value={newBanner.image} 
+                        onChange={(e) => setNewBanner({...newBanner, image: e.target.value})}
+                        placeholder="https://..."
+                        data-testid="input-banner-image"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>نص الزر</Label>
+                        <Input 
+                          value={newBanner.buttonText} 
+                          onChange={(e) => setNewBanner({...newBanner, buttonText: e.target.value})}
+                          placeholder="اطلب الآن"
+                        />
+                      </div>
+                      <div>
+                        <Label>رابط الزر</Label>
+                        <Input 
+                          value={newBanner.buttonLink} 
+                          onChange={(e) => setNewBanner({...newBanner, buttonLink: e.target.value})}
+                          placeholder="/offers"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label>لون التدرج</Label>
+                      <Select value={newBanner.colorClass} onValueChange={(v) => setNewBanner({...newBanner, colorClass: v})}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="from-primary to-purple-800">بنفسجي</SelectItem>
+                          <SelectItem value="from-red-600 to-orange-600">أحمر-برتقالي</SelectItem>
+                          <SelectItem value="from-green-600 to-emerald-800">أخضر</SelectItem>
+                          <SelectItem value="from-blue-500 to-cyan-600">أزرق</SelectItem>
+                          <SelectItem value="from-pink-500 to-rose-600">وردي</SelectItem>
+                          <SelectItem value="from-yellow-500 to-amber-600">أصفر</SelectItem>
+                          <SelectItem value="from-indigo-600 to-violet-700">نيلي</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>الترتيب</Label>
+                        <Input 
+                          type="number"
+                          value={newBanner.position} 
+                          onChange={(e) => setNewBanner({...newBanner, position: parseInt(e.target.value) || 0})}
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 pt-6">
+                        <Switch 
+                          checked={newBanner.isActive} 
+                          onCheckedChange={(v) => setNewBanner({...newBanner, isActive: v})}
+                        />
+                        <Label>نشط</Label>
+                      </div>
+                    </div>
+
+                    {/* Preview */}
+                    {newBanner.title && (
+                      <div className={`h-24 bg-gradient-to-l ${newBanner.colorClass} rounded-xl p-4 text-white relative overflow-hidden`}>
+                        {newBanner.image && <img src={newBanner.image} alt="" className="absolute right-0 top-0 h-full w-2/3 object-cover opacity-20" />}
+                        <div className="relative z-10">
+                          <h4 className="font-bold">{newBanner.title}</h4>
+                          <p className="text-white/80 text-xs">{newBanner.subtitle}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 pt-4">
+                      <Button 
+                        className="flex-1 rounded-xl"
+                        onClick={async () => {
+                          if (!newBanner.title) {
+                            toast({ title: 'يرجى إدخال العنوان', variant: 'destructive' });
+                            return;
+                          }
+                          try {
+                            if (editingBanner) {
+                              await bannersAPI.update(editingBanner.id, newBanner);
+                              toast({ title: 'تم تحديث الشريحة بنجاح', className: 'bg-green-600 text-white' });
+                            } else {
+                              await bannersAPI.create(newBanner);
+                              toast({ title: 'تم إضافة الشريحة بنجاح', className: 'bg-green-600 text-white' });
+                            }
+                            setShowAddBannerDialog(false);
+                            refetchBanners();
+                          } catch (error: any) {
+                            toast({ title: error.message || 'حدث خطأ', variant: 'destructive' });
+                          }
+                        }}
+                        data-testid="save-banner-btn"
+                      >
+                        {editingBanner ? 'تحديث الشريحة' : 'إضافة الشريحة'}
+                      </Button>
+                      <Button variant="outline" className="rounded-xl" onClick={() => setShowAddBannerDialog(false)}>
+                        إلغاء
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </TabsContent>
 

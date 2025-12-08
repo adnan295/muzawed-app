@@ -163,3 +163,9 @@ Shopping & Orders:
 - Added inventory management with low-stock alerts API
 - Enhanced reports tab with advanced charts (composed charts, pie charts, funnel charts, area charts)
 - Added scheduled reports management UI
+- Added banners/slides management system:
+  * `banners` table for storing promotional slides
+  * Full CRUD API for banners (`/api/banners`, `/api/banners/active`)
+  * Admin dashboard "الشرائح" tab with KPIs, add/edit/delete functionality
+  * AdsCarousel component fetches banners from API (falls back to defaults if empty)
+  * Banner customization: title, subtitle, image, button text, gradient colors, position, active status
