@@ -93,6 +93,7 @@ export interface IStorage {
   // Brands
   getBrands(): Promise<Brand[]>;
   createBrand(brand: Omit<Brand, 'id'>): Promise<Brand>;
+  deleteBrand(id: number): Promise<void>;
 
   // Cart
   getCart(userId: number): Promise<CartItem[]>;
@@ -295,6 +296,10 @@ export class DatabaseStorage implements IStorage {
   async createBrand(brand: Omit<Brand, 'id'>): Promise<Brand> {
     const [newBrand] = await db.insert(brands).values(brand).returning();
     return newBrand;
+  }
+
+  async deleteBrand(id: number): Promise<void> {
+    await db.delete(brands).where(eq(brands.id, id));
   }
 
   // Cart

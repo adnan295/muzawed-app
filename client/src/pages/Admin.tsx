@@ -188,6 +188,8 @@ export default function Admin() {
   const [isAddCouponOpen, setIsAddCouponOpen] = useState(false);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
   const [newCategory, setNewCategory] = useState({ name: '', icon: '📦', color: 'from-blue-400 to-blue-500' });
+  const [isAddBrandOpen, setIsAddBrandOpen] = useState(false);
+  const [newBrand, setNewBrand] = useState({ name: '', logo: '🏷️' });
   const [isAddPromotionOpen, setIsAddPromotionOpen] = useState(false);
   const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -407,6 +409,36 @@ export default function Admin() {
       await fetch(`/api/categories/${id}`, { method: 'DELETE' });
       toast({ title: 'تم حذف القسم', className: 'bg-green-600 text-white' });
       queryClient.invalidateQueries({ queryKey: ['categories'] });
+    } catch (error) {
+      toast({ title: 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const handleAddBrand = async () => {
+    try {
+      const response = await fetch('/api/brands', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newBrand),
+      });
+
+      if (response.ok) {
+        toast({ title: 'تم إضافة العلامة التجارية بنجاح', className: 'bg-green-600 text-white' });
+        setIsAddBrandOpen(false);
+        setNewBrand({ name: '', logo: '🏷️' });
+        queryClient.invalidateQueries({ queryKey: ['brands'] });
+      }
+    } catch (error) {
+      toast({ title: 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteBrand = async (id: number) => {
+    if (!confirm('هل أنت متأكد من حذف هذه العلامة التجارية؟')) return;
+    try {
+      await fetch(`/api/brands/${id}`, { method: 'DELETE' });
+      toast({ title: 'تم حذف العلامة التجارية', className: 'bg-green-600 text-white' });
+      queryClient.invalidateQueries({ queryKey: ['brands'] });
     } catch (error) {
       toast({ title: 'حدث خطأ', variant: 'destructive' });
     }
@@ -1943,6 +1975,46 @@ export default function Admin() {
                     <p className="font-bold text-sm">{cat.name}</p>
                     <Button size="icon" variant="ghost" className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/20 hover:bg-white/40 text-white w-7 h-7" 
                       onClick={() => handleDeleteCategory(cat.id)} data-testid={`delete-category-${cat.id}`}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            {/* Brands Management */}
+            <Card className="p-6 border-none shadow-lg rounded-2xl mt-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="font-bold text-xl">إدارة العلامات التجارية ({brands.length})</h3>
+                <Dialog open={isAddBrandOpen} onOpenChange={setIsAddBrandOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="rounded-xl gap-2" data-testid="button-add-brand"><Plus className="w-4 h-4" />إضافة علامة</Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader><DialogTitle>إضافة علامة تجارية جديدة</DialogTitle></DialogHeader>
+                    <div className="space-y-4 mt-4">
+                      <div>
+                        <Label>اسم العلامة *</Label>
+                        <Input placeholder="مثال: المراعي" value={newBrand.name} onChange={(e) => setNewBrand({ ...newBrand, name: e.target.value })} data-testid="input-brand-name" />
+                      </div>
+                      <div>
+                        <Label>الشعار (إيموجي)</Label>
+                        <Input placeholder="🏷️" value={newBrand.logo} onChange={(e) => setNewBrand({ ...newBrand, logo: e.target.value })} data-testid="input-brand-logo" />
+                      </div>
+                      <Button className="w-full rounded-xl" onClick={handleAddBrand} disabled={!newBrand.name} data-testid="button-submit-brand">
+                        <Plus className="w-4 h-4 ml-2" />إضافة العلامة
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {brands.map((brand) => (
+                  <div key={brand.id} className="p-4 rounded-2xl bg-gray-100 relative group hover:bg-gray-200 transition-colors" data-testid={`brand-card-${brand.id}`}>
+                    <div className="text-3xl mb-2">{brand.logo}</div>
+                    <p className="font-bold text-sm text-gray-800">{brand.name}</p>
+                    <Button size="icon" variant="ghost" className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-100 hover:bg-red-200 text-red-600 w-7 h-7" 
+                      onClick={() => handleDeleteBrand(brand.id)} data-testid={`delete-brand-${brand.id}`}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>

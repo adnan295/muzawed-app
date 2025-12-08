@@ -163,6 +163,24 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/brands", async (req, res) => {
+    try {
+      const brand = await storage.createBrand(req.body);
+      res.status(201).json(brand);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/brands/:id", async (req, res) => {
+    try {
+      await storage.deleteBrand(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ==================== Cart Routes ====================
   
   app.get("/api/cart/:userId", async (req, res) => {
