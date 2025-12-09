@@ -204,6 +204,9 @@ export interface IStorage {
   approveWalletDepositRequest(id: number, reviewedBy: number, notes?: string): Promise<WalletDepositRequest | undefined>;
   rejectWalletDepositRequest(id: number, reviewedBy: number, notes?: string): Promise<WalletDepositRequest | undefined>;
 
+  // Wallet Order Payment (atomic)
+  createOrderWithWalletPayment(order: InsertOrder, items: InsertOrderItem[]): Promise<Order>;
+
   // Promotions
   getPromotions(): Promise<Promotion[]>;
   getPromotion(id: number): Promise<Promotion | undefined>;
@@ -856,6 +859,52 @@ export class DatabaseStorage implements IStorage {
       .where(eq(walletDepositRequests.id, id))
       .returning();
     return updatedRequest || undefined;
+  }
+
+  async createOrderWithWalletPayment(order: InsertOrder, items: InsertOrderItem[]): Promise<Order> {
+    return await db.transaction(async (tx) => {
+      // Check wallet balance within transaction
+      const [wallet] = await tx.select().from(wallets).where(eq(wallets.userId, order.userId));
+      if (!wallet) {
+        throw new Error('لم يتم العثور على المحفظة');
+      }
+      
+      const walletBalance = parseFloat(wallet.balance);
+      const orderTotal = parseFloat(order.total);
+      
+      if (walletBalance < orderTotal) {
+        throw new Error('رصيد المحفظة غير كافي');
+      }
+      
+      // Create order
+      const [newOrder] = await tx.insert(orders).values(order).returning();
+      
+      // Add items
+      for (const item of items) {
+        await tx.insert(orderItems).values({
+          ...item,
+          orderId: newOrder.id
+        });
+      }
+      
+      // Deduct from wallet
+      const newBalance = (walletBalance - orderTotal).toFixed(2);
+      await tx.update(wallets).set({ balance: newBalance, updatedAt: new Date() }).where(eq(wallets.userId, order.userId));
+      
+      // Record wallet transaction
+      await tx.insert(walletTransactions).values({
+        walletId: wallet.id,
+        type: 'payment',
+        amount: orderTotal.toFixed(2),
+        title: `دفع طلب #${newOrder.id}`,
+        method: 'wallet'
+      });
+      
+      // Clear cart
+      await tx.delete(cartItems).where(eq(cartItems.userId, order.userId));
+      
+      return newOrder;
+    });
   }
 
   // Promotions

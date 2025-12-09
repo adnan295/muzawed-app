@@ -4,12 +4,12 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { CreditCard, Calendar, CheckCircle2, MapPin, ShoppingBag, Clock, AlertCircle } from 'lucide-react';
+import { CreditCard, Calendar, CheckCircle2, MapPin, ShoppingBag, Clock, AlertCircle, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { useLocation, Link } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { cartAPI, addressesAPI, ordersAPI, deliverySettingsAPI, warehousesAPI, creditsAPI } from '@/lib/api';
+import { cartAPI, addressesAPI, ordersAPI, deliverySettingsAPI, warehousesAPI, creditsAPI, walletAPI } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import {
   Dialog,
@@ -102,6 +102,15 @@ export default function Checkout() {
     enabled: !!user?.id,
   });
 
+  // Fetch wallet balance
+  const { data: wallet } = useQuery<{ id: number; userId: number; balance: string }>({
+    queryKey: ['wallet', user?.id],
+    queryFn: () => walletAPI.get(user!.id) as any,
+    enabled: !!user?.id,
+  });
+
+  const walletBalance = wallet ? parseFloat(wallet.balance) : 0;
+
   const getLoyaltyLabel = (level: string) => {
     switch (level) {
       case 'diamond': return 'ماسي';
@@ -114,10 +123,15 @@ export default function Checkout() {
   const deliveryFee = deliveryInfo?.fee || 0;
   const isDeliveryFree = deliveryInfo?.isFree || deliveryFee === 0;
   const tax = 0; // No tax
-  const total = subtotal + deliveryFee;
+  const baseTotal = subtotal + deliveryFee;
+  
+  // 1% discount for wallet payments
+  const walletDiscount = paymentMethod === 'wallet' ? baseTotal * 0.01 : 0;
+  const total = baseTotal - walletDiscount;
 
   const creditAvailable = creditInfo ? parseFloat(creditInfo.creditLimit) - parseFloat(creditInfo.currentBalance) : 0;
   const canUseCredit = creditInfo?.isEligible && creditAvailable >= total;
+  const canUseWallet = walletBalance >= total;
 
   const createOrderMutation = useMutation({
     mutationFn: async () => {
@@ -131,7 +145,8 @@ export default function Checkout() {
         tax: tax.toFixed(2),
         deliveryFee: deliveryFee.toFixed(2),
         total: total.toFixed(2),
-        paymentMethod: paymentMethod === 'credit' ? 'credit' : 'cash',
+        discount: walletDiscount.toFixed(2),
+        paymentMethod: paymentMethod === 'credit' ? 'credit' : paymentMethod === 'wallet' ? 'wallet' : 'cash',
       };
 
       const orderItems = cartItems.map(item => ({
@@ -142,13 +157,15 @@ export default function Checkout() {
         total: (parseFloat(item.product.price) * item.quantity).toFixed(2),
       }));
 
-      return ordersAPI.create(orderData, orderItems);
+      // Wallet payment is handled atomically on the backend
+      return await ordersAPI.create(orderData, orderItems);
     },
     onSuccess: (data: any) => {
       setOrderId(data.id);
       setIsSuccess(true);
       queryClient.invalidateQueries({ queryKey: ['cart'] });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['wallet'] });
       
       setTimeout(() => {
         setIsSuccess(false);
@@ -330,6 +347,52 @@ export default function Checkout() {
                   </Label>
                 </div>
               </div>
+
+              {/* Wallet Payment Option */}
+              <div className={`rounded-xl border-2 p-3 transition-colors ${
+                canUseWallet 
+                  ? 'border-purple-200 bg-purple-50/50 hover:bg-purple-50 cursor-pointer' 
+                  : 'border-gray-200 bg-gray-50 opacity-60'
+              }`}>
+                <div className="flex items-center space-x-2 space-x-reverse">
+                  <RadioGroupItem value="wallet" id="wallet" disabled={!canUseWallet} />
+                  <Label htmlFor="wallet" className={`flex-1 mr-2 ${canUseWallet ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Wallet className="w-4 h-4 text-purple-600" />
+                        <span className="font-bold">الدفع بالمحفظة</span>
+                        <Badge className="text-xs bg-green-100 text-green-700">خصم 1%</Badge>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-xs text-gray-600 space-y-1">
+                      <div className="flex justify-between">
+                        <span>رصيدك الحالي:</span>
+                        <span className={`font-bold ${walletBalance >= baseTotal ? 'text-green-700' : 'text-red-600'}`}>
+                          {walletBalance.toLocaleString('ar-SY')} ل.س
+                        </span>
+                      </div>
+                      {paymentMethod === 'wallet' && walletDiscount > 0 && (
+                        <div className="flex justify-between text-green-600">
+                          <span>الخصم (1%):</span>
+                          <span className="font-bold">-{walletDiscount.toFixed(2)} ل.س</span>
+                        </div>
+                      )}
+                    </div>
+                    {!canUseWallet && walletBalance > 0 && (
+                      <div className="mt-2 flex items-center gap-1 text-xs text-red-600">
+                        <AlertCircle className="w-3 h-3" />
+                        الرصيد غير كافي
+                      </div>
+                    )}
+                    {walletBalance === 0 && (
+                      <div className="mt-2 flex items-center gap-1 text-xs text-gray-500">
+                        <AlertCircle className="w-3 h-3" />
+                        لا يوجد رصيد - <a href="/wallet" className="text-purple-600 underline">اشحن الآن</a>
+                      </div>
+                    )}
+                  </Label>
+                </div>
+              </div>
             </RadioGroup>
           </div>
 
@@ -359,6 +422,15 @@ export default function Checkout() {
                 {isDeliveryFree ? 'مجاني' : `${deliveryFee.toFixed(2)} ل.س`}
               </span>
             </div>
+            {paymentMethod === 'wallet' && walletDiscount > 0 && (
+              <div className="flex justify-between text-sm text-green-600">
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" />
+                  خصم المحفظة (1%)
+                </span>
+                <span className="font-bold" data-testid="text-wallet-discount">-{walletDiscount.toFixed(2)} ل.س</span>
+              </div>
+            )}
             <Separator />
             <div className="flex justify-between text-lg font-bold">
               <span>الإجمالي</span>

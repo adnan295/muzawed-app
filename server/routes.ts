@@ -536,6 +536,16 @@ export async function registerRoutes(
       const { order, items } = req.body;
       const validOrder = insertOrderSchema.parse(order);
       
+      // Handle wallet payment atomically with database transaction
+      if (validOrder.paymentMethod === 'wallet') {
+        try {
+          const newOrder = await storage.createOrderWithWalletPayment(validOrder, items);
+          return res.json(newOrder);
+        } catch (error: any) {
+          return res.status(400).json({ error: error.message });
+        }
+      }
+      
       const newOrder = await storage.createOrder(validOrder, items);
       
       // If payment method is credit, create credit transaction with due date
