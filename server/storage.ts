@@ -1888,10 +1888,37 @@ export class DatabaseStorage implements IStorage {
 
   // Banner Views Tracking - تتبع مشاهدات الشرائح
   async trackBannerView(bannerId: number, userId?: number, ipAddress?: string, userAgent?: string): Promise<BannerView> {
-    // Increment view count
-    await this.incrementBannerViews(bannerId);
+    // Check if this user has already viewed this banner (only count unique views)
+    let hasViewedBefore = false;
     
-    // Record individual view
+    if (userId) {
+      // Check by userId if available
+      const existingView = await db.select()
+        .from(bannerViews)
+        .where(and(
+          eq(bannerViews.bannerId, bannerId),
+          eq(bannerViews.userId, userId)
+        ))
+        .limit(1);
+      hasViewedBefore = existingView.length > 0;
+    } else if (ipAddress) {
+      // Fallback to IP address for anonymous users
+      const existingView = await db.select()
+        .from(bannerViews)
+        .where(and(
+          eq(bannerViews.bannerId, bannerId),
+          eq(bannerViews.ipAddress, ipAddress)
+        ))
+        .limit(1);
+      hasViewedBefore = existingView.length > 0;
+    }
+    
+    // Only increment view count for unique viewers
+    if (!hasViewedBefore) {
+      await this.incrementBannerViews(bannerId);
+    }
+    
+    // Record individual view (for tracking purposes)
     const [view] = await db.insert(bannerViews).values({
       bannerId,
       userId: userId || null,
