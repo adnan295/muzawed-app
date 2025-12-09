@@ -297,6 +297,269 @@ const kpiData = [
   { name: 'معدل الإلغاء', value: 3.2, target: 2, unit: '%', trend: 'down', change: -0.5 },
 ];
 
+interface DepositRequest {
+  id: number;
+  userId: number;
+  amount: string;
+  status: 'pending' | 'approved' | 'rejected';
+  proofImageUrl?: string | null;
+  notes?: string | null;
+  reviewedBy?: number | null;
+  reviewNotes?: string | null;
+  createdAt: string;
+  reviewedAt?: string | null;
+}
+
+function DepositsManagementSection() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [statusFilter, setStatusFilter] = useState('pending');
+  const [selectedRequest, setSelectedRequest] = useState<DepositRequest | null>(null);
+  const [reviewNotes, setReviewNotes] = useState('');
+  const [isActionDialogOpen, setIsActionDialogOpen] = useState(false);
+  const [actionType, setActionType] = useState<'approve' | 'reject'>('approve');
+
+  const { data: depositRequests = [], refetch } = useQuery<DepositRequest[]>({
+    queryKey: ['admin-deposit-requests', statusFilter],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/deposit-requests?status=${statusFilter}`);
+      return res.json();
+    }
+  });
+
+  const { data: allUsers = [] } = useQuery<any[]>({
+    queryKey: ['all-users-for-deposits'],
+    queryFn: async () => {
+      const res = await fetch('/api/users');
+      return res.json();
+    }
+  });
+
+  const getUserName = (userId: number) => {
+    const user = allUsers.find((u: any) => u.id === userId);
+    return user?.facilityName || user?.phone || `عميل #${userId}`;
+  };
+
+  const handleAction = async () => {
+    if (!selectedRequest) return;
+    try {
+      const endpoint = actionType === 'approve' 
+        ? `/api/admin/deposit-requests/${selectedRequest.id}/approve`
+        : `/api/admin/deposit-requests/${selectedRequest.id}/reject`;
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reviewedBy: 1, notes: reviewNotes || undefined })
+      });
+      if (!res.ok) throw new Error('فشل في معالجة الطلب');
+      toast({ 
+        title: actionType === 'approve' ? 'تمت الموافقة بنجاح' : 'تم رفض الطلب',
+        className: actionType === 'approve' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+      });
+      setIsActionDialogOpen(false);
+      setSelectedRequest(null);
+      setReviewNotes('');
+      refetch();
+    } catch (error: any) {
+      toast({ title: error.message, variant: 'destructive' });
+    }
+  };
+
+  const pendingCount = depositRequests.filter(r => r.status === 'pending').length;
+
+  return (
+    <div className="space-y-6">
+      <Card className="p-6 border-none shadow-lg rounded-2xl bg-gradient-to-br from-purple-600 via-violet-600 to-indigo-700 text-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-bold text-2xl flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                <Wallet className="w-6 h-6" />
+              </div>
+              طلبات شحن المحفظة
+            </h3>
+            <p className="text-purple-200 mt-2">إدارة طلبات شحن الرصيد عبر بشام كاش</p>
+          </div>
+          <div className="flex gap-2">
+            {statusFilter === 'pending' && pendingCount > 0 && (
+              <Badge className="bg-yellow-400 text-yellow-900 px-3 py-1 text-lg font-bold">{pendingCount} طلب قيد الانتظار</Badge>
+            )}
+            <Button variant="outline" className="rounded-xl gap-2 bg-white/10 border-white/30 text-white hover:bg-white/20" onClick={() => refetch()}>
+              <RefreshCw className="w-4 h-4" />تحديث
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className={`p-4 border-none shadow-lg rounded-2xl cursor-pointer transition-all ${statusFilter === 'pending' ? 'ring-2 ring-yellow-500 bg-yellow-50' : 'bg-white'}`} onClick={() => setStatusFilter('pending')}>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-yellow-500 flex items-center justify-center text-white">
+              <Clock className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-sm text-yellow-600">قيد الانتظار</p>
+              <p className="text-2xl font-bold text-yellow-800">{depositRequests.filter(r => r.status === 'pending').length || 0}</p>
+            </div>
+          </div>
+        </Card>
+        <Card className={`p-4 border-none shadow-lg rounded-2xl cursor-pointer transition-all ${statusFilter === 'approved' ? 'ring-2 ring-green-500 bg-green-50' : 'bg-white'}`} onClick={() => setStatusFilter('approved')}>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center text-white">
+              <CheckCircle className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-sm text-green-600">تمت الموافقة</p>
+              <p className="text-2xl font-bold text-green-800">{depositRequests.filter(r => r.status === 'approved').length || 0}</p>
+            </div>
+          </div>
+        </Card>
+        <Card className={`p-4 border-none shadow-lg rounded-2xl cursor-pointer transition-all ${statusFilter === 'rejected' ? 'ring-2 ring-red-500 bg-red-50' : 'bg-white'}`} onClick={() => setStatusFilter('rejected')}>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-red-500 flex items-center justify-center text-white">
+              <XCircle className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-sm text-red-600">مرفوض</p>
+              <p className="text-2xl font-bold text-red-800">{depositRequests.filter(r => r.status === 'rejected').length || 0}</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <Card className="p-6 border-none shadow-lg rounded-2xl">
+        <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+          <Wallet className="w-5 h-5 text-purple-600" />
+          {statusFilter === 'pending' ? 'الطلبات قيد الانتظار' : statusFilter === 'approved' ? 'الطلبات المعتمدة' : 'الطلبات المرفوضة'}
+        </h3>
+        {depositRequests.length === 0 ? (
+          <div className="text-center py-12 text-gray-500">
+            <Wallet className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <p>لا توجد طلبات {statusFilter === 'pending' ? 'قيد الانتظار' : statusFilter === 'approved' ? 'معتمدة' : 'مرفوضة'}</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-right">#</TableHead>
+                  <TableHead className="text-right">العميل</TableHead>
+                  <TableHead className="text-right">المبلغ</TableHead>
+                  <TableHead className="text-right">تاريخ الطلب</TableHead>
+                  <TableHead className="text-right">ملاحظات</TableHead>
+                  <TableHead className="text-right">الحالة</TableHead>
+                  {statusFilter === 'pending' && <TableHead className="text-right">إجراءات</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {depositRequests.map((request) => (
+                  <TableRow key={request.id} data-testid={`deposit-request-row-${request.id}`}>
+                    <TableCell className="font-medium">{request.id}</TableCell>
+                    <TableCell>{getUserName(request.userId)}</TableCell>
+                    <TableCell className="font-bold text-green-600">{parseFloat(request.amount).toLocaleString()} ل.س</TableCell>
+                    <TableCell className="text-sm text-gray-500">{new Date(request.createdAt).toLocaleDateString('ar-SY')}</TableCell>
+                    <TableCell className="text-sm">{request.notes || '-'}</TableCell>
+                    <TableCell>
+                      {request.status === 'pending' && <Badge className="bg-yellow-100 text-yellow-700 rounded-full">قيد الانتظار</Badge>}
+                      {request.status === 'approved' && <Badge className="bg-green-100 text-green-700 rounded-full">معتمد</Badge>}
+                      {request.status === 'rejected' && <Badge className="bg-red-100 text-red-700 rounded-full">مرفوض</Badge>}
+                    </TableCell>
+                    {statusFilter === 'pending' && (
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            className="rounded-lg bg-green-600 hover:bg-green-700 text-xs"
+                            onClick={() => {
+                              setSelectedRequest(request);
+                              setActionType('approve');
+                              setIsActionDialogOpen(true);
+                            }}
+                            data-testid={`btn-approve-${request.id}`}
+                          >
+                            <CheckCircle className="w-3 h-3 ml-1" />موافقة
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            className="rounded-lg text-xs"
+                            onClick={() => {
+                              setSelectedRequest(request);
+                              setActionType('reject');
+                              setIsActionDialogOpen(true);
+                            }}
+                            data-testid={`btn-reject-${request.id}`}
+                          >
+                            <XCircle className="w-3 h-3 ml-1" />رفض
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </Card>
+
+      <Dialog open={isActionDialogOpen} onOpenChange={setIsActionDialogOpen}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-center">
+              {actionType === 'approve' ? 'تأكيد الموافقة على الطلب' : 'تأكيد رفض الطلب'}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedRequest && (
+            <div className="space-y-4 py-4">
+              <div className="bg-gray-50 p-4 rounded-xl space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">العميل:</span>
+                  <span className="font-medium">{getUserName(selectedRequest.userId)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">المبلغ:</span>
+                  <span className="font-bold text-green-600">{parseFloat(selectedRequest.amount).toLocaleString()} ل.س</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">ملاحظات العميل:</span>
+                  <span>{selectedRequest.notes || '-'}</span>
+                </div>
+              </div>
+              
+              <div>
+                <Label>ملاحظات المراجعة (اختياري)</Label>
+                <Textarea 
+                  className="mt-1 rounded-xl" 
+                  placeholder="أضف ملاحظة..."
+                  value={reviewNotes}
+                  onChange={(e) => setReviewNotes(e.target.value)}
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <Button 
+                  variant="outline" 
+                  className="flex-1 rounded-xl" 
+                  onClick={() => setIsActionDialogOpen(false)}
+                >
+                  إلغاء
+                </Button>
+                <Button 
+                  className={`flex-1 rounded-xl ${actionType === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
+                  onClick={handleAction}
+                >
+                  {actionType === 'approve' ? 'تأكيد الموافقة' : 'تأكيد الرفض'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 function DeliverySettingsSection({ warehouses }: { warehouses: any[] }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -2175,6 +2438,9 @@ export default function Admin() {
               </TabsTrigger>
               <TabsTrigger value="credits" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
                 <CreditCard className="w-4 h-4 ml-2" />الديون
+              </TabsTrigger>
+              <TabsTrigger value="deposits" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
+                <Wallet className="w-4 h-4 ml-2" />طلبات الشحن
               </TabsTrigger>
               <TabsTrigger value="settings" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
                 <Settings className="w-4 h-4 ml-2" />الإعدادات
@@ -9338,6 +9604,11 @@ export default function Admin() {
                 </DialogContent>
               </Dialog>
             </div>
+          </TabsContent>
+
+          {/* Deposits Tab */}
+          <TabsContent value="deposits">
+            <DepositsManagementSection />
           </TabsContent>
 
           {/* Settings Tab */}
