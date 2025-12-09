@@ -373,6 +373,22 @@ export const insertTicketMessageSchema = createInsertSchema(ticketMessages).omit
 export type InsertTicketMessage = z.infer<typeof insertTicketMessageSchema>;
 export type TicketMessage = typeof ticketMessages.$inferSelect;
 
+// Referrals table
+export const referrals = pgTable("referrals", {
+  id: serial("id").primaryKey(),
+  referrerId: integer("referrer_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  referredId: integer("referred_id").references(() => users.id, { onDelete: "set null" }),
+  referralCode: text("referral_code").notNull(),
+  status: text("status").default("pending").notNull(), // pending, completed, rewarded
+  rewardAmount: decimal("reward_amount", { precision: 10, scale: 2 }).default("50000"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
+export const insertReferralSchema = createInsertSchema(referrals).omit({ id: true, createdAt: true });
+export type InsertReferral = z.infer<typeof insertReferralSchema>;
+export type Referral = typeof referrals.$inferSelect;
+
 // Loyalty Points table
 export const loyaltyPoints = pgTable("loyalty_points", {
   id: serial("id").primaryKey(),

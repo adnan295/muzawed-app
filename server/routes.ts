@@ -1261,6 +1261,64 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/tickets/user/:userId", async (req, res) => {
+    try {
+      const tickets = await storage.getSupportTicketsByUser(parseInt(req.params.userId));
+      res.json(tickets);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== Referrals Routes ====================
+
+  app.get("/api/referrals/user/:userId", async (req, res) => {
+    try {
+      const userReferrals = await storage.getReferralsByUser(parseInt(req.params.userId));
+      res.json(userReferrals);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/referrals/stats/:userId", async (req, res) => {
+    try {
+      const stats = await storage.getUserReferralStats(parseInt(req.params.userId));
+      res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/referrals/code/:code", async (req, res) => {
+    try {
+      const referral = await storage.getReferralByCode(req.params.code);
+      if (!referral) return res.status(404).json({ error: "كود الإحالة غير موجود" });
+      res.json(referral);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/referrals", async (req, res) => {
+    try {
+      const referral = await storage.createReferral(req.body);
+      res.status(201).json(referral);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/referrals/:id", async (req, res) => {
+    try {
+      const referral = await storage.updateReferral(parseInt(req.params.id), req.body);
+      if (!referral) return res.status(404).json({ error: "الإحالة غير موجودة" });
+      res.json(referral);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ==================== Coupons Routes ====================
   
   app.get("/api/coupons", async (req, res) => {

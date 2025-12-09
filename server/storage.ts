@@ -120,6 +120,9 @@ import {
   type NotificationPreferences,
   type InsertNotificationPreferences,
   notificationPreferences,
+  type Referral,
+  type InsertReferral,
+  referrals,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte, count, or } from "drizzle-orm";
@@ -259,9 +262,17 @@ export interface IStorage {
 
   // Support Tickets
   getSupportTickets(): Promise<SupportTicket[]>;
+  getSupportTicketsByUser(userId: number): Promise<SupportTicket[]>;
   getSupportTicket(id: number): Promise<SupportTicket | undefined>;
   createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket>;
   updateSupportTicket(id: number, ticket: Partial<InsertSupportTicket>): Promise<SupportTicket | undefined>;
+
+  // Referrals
+  getReferralsByUser(userId: number): Promise<Referral[]>;
+  getReferralByCode(code: string): Promise<Referral | undefined>;
+  createReferral(referral: InsertReferral): Promise<Referral>;
+  updateReferral(id: number, referral: Partial<InsertReferral>): Promise<Referral | undefined>;
+  getUserReferralStats(userId: number): Promise<{ totalReferred: number; completedReferrals: number; totalEarned: string }>;
 
   // Coupons
   getCoupons(): Promise<Coupon[]>;
@@ -1168,6 +1179,43 @@ export class DatabaseStorage implements IStorage {
   async updateSupportTicket(id: number, ticketData: Partial<InsertSupportTicket>): Promise<SupportTicket | undefined> {
     const [updated] = await db.update(supportTickets).set({ ...ticketData, updatedAt: new Date() }).where(eq(supportTickets.id, id)).returning();
     return updated || undefined;
+  }
+
+  async getSupportTicketsByUser(userId: number): Promise<SupportTicket[]> {
+    return await db.select().from(supportTickets).where(eq(supportTickets.userId, userId)).orderBy(desc(supportTickets.createdAt));
+  }
+
+  // Referrals
+  async getReferralsByUser(userId: number): Promise<Referral[]> {
+    return await db.select().from(referrals).where(eq(referrals.referrerId, userId)).orderBy(desc(referrals.createdAt));
+  }
+
+  async getReferralByCode(code: string): Promise<Referral | undefined> {
+    const [referral] = await db.select().from(referrals).where(eq(referrals.referralCode, code));
+    return referral || undefined;
+  }
+
+  async createReferral(referral: InsertReferral): Promise<Referral> {
+    const [newReferral] = await db.insert(referrals).values(referral).returning();
+    return newReferral;
+  }
+
+  async updateReferral(id: number, referralData: Partial<InsertReferral>): Promise<Referral | undefined> {
+    const [updated] = await db.update(referrals).set(referralData).where(eq(referrals.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async getUserReferralStats(userId: number): Promise<{ totalReferred: number; completedReferrals: number; totalEarned: string }> {
+    const userReferrals = await db.select().from(referrals).where(eq(referrals.referrerId, userId));
+    const completedReferrals = userReferrals.filter(r => r.status === 'rewarded').length;
+    const totalEarned = userReferrals
+      .filter(r => r.status === 'rewarded')
+      .reduce((sum, r) => sum + parseFloat(r.rewardAmount || '0'), 0);
+    return {
+      totalReferred: userReferrals.length,
+      completedReferrals,
+      totalEarned: totalEarned.toString()
+    };
   }
 
   // Coupons
