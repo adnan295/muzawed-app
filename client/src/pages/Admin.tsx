@@ -29,7 +29,7 @@ import {
   TruckIcon, MapPinned, Factory, ShoppingBag, FileSpreadsheet, File, MailCheck, FileDown,
   Sparkles, Flame, ThumbsUp, ThumbsDown, AlertCircle, Info, HelpCircle, CircleDollarSign,
   BadgePercent, Gauge, ArrowUpRight, ArrowDownRight, Hash, Split, Merge,
-  GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight, LogOut, MousePointer, EyeOff
+  GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight, LogOut, MousePointer, EyeOff, Check, X
 } from 'lucide-react';
 import { Link } from 'wouter';
 import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI, bannersAPI, segmentsAPI, suppliersAPI, reportsAPI, expensesAPI, expenseCategoriesAPI, deliverySettingsAPI, staffAPI, promotionsAPI, creditsAPI } from '@/lib/api';
