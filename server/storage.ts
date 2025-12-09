@@ -117,6 +117,9 @@ import {
   type SiteSetting,
   type InsertSiteSetting,
   siteSettings,
+  type NotificationPreferences,
+  type InsertNotificationPreferences,
+  notificationPreferences,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte, count, or } from "drizzle-orm";
@@ -344,6 +347,11 @@ export interface IStorage {
   createNotification(notification: InsertNotification): Promise<Notification>;
   markNotificationRead(id: number): Promise<void>;
   markAllNotificationsRead(userId?: number, staffId?: number): Promise<void>;
+
+  // Notification Preferences
+  getNotificationPreferences(userId: number): Promise<NotificationPreferences | undefined>;
+  createNotificationPreferences(prefs: InsertNotificationPreferences): Promise<NotificationPreferences>;
+  updateNotificationPreferences(userId: number, prefs: Partial<InsertNotificationPreferences>): Promise<NotificationPreferences | undefined>;
 
   // Activity Logs
   getActivityLogs(limit?: number): Promise<ActivityLog[]>;
@@ -1580,6 +1588,25 @@ export class DatabaseStorage implements IStorage {
     } else if (staffId) {
       await db.update(notifications).set({ isRead: true }).where(eq(notifications.staffId, staffId));
     }
+  }
+
+  // Notification Preferences
+  async getNotificationPreferences(userId: number): Promise<NotificationPreferences | undefined> {
+    const [prefs] = await db.select().from(notificationPreferences).where(eq(notificationPreferences.userId, userId));
+    return prefs || undefined;
+  }
+
+  async createNotificationPreferences(prefs: InsertNotificationPreferences): Promise<NotificationPreferences> {
+    const [created] = await db.insert(notificationPreferences).values(prefs).returning();
+    return created;
+  }
+
+  async updateNotificationPreferences(userId: number, prefs: Partial<InsertNotificationPreferences>): Promise<NotificationPreferences | undefined> {
+    const [updated] = await db.update(notificationPreferences)
+      .set({ ...prefs, updatedAt: new Date() })
+      .where(eq(notificationPreferences.userId, userId))
+      .returning();
+    return updated || undefined;
   }
 
   // Activity Logs

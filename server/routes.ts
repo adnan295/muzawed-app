@@ -1560,6 +1560,46 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== Notification Preferences Routes ====================
+
+  app.get("/api/notification-preferences/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      let prefs = await storage.getNotificationPreferences(userId);
+      if (!prefs) {
+        prefs = await storage.createNotificationPreferences({
+          userId,
+          ordersEnabled: true,
+          promotionsEnabled: true,
+          systemEnabled: true,
+        });
+      }
+      res.json(prefs);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/notification-preferences/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      let prefs = await storage.getNotificationPreferences(userId);
+      if (!prefs) {
+        prefs = await storage.createNotificationPreferences({
+          userId,
+          ordersEnabled: req.body.ordersEnabled ?? true,
+          promotionsEnabled: req.body.promotionsEnabled ?? true,
+          systemEnabled: req.body.systemEnabled ?? true,
+        });
+      } else {
+        prefs = await storage.updateNotificationPreferences(userId, req.body);
+      }
+      res.json(prefs);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ==================== Activity Logs Routes ====================
   
   app.get("/api/activity-logs", async (req, res) => {
