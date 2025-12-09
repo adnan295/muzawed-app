@@ -105,6 +105,12 @@ import {
   type DeliverySetting,
   type InsertDeliverySetting,
   deliverySettings,
+  type CustomerCredit,
+  type InsertCustomerCredit,
+  customerCredits,
+  type CreditTransaction,
+  type InsertCreditTransaction,
+  creditTransactions,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte, count, or } from "drizzle-orm";
@@ -2150,6 +2156,212 @@ export class DatabaseStorage implements IStorage {
     }
 
     return { fee: baseFee, isFree: false };
+  }
+
+  // Customer Credits - نظام الآجل
+  async getCustomerCredit(userId: number): Promise<CustomerCredit | undefined> {
+    const [credit] = await db.select().from(customerCredits).where(eq(customerCredits.userId, userId));
+    return credit || undefined;
+  }
+
+  async getAllCustomerCredits(): Promise<CustomerCredit[]> {
+    return await db.select().from(customerCredits).orderBy(desc(customerCredits.currentBalance));
+  }
+
+  async createCustomerCredit(credit: InsertCustomerCredit): Promise<CustomerCredit> {
+    const [newCredit] = await db.insert(customerCredits).values(credit).returning();
+    return newCredit;
+  }
+
+  async updateCustomerCredit(userId: number, credit: Partial<InsertCustomerCredit>): Promise<CustomerCredit | undefined> {
+    const [updated] = await db.update(customerCredits)
+      .set({ ...credit, updatedAt: new Date() })
+      .where(eq(customerCredits.userId, userId))
+      .returning();
+    return updated || undefined;
+  }
+
+  async getOrCreateCustomerCredit(userId: number): Promise<CustomerCredit> {
+    let credit = await this.getCustomerCredit(userId);
+    if (!credit) {
+      credit = await this.createCustomerCredit({
+        userId,
+        totalPurchases: "0",
+        creditLimit: "500000", // 500,000 ل.س الحد الافتراضي
+        currentBalance: "0",
+        loyaltyLevel: "bronze",
+        creditPeriodDays: 7,
+        isEligible: true,
+      });
+    }
+    return credit;
+  }
+
+  // حساب مستوى العميل وتحديث مدة الآجل
+  async updateCustomerLoyaltyLevel(userId: number): Promise<CustomerCredit> {
+    const credit = await this.getOrCreateCustomerCredit(userId);
+    const totalPurchases = parseFloat(credit.totalPurchases);
+    
+    let loyaltyLevel = "bronze";
+    let creditPeriodDays = 7;
+    let creditLimit = 500000;
+    
+    if (totalPurchases >= 10000000) { // 10 مليون
+      loyaltyLevel = "diamond";
+      creditPeriodDays = 30;
+      creditLimit = 5000000;
+    } else if (totalPurchases >= 5000000) { // 5 مليون
+      loyaltyLevel = "gold";
+      creditPeriodDays = 21;
+      creditLimit = 3000000;
+    } else if (totalPurchases >= 1000000) { // 1 مليون
+      loyaltyLevel = "silver";
+      creditPeriodDays = 14;
+      creditLimit = 1500000;
+    }
+    
+    const updated = await this.updateCustomerCredit(userId, {
+      loyaltyLevel,
+      creditPeriodDays,
+      creditLimit: creditLimit.toString(),
+    });
+    
+    return updated || credit;
+  }
+
+  // Credit Transactions - معاملات الآجل
+  async getCreditTransactions(userId: number): Promise<CreditTransaction[]> {
+    return await db.select()
+      .from(creditTransactions)
+      .where(eq(creditTransactions.userId, userId))
+      .orderBy(desc(creditTransactions.createdAt));
+  }
+
+  async getPendingCreditTransactions(userId: number): Promise<CreditTransaction[]> {
+    return await db.select()
+      .from(creditTransactions)
+      .where(and(
+        eq(creditTransactions.userId, userId),
+        eq(creditTransactions.status, "pending")
+      ))
+      .orderBy(creditTransactions.dueDate);
+  }
+
+  async createCreditTransaction(transaction: InsertCreditTransaction): Promise<CreditTransaction> {
+    const [newTransaction] = await db.insert(creditTransactions).values(transaction).returning();
+    return newTransaction;
+  }
+
+  async updateCreditTransaction(id: number, transaction: Partial<InsertCreditTransaction>): Promise<CreditTransaction | undefined> {
+    const [updated] = await db.update(creditTransactions)
+      .set(transaction)
+      .where(eq(creditTransactions.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  // إنشاء عملية شراء بالآجل
+  async createCreditPurchase(userId: number, orderId: number, amount: number): Promise<CreditTransaction> {
+    const credit = await this.getOrCreateCustomerCredit(userId);
+    const currentBalance = parseFloat(credit.currentBalance);
+    const newBalance = currentBalance + amount;
+    
+    // حساب تاريخ الاستحقاق
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + credit.creditPeriodDays);
+    
+    // تحديث رصيد العميل
+    await this.updateCustomerCredit(userId, {
+      currentBalance: newBalance.toString(),
+    });
+    
+    // إنشاء معاملة الآجل
+    const transaction = await this.createCreditTransaction({
+      userId,
+      orderId,
+      type: "purchase",
+      amount: amount.toString(),
+      balanceAfter: newBalance.toString(),
+      dueDate,
+      status: "pending",
+    });
+    
+    return transaction;
+  }
+
+  // تسديد دين الآجل
+  async createCreditPayment(userId: number, amount: number, notes?: string): Promise<CreditTransaction> {
+    const credit = await this.getOrCreateCustomerCredit(userId);
+    const currentBalance = parseFloat(credit.currentBalance);
+    const newBalance = Math.max(0, currentBalance - amount);
+    
+    // تحديث رصيد العميل
+    await this.updateCustomerCredit(userId, {
+      currentBalance: newBalance.toString(),
+      lastPaymentDate: new Date(),
+    });
+    
+    // إنشاء معاملة السداد
+    const transaction = await this.createCreditTransaction({
+      userId,
+      type: "payment",
+      amount: amount.toString(),
+      balanceAfter: newBalance.toString(),
+      paidDate: new Date(),
+      status: "paid",
+      notes,
+    });
+    
+    // تحديث المعاملات المعلقة
+    const pendingTransactions = await this.getPendingCreditTransactions(userId);
+    let remainingPayment = amount;
+    
+    for (const pending of pendingTransactions) {
+      if (remainingPayment <= 0) break;
+      
+      const pendingAmount = parseFloat(pending.amount);
+      if (remainingPayment >= pendingAmount) {
+        await this.updateCreditTransaction(pending.id, {
+          status: "paid",
+          paidDate: new Date(),
+        });
+        remainingPayment -= pendingAmount;
+      }
+    }
+    
+    return transaction;
+  }
+
+  // التحقق من أهلية العميل للشراء بالآجل
+  async checkCreditEligibility(userId: number, amount: number): Promise<{ eligible: boolean; reason: string; credit: CustomerCredit }> {
+    const credit = await this.getOrCreateCustomerCredit(userId);
+    
+    if (!credit.isEligible) {
+      return { eligible: false, reason: "حسابك غير مؤهل للشراء بالآجل", credit };
+    }
+    
+    const currentBalance = parseFloat(credit.currentBalance);
+    const creditLimit = parseFloat(credit.creditLimit);
+    const availableCredit = creditLimit - currentBalance;
+    
+    if (amount > availableCredit) {
+      return { 
+        eligible: false, 
+        reason: `تجاوزت الحد الأقصى للآجل. المتاح: ${availableCredit.toLocaleString('ar-SY')} ل.س`,
+        credit 
+      };
+    }
+    
+    // التحقق من وجود ديون متأخرة
+    const pendingTransactions = await this.getPendingCreditTransactions(userId);
+    const now = new Date();
+    const hasOverdue = pendingTransactions.some(t => t.dueDate && new Date(t.dueDate) < now);
+    
+    if (hasOverdue) {
+      return { eligible: false, reason: "لديك ديون متأخرة السداد. يرجى السداد أولاً", credit };
+    }
+    
+    return { eligible: true, reason: "مؤهل للشراء بالآجل", credit };
   }
 }
 
