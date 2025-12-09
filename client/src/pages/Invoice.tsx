@@ -43,10 +43,10 @@ export default function Invoice() {
         {/* Header */}
         <div className="text-center border-b-2 border-gray-100 pb-6 mb-6">
           <div className="w-16 h-16 bg-primary text-white rounded-2xl flex items-center justify-center text-2xl font-bold mx-auto mb-4">
-            س
+            م
           </div>
           <h1 className="text-xl font-bold mb-1">فاتورة ضريبية مبسطة</h1>
-          <p className="text-sm text-muted-foreground">شركة ساري لتقنية المعلومات</p>
+          <p className="text-sm text-muted-foreground">شركة مزود لتقنية المعلومات</p>
           <p className="text-xs text-muted-foreground mt-1">الرقم الضريبي: 300123456789003</p>
         </div>
 

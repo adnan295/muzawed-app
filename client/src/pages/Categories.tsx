@@ -1,9 +1,10 @@
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Card } from '@/components/ui/card';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, MapPin } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
-import { categoriesAPI } from '@/lib/api';
+import { categoriesAPI, citiesAPI } from '@/lib/api';
+import { useAuth } from '@/lib/AuthContext';
 
 interface Category {
   id: number;
@@ -23,15 +24,29 @@ const categoryIcons: Record<string, string> = {
 
 export default function Categories() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
 
   const { data: categories = [], isLoading } = useQuery<Category[]>({
     queryKey: ['categories'],
     queryFn: () => categoriesAPI.getAll() as Promise<Category[]>,
   });
 
+  const { data: cities = [] } = useQuery<any[]>({
+    queryKey: ['cities'],
+    queryFn: () => citiesAPI.getAll() as Promise<any[]>,
+  });
+
+  const userCity = cities.find((c: any) => c.id === user?.cityId);
+
   return (
     <MobileLayout>
       <div className="p-4 space-y-4">
+        {userCity && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-primary/5 px-3 py-2 rounded-xl mb-2">
+            <MapPin className="w-4 h-4 text-primary" />
+            <span>المحافظة: <span className="font-bold text-foreground">{userCity.governorate || userCity.name}</span></span>
+          </div>
+        )}
         <h1 className="text-2xl font-bold mb-6">جميع الأقسام</h1>
         
         {isLoading ? (

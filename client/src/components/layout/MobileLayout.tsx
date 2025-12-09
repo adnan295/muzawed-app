@@ -46,7 +46,7 @@ export function MobileLayout({ children, hideHeader = false }: MobileLayoutProps
                   <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border border-primary"></span>
                 </Button>
               </Link>
-              <div className="font-bold text-xl tracking-tight">ساري</div>
+              <div className="font-bold text-xl tracking-tight">مزود</div>
             </div>
           </div>
           

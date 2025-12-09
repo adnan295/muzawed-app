@@ -214,7 +214,7 @@ export default function Profile() {
             transition={{ delay: 0.2 }}
             className="text-2xl font-bold mb-2"
           >
-            مرحباً بك في ساري
+            مرحباً بك في مزود
           </motion.h2>
           <motion.p 
             initial={{ y: 20, opacity: 0 }}
@@ -522,7 +522,7 @@ export default function Profile() {
         </motion.div>
         
         <p className="text-center text-xs text-muted-foreground pt-4 pb-8">
-          ساري - منصة الجملة للأعمال
+          مزود - منصة الجملة للأعمال
           <br />
           <span className="text-gray-400">الإصدار 1.0.0</span>
         </p>

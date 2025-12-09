@@ -98,9 +98,9 @@ export default function Login() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="w-24 h-24 bg-gradient-to-br from-primary to-purple-600 rounded-3xl mx-auto flex items-center justify-center text-white text-5xl font-bold mb-6 shadow-2xl shadow-primary/30">
-            س
+            م
           </div>
-          <h1 className="text-3xl font-bold text-foreground">ساري</h1>
+          <h1 className="text-3xl font-bold text-foreground">مزود</h1>
           <p className="text-muted-foreground mt-2 text-lg">منصة الجملة للسوق السوري</p>
         </div>
 

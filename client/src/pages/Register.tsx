@@ -92,7 +92,7 @@ export default function Register() {
       
       login(response.user);
       toast({
-        title: "مرحباً بك في ساري",
+        title: "مرحباً بك في مزود",
         description: "تم إنشاء حسابك بنجاح",
       });
       setLocation('/');
@@ -112,7 +112,7 @@ export default function Register() {
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
           <div className="w-20 h-20 bg-gradient-to-br from-primary to-purple-600 rounded-3xl mx-auto flex items-center justify-center text-white text-4xl font-bold mb-4 shadow-2xl shadow-primary/30">
-            س
+            م
           </div>
           <h1 className="text-2xl font-bold text-foreground">إنشاء حساب جديد</h1>
           <p className="text-muted-foreground mt-1">أكمل معلومات منشأتك للتسجيل</p>

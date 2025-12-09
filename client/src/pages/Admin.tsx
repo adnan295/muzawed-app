@@ -1890,7 +1890,7 @@ export default function Admin() {
               </motion.div>
               <div>
                 <h1 className="text-3xl font-bold">لوحة التحكم المتقدمة</h1>
-                <p className="text-purple-200 text-sm">إدارة +10,000 عميل • منصة ساري للجملة • الإصدار 2.0</p>
+                <p className="text-purple-200 text-sm">إدارة +10,000 عميل • منصة مزود للجملة • الإصدار 2.0</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
