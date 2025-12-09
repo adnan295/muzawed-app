@@ -1442,7 +1442,17 @@ export async function registerRoutes(
   app.get("/api/admin/orders", async (req, res) => {
     try {
       const allOrders = await storage.getAllOrders();
-      res.json(allOrders);
+      // Enrich orders with address data for map display
+      const ordersWithAddresses = await Promise.all(
+        allOrders.map(async (order) => {
+          if (order.addressId) {
+            const address = await storage.getAddress(order.addressId);
+            return { ...order, address };
+          }
+          return order;
+        })
+      );
+      res.json(ordersWithAddresses);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

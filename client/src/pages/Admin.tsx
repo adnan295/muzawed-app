@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
@@ -147,6 +147,61 @@ interface Staff {
   status: string;
   avatar?: string | null;
   createdAt: string;
+}
+
+// Delivery Map View Component
+function DeliveryMapView({ lat, lng, label }: { lat: number; lng: number; label: string }) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  
+  useEffect(() => {
+    let mapInstance: any = null;
+    
+    const initMap = async () => {
+      if (!mapRef.current) return;
+      
+      const L = (await import('leaflet')).default;
+      await import('leaflet/dist/leaflet.css');
+      
+      delete (L.Icon.Default.prototype as any)._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+        iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+      });
+
+      mapInstance = L.map(mapRef.current).setView([lat, lng], 15);
+      
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      }).addTo(mapInstance);
+
+      L.marker([lat, lng]).addTo(mapInstance).bindPopup(label).openPopup();
+      setMapLoaded(true);
+    };
+
+    initMap();
+
+    return () => {
+      if (mapInstance) {
+        mapInstance.remove();
+      }
+    };
+  }, [lat, lng, label]);
+
+  return (
+    <div className="relative rounded-2xl overflow-hidden border-2 border-gray-200" style={{ height: '300px' }}>
+      <div ref={mapRef} style={{ height: '100%', width: '100%' }} />
+      {!mapLoaded && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+          <div className="text-center">
+            <MapPin className="w-8 h-8 text-purple-500 mx-auto mb-2 animate-bounce" />
+            <p className="text-sm text-gray-600">جاري تحميل الخريطة...</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 const salesData = [
@@ -877,6 +932,10 @@ export default function Admin() {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentNotes, setPaymentNotes] = useState('');
+  
+  // Map state for order delivery
+  const [showDeliveryMap, setShowDeliveryMap] = useState(false);
+  const [mapOrderAddress, setMapOrderAddress] = useState<{ lat: number; lng: number; label: string } | null>(null);
 
   // Product Profit Report Query
   const { data: profitReport, isLoading: profitReportLoading, refetch: refetchProfitReport } = useQuery({
@@ -7599,6 +7658,38 @@ export default function Admin() {
                       )}
                     </div>
 
+                    {/* Delivery Address with Map */}
+                    {selectedOrder.address && (
+                      <div className="p-4 bg-purple-50 rounded-2xl border border-purple-100">
+                        <h4 className="font-bold mb-3 flex items-center gap-2 text-purple-700"><MapPin className="w-4 h-4" />عنوان التوصيل</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between"><span className="text-gray-600">العنوان:</span><span className="font-bold">{selectedOrder.address?.label || selectedOrder.address?.street || 'غير محدد'}</span></div>
+                          {selectedOrder.address?.details && (
+                            <div className="flex justify-between"><span className="text-gray-600">تفاصيل:</span><span className="font-bold">{selectedOrder.address.details}</span></div>
+                          )}
+                          {selectedOrder.address?.phone && (
+                            <div className="flex justify-between"><span className="text-gray-600">هاتف:</span><span className="font-bold font-mono">{selectedOrder.address.phone}</span></div>
+                          )}
+                        </div>
+                        {selectedOrder.address?.latitude && selectedOrder.address?.longitude && (
+                          <Button 
+                            className="w-full mt-3 rounded-xl gap-2 bg-purple-600 hover:bg-purple-700" 
+                            onClick={() => {
+                              setMapOrderAddress({
+                                lat: parseFloat(selectedOrder.address.latitude),
+                                lng: parseFloat(selectedOrder.address.longitude),
+                                label: selectedOrder.address?.label || 'موقع التوصيل'
+                              });
+                              setShowDeliveryMap(true);
+                            }}
+                            data-testid="button-view-map"
+                          >
+                            <MapPinned className="w-4 h-4" />عرض الخريطة للسائق
+                          </Button>
+                        )}
+                      </div>
+                    )}
+
                     {/* Quick Actions */}
                     <div className="flex flex-wrap gap-3 pt-4 border-t">
                       <Button className="rounded-xl gap-2" onClick={() => window.print()}>
@@ -7651,6 +7742,50 @@ export default function Admin() {
                     </div>
                   </div>
                 )}
+              </DialogContent>
+            </Dialog>
+            
+            {/* Delivery Map Dialog */}
+            <Dialog open={showDeliveryMap} onOpenChange={setShowDeliveryMap}>
+              <DialogContent className="max-w-lg rounded-3xl p-0 overflow-hidden">
+                <DialogHeader className="p-4 bg-gradient-to-l from-purple-600 to-purple-500 text-white">
+                  <DialogTitle className="flex items-center gap-2">
+                    <MapPinned className="w-5 h-5" />
+                    خريطة التوصيل
+                  </DialogTitle>
+                  <DialogDescription className="text-purple-100">
+                    {mapOrderAddress?.label || 'موقع العميل'}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="p-4 space-y-4">
+                  {mapOrderAddress && (
+                    <>
+                      <DeliveryMapView lat={mapOrderAddress.lat} lng={mapOrderAddress.lng} label={mapOrderAddress.label} />
+                      <div className="flex gap-2">
+                        <Button 
+                          className="flex-1 rounded-xl gap-2 bg-blue-600 hover:bg-blue-700"
+                          onClick={() => {
+                            window.open(`https://www.google.com/maps/dir/?api=1&destination=${mapOrderAddress.lat},${mapOrderAddress.lng}`, '_blank');
+                          }}
+                          data-testid="button-google-maps"
+                        >
+                          <Navigation className="w-4 h-4" />فتح في خرائط Google
+                        </Button>
+                        <Button 
+                          variant="outline"
+                          className="rounded-xl gap-2"
+                          onClick={() => {
+                            navigator.clipboard.writeText(`${mapOrderAddress.lat}, ${mapOrderAddress.lng}`);
+                            toast({ title: 'تم نسخ الإحداثيات', className: 'bg-green-600 text-white' });
+                          }}
+                          data-testid="button-copy-coords"
+                        >
+                          <Copy className="w-4 h-4" />نسخ
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </DialogContent>
             </Dialog>
           </TabsContent>
