@@ -234,6 +234,25 @@ export default function Driver() {
     enabled: !!driver,
   });
 
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ orderId, status }: { orderId: number; status: string }) => {
+      const res = await fetch(`/api/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error('Failed to update status');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['driverOrders'] });
+      toast({ title: 'تم تحديث حالة الطلب', className: 'bg-green-600 text-white' });
+    },
+    onError: () => {
+      toast({ title: 'حدث خطأ', variant: 'destructive' });
+    },
+  });
+
   // Show login screen if not authenticated
   if (!driver) {
     return (
@@ -304,25 +323,6 @@ export default function Driver() {
       </div>
     );
   }
-
-  const updateStatusMutation = useMutation({
-    mutationFn: async ({ orderId, status }: { orderId: number; status: string }) => {
-      const res = await fetch(`/api/orders/${orderId}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-      });
-      if (!res.ok) throw new Error('Failed to update status');
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['driverOrders'] });
-      toast({ title: 'تم تحديث حالة الطلب', className: 'bg-green-600 text-white' });
-    },
-    onError: () => {
-      toast({ title: 'حدث خطأ', variant: 'destructive' });
-    },
-  });
 
   const filteredOrders = orders.filter(order => {
     if (statusFilter === 'all') return true;
