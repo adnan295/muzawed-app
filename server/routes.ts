@@ -713,6 +713,80 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== Wallet Deposit Requests ====================
+
+  app.post("/api/wallet/deposit-request", async (req, res) => {
+    try {
+      const { userId, amount, proofImageUrl, notes } = req.body;
+      if (!userId || !amount) {
+        return res.status(400).json({ error: "userId و amount مطلوبين" });
+      }
+      const request = await storage.createWalletDepositRequest({
+        userId: parseInt(userId),
+        amount: amount.toString(),
+        proofImageUrl: proofImageUrl || null,
+        notes: notes || null,
+        status: 'pending'
+      });
+      res.status(201).json(request);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/wallet/deposit-requests/:userId", async (req, res) => {
+    try {
+      const requests = await storage.getWalletDepositRequests(parseInt(req.params.userId));
+      res.json(requests);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/deposit-requests", async (req, res) => {
+    try {
+      const status = req.query.status as string | undefined;
+      const requests = await storage.getAllWalletDepositRequests(status);
+      res.json(requests);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/admin/deposit-requests/:id/approve", async (req, res) => {
+    try {
+      const { reviewedBy, notes } = req.body;
+      const request = await storage.approveWalletDepositRequest(
+        parseInt(req.params.id),
+        reviewedBy,
+        notes
+      );
+      if (!request) {
+        return res.status(404).json({ error: "الطلب غير موجود أو تمت معالجته مسبقاً" });
+      }
+      res.json(request);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/admin/deposit-requests/:id/reject", async (req, res) => {
+    try {
+      const { reviewedBy, notes } = req.body;
+      const request = await storage.rejectWalletDepositRequest(
+        parseInt(req.params.id),
+        reviewedBy,
+        notes
+      );
+      if (!request) {
+        return res.status(404).json({ error: "الطلب غير موجود" });
+      }
+      res.json(request);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ==================== Promotions Routes ====================
   
   app.get("/api/promotions", async (req, res) => {
