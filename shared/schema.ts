@@ -812,3 +812,44 @@ export const deliverySettings = pgTable("delivery_settings", {
 export const insertDeliverySettingSchema = createInsertSchema(deliverySettings).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertDeliverySetting = z.infer<typeof insertDeliverySettingSchema>;
 export type DeliverySetting = typeof deliverySettings.$inferSelect;
+
+// Customer Credits table - رصيد الآجل للعملاء
+// مدة الآجل حسب مستوى العميل:
+// برونزي: 7 أيام | فضي: 14 يوم | ذهبي: 21 يوم | ماسي: 30 يوم
+export const customerCredits = pgTable("customer_credits", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }).unique(),
+  totalPurchases: decimal("total_purchases", { precision: 14, scale: 2 }).default("0").notNull(), // إجمالي المشتريات لتحديد المستوى
+  creditLimit: decimal("credit_limit", { precision: 12, scale: 2 }).default("0").notNull(), // الحد الأقصى للآجل
+  currentBalance: decimal("current_balance", { precision: 12, scale: 2 }).default("0").notNull(), // الرصيد المستحق الحالي
+  loyaltyLevel: text("loyalty_level").default("bronze").notNull(), // bronze, silver, gold, diamond
+  creditPeriodDays: integer("credit_period_days").default(7).notNull(), // مدة الآجل بالأيام
+  isEligible: boolean("is_eligible").default(true).notNull(), // هل مؤهل للآجل
+  lastPaymentDate: timestamp("last_payment_date"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCustomerCreditSchema = createInsertSchema(customerCredits).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertCustomerCredit = z.infer<typeof insertCustomerCreditSchema>;
+export type CustomerCredit = typeof customerCredits.$inferSelect;
+
+// Credit Transactions table - معاملات الآجل
+export const creditTransactions = pgTable("credit_transactions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  orderId: integer("order_id").references(() => orders.id),
+  type: text("type").notNull(), // purchase (شراء بالآجل), payment (سداد), adjustment (تعديل)
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  balanceAfter: decimal("balance_after", { precision: 12, scale: 2 }).notNull(), // الرصيد بعد العملية
+  dueDate: timestamp("due_date"), // تاريخ الاستحقاق
+  paidDate: timestamp("paid_date"), // تاريخ السداد
+  status: text("status").default("pending").notNull(), // pending, paid, overdue
+  notes: text("notes"),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCreditTransactionSchema = createInsertSchema(creditTransactions).omit({ id: true, createdAt: true });
+export type InsertCreditTransaction = z.infer<typeof insertCreditTransactionSchema>;
+export type CreditTransaction = typeof creditTransactions.$inferSelect;
