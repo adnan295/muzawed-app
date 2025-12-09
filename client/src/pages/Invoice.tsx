@@ -5,11 +5,77 @@ import { Separator } from '@/components/ui/separator';
 import { PRODUCTS } from '@/lib/data';
 import { Download, Share2, Printer, ArrowRight } from 'lucide-react';
 import { useLocation, useRoute } from 'wouter';
+import { useRef } from 'react';
+import { toast } from 'sonner';
 
 export default function Invoice() {
   const [, params] = useRoute('/invoice/:id');
   const orderId = params?.id || '12345';
   const date = new Date().toLocaleDateString('ar-SA');
+  const invoiceRef = useRef<HTMLDivElement>(null);
+
+  const handleDownload = async () => {
+    if (!invoiceRef.current) return;
+    
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const element = invoiceRef.current;
+      
+      // Use html2canvas-like approach with simple screenshot
+      const html = element.outerHTML;
+      const blob = new Blob([`
+        <!DOCTYPE html>
+        <html dir="rtl" lang="ar">
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            * { font-family: 'Almarai', sans-serif; }
+            body { margin: 0; padding: 20px; background: white; }
+          </style>
+        </head>
+        <body>${html}</body>
+        </html>
+      `], { type: 'text/html' });
+      
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `invoice-${orderId}.html`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('تم تحميل الفاتورة');
+    } catch (error) {
+      toast.error('فشل تحميل الفاتورة');
+    }
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: `فاتورة رقم ${orderId}`,
+      text: `فاتورة من شركة مزود - رقم الفاتورة: INV-${orderId}`,
+      url: window.location.href
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback: copy link to clipboard
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success('تم نسخ رابط الفاتورة');
+      }
+    } catch (error) {
+      // User cancelled or error
+      if ((error as Error).name !== 'AbortError') {
+        toast.error('فشل المشاركة');
+      }
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   // Mock invoice items
   const items = [PRODUCTS[0], PRODUCTS[3], PRODUCTS[1]];
@@ -25,20 +91,20 @@ export default function Invoice() {
           رجوع
         </Button>
         <div className="flex gap-2">
-          <Button size="icon" variant="outline" className="bg-white rounded-full">
+          <Button size="icon" variant="outline" className="bg-white rounded-full" onClick={handleShare} data-testid="button-share">
             <Share2 className="w-4 h-4" />
           </Button>
-          <Button size="icon" variant="outline" className="bg-white rounded-full" onClick={() => window.print()}>
+          <Button size="icon" variant="outline" className="bg-white rounded-full" onClick={handlePrint} data-testid="button-print">
             <Printer className="w-4 h-4" />
           </Button>
-          <Button size="icon" className="rounded-full bg-primary text-white">
+          <Button size="icon" className="rounded-full bg-primary text-white" onClick={handleDownload} data-testid="button-download">
             <Download className="w-4 h-4" />
           </Button>
         </div>
       </div>
 
       {/* Invoice Paper */}
-      <Card className="max-w-md mx-auto bg-white p-6 rounded-none sm:rounded-xl shadow-sm print:shadow-none print:w-full print:max-w-none">
+      <Card ref={invoiceRef} className="max-w-md mx-auto bg-white p-6 rounded-none sm:rounded-xl shadow-sm print:shadow-none print:w-full print:max-w-none">
         {/* Header */}
         <div className="text-center border-b-2 border-gray-100 pb-6 mb-6">
           <div className="w-16 h-16 bg-primary text-white rounded-2xl flex items-center justify-center text-2xl font-bold mx-auto mb-4">
