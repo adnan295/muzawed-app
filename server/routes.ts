@@ -538,6 +538,12 @@ export async function registerRoutes(
       
       const newOrder = await storage.createOrder(validOrder, items);
       
+      // If payment method is credit, create credit transaction with due date
+      if (validOrder.paymentMethod === 'credit') {
+        const orderTotal = parseFloat(newOrder.total);
+        await storage.createCreditPurchase(validOrder.userId, newOrder.id, orderTotal);
+      }
+      
       // Clear cart after order
       await storage.clearCart(validOrder.userId);
       
