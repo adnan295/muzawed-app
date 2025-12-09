@@ -489,6 +489,11 @@ export default function Profile() {
                           {item.badge}
                         </Badge>
                       )}
+                      {item.comingSoon && (
+                        <Badge className="text-xs px-2 py-0.5 h-5 bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-sm">
+                          قريباً
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground">{item.desc}</p>
                   </div>
