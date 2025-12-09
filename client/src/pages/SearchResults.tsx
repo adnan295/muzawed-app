@@ -1,17 +1,32 @@
+import { useState } from 'react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { ProductCard } from '@/components/ui/ProductCard';
-import { PRODUCTS, BRANDS } from '@/lib/data';
-import { useRoute } from 'wouter';
-import { Search, SlidersHorizontal } from 'lucide-react';
+import { useRoute, useLocation } from 'wouter';
+import { Search, SlidersHorizontal, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useQuery } from '@tanstack/react-query';
+import { productsAPI, brandsAPI } from '@/lib/api';
 
 export default function SearchResults() {
   const [match, params] = useRoute('/search/:query');
-  const query = decodeURIComponent(params?.query || '');
+  const [, setLocation] = useLocation();
+  const query = decodeURIComponent(params?.query || '').trim();
+  const [searchInput, setSearchInput] = useState(query);
 
-  const filteredProducts = PRODUCTS.filter(p => 
-    p.name.includes(query) || p.category.includes(query)
+  const { data: products = [] } = useQuery<any[]>({
+    queryKey: ['products'],
+    queryFn: () => productsAPI.getAll() as Promise<any[]>,
+  });
+
+  const { data: brands = [] } = useQuery<any[]>({
+    queryKey: ['brands'],
+    queryFn: () => brandsAPI.getAll() as Promise<any[]>,
+  });
+
+  const filteredProducts = products.filter((p: any) => 
+    p.name?.toLowerCase().includes(query.toLowerCase()) || 
+    p.unit?.toLowerCase().includes(query.toLowerCase())
   );
 
   return (
@@ -19,23 +34,41 @@ export default function SearchResults() {
       <div className="min-h-screen bg-gray-50 pb-24">
         {/* Custom Search Header */}
         <div className="bg-white p-4 sticky top-0 z-10 shadow-sm">
-          <div className="flex gap-2">
+          <form 
+            className="flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (searchInput.trim()) {
+                setLocation(`/search/${encodeURIComponent(searchInput.trim())}`);
+              }
+            }}
+          >
+            <Button 
+              type="button" 
+              size="icon" 
+              variant="ghost" 
+              className="h-11 w-11 rounded-xl"
+              onClick={() => setLocation('/')}
+            >
+              <ArrowRight className="w-5 h-5" />
+            </Button>
             <div className="relative flex-1">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input 
-                className="bg-gray-100 text-foreground pl-4 pr-10 h-11 rounded-xl border-0 shadow-none focus-visible:ring-secondary" 
-                defaultValue={query}
+                className="bg-gray-100 text-foreground pl-4 pr-10 h-11 rounded-xl border-0 shadow-none focus-visible:ring-primary" 
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="ابحث عن منتج..." 
               />
             </div>
-            <Button size="icon" variant="outline" className="h-11 w-11 rounded-xl border-gray-200">
-              <SlidersHorizontal className="w-5 h-5 text-gray-600" />
+            <Button type="submit" size="icon" className="h-11 w-11 rounded-xl bg-primary">
+              <Search className="w-5 h-5" />
             </Button>
-          </div>
+          </form>
           
           <div className="mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
             <Button size="sm" variant="secondary" className="rounded-full text-xs h-8 bg-primary text-white hover:bg-primary/90">الكل</Button>
-            {BRANDS.slice(0, 4).map(brand => (
+            {brands.slice(0, 4).map((brand: any) => (
                <Button key={brand.id} size="sm" variant="outline" className="rounded-full text-xs h-8 border-gray-200">{brand.name}</Button>
             ))}
           </div>

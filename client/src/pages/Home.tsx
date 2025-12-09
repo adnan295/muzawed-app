@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import { useAuth } from '@/lib/AuthContext';
 
 export default function Home() {
   const [, setLocation] = useLocation();
+  const [searchQuery, setSearchQuery] = useState('');
   const { user, isAuthenticated } = useAuth();
 
   const { data: categories = [] } = useQuery<any[]>({
@@ -80,7 +82,15 @@ export default function Home() {
              </div>
 
              {/* Search Bar */}
-             <div className="relative group">
+             <form 
+               className="relative group"
+               onSubmit={(e) => {
+                 e.preventDefault();
+                 if (searchQuery.trim()) {
+                   setLocation(`/search/${encodeURIComponent(searchQuery.trim())}`);
+                 }
+               }}
+             >
                <div className="absolute inset-0 bg-secondary blur-lg opacity-20 group-hover:opacity-30 transition-opacity rounded-xl"></div>
                <div className="relative bg-white text-gray-800 rounded-2xl flex items-center p-1 shadow-lg shadow-black/5">
                  <Search className="w-5 h-5 text-gray-400 mr-3 ml-2" />
@@ -88,14 +98,18 @@ export default function Home() {
                    data-testid="input-search"
                    className="border-none shadow-none focus-visible:ring-0 bg-transparent h-12 text-right placeholder:text-gray-400" 
                    placeholder="ابحث عن منتج، علامة تجارية..."
-                   onClick={() => setLocation('/search/ ')}
-                   readOnly
+                   value={searchQuery}
+                   onChange={(e) => setSearchQuery(e.target.value)}
                  />
-                 <Button className="rounded-xl h-10 w-10 p-0 bg-primary text-white hover:bg-primary/90 shadow-md">
-                   <ChevronLeft className="w-5 h-5 rotate-180" />
+                 <Button 
+                   type="submit"
+                   className="rounded-xl h-10 w-10 p-0 bg-primary text-white hover:bg-primary/90 shadow-md"
+                   disabled={!searchQuery.trim()}
+                 >
+                   <Search className="w-5 h-5" />
                  </Button>
                </div>
-             </div>
+             </form>
            </div>
         </div>
 
