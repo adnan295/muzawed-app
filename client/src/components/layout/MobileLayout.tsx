@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'wouter';
-import { Home, Grid, ShoppingCart, User, Search, MapPin, Bell } from 'lucide-react';
+import { Home, Grid, ShoppingCart, User, Search, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,20 +34,13 @@ export function MobileLayout({ children, hideHeader = false }: MobileLayoutProps
       {!hideHeader && (
         <header className="bg-primary text-primary-foreground p-4 rounded-b-3xl shadow-lg relative z-10">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2 text-sm bg-white/10 px-3 py-1.5 rounded-full backdrop-blur-sm">
-              <MapPin className="w-4 h-4 text-secondary" />
-              <span className="font-medium truncate max-w-[150px]">الرياض، حي الملقا</span>
-              <span className="text-xs opacity-70">تغيير</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link href="/notifications">
-                <Button size="icon" variant="ghost" className="h-9 w-9 rounded-full bg-white/10 hover:bg-white/20 text-white relative">
-                  <Bell className="w-5 h-5" />
-                  <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border border-primary"></span>
-                </Button>
-              </Link>
-              <div className="font-bold text-xl tracking-tight">مزود</div>
-            </div>
+            <div className="font-bold text-xl tracking-tight">مزود</div>
+            <Link href="/notifications">
+              <Button size="icon" variant="ghost" className="h-9 w-9 rounded-full bg-white/10 hover:bg-white/20 text-white relative">
+                <Bell className="w-5 h-5" />
+                <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border border-primary"></span>
+              </Button>
+            </Link>
           </div>
           
           <form onSubmit={handleSearch} className="relative">
