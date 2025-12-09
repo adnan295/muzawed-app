@@ -171,6 +171,8 @@ export interface IStorage {
   createOrder(order: InsertOrder, items: InsertOrderItem[]): Promise<Order>;
   updateOrderStatus(id: number, status: string): Promise<Order | undefined>;
   getOrderItems(orderId: number): Promise<OrderItem[]>;
+  deleteOrderItem(itemId: number): Promise<void>;
+  updateOrderTotals(orderId: number, totals: { subtotal: string; tax: string; total: string }): Promise<void>;
 
   // Addresses
   getAddresses(userId: number): Promise<Address[]>;
@@ -681,6 +683,21 @@ export class DatabaseStorage implements IStorage {
 
   async getOrderItems(orderId: number): Promise<OrderItem[]> {
     return await db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
+  }
+
+  async deleteOrderItem(itemId: number): Promise<void> {
+    await db.delete(orderItems).where(eq(orderItems.id, itemId));
+  }
+
+  async updateOrderTotals(orderId: number, totals: { subtotal: string; tax: string; total: string }): Promise<void> {
+    await db.update(orders)
+      .set({ 
+        subtotal: totals.subtotal, 
+        tax: totals.tax, 
+        total: totals.total,
+        updatedAt: new Date()
+      })
+      .where(eq(orders.id, orderId));
   }
 
   // Addresses

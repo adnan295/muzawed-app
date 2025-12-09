@@ -1527,11 +1527,77 @@ export async function registerRoutes(
             ...order,
             user: user ? { id: user.id, phone: user.phone, facilityName: user.facilityName } : null,
             address,
-            items: items.map(item => ({ productName: item.productName, quantity: item.quantity })),
+            items: items.map(item => ({ 
+              id: item.id,
+              productId: item.productId,
+              productName: item.productName, 
+              quantity: item.quantity,
+              price: item.price,
+              unit: 'قطعة',
+            })),
           };
         })
       );
       res.json(enrichedOrders);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Delete order item (for driver to adjust order)
+  app.delete("/api/driver/orders/:orderId/items/:itemId", async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.orderId);
+      const itemId = parseInt(req.params.itemId);
+      
+      // Get the order and item to calculate proper adjustments
+      const order = await storage.getOrder(orderId);
+      if (!order) {
+        return res.status(404).json({ error: "الطلب غير موجود" });
+      }
+      
+      const items = await storage.getOrderItems(orderId);
+      const item = items.find(i => i.id === itemId);
+      
+      if (!item) {
+        return res.status(404).json({ error: "المنتج غير موجود في الطلب" });
+      }
+      
+      // Use the item's stored total value for accurate calculation
+      const itemTotal = parseFloat(item.total);
+      
+      // Delete the item
+      await storage.deleteOrderItem(itemId);
+      
+      // Get remaining items
+      const remainingItems = await storage.getOrderItems(orderId);
+      
+      if (remainingItems.length === 0) {
+        // If no items left, cancel the order
+        await storage.updateOrderStatus(orderId, 'cancelled');
+        return res.json({ message: "تم حذف المنتج وإلغاء الطلب لعدم وجود منتجات", orderCancelled: true });
+      }
+      
+      // Calculate new totals by summing remaining items
+      const newSubtotal = remainingItems.reduce((sum, i) => sum + parseFloat(i.total), 0);
+      
+      // Preserve the original tax ratio from the order
+      const originalSubtotal = parseFloat(order.subtotal);
+      const originalTax = parseFloat(order.tax);
+      const taxRatio = originalSubtotal > 0 ? originalTax / originalSubtotal : 0.15;
+      const newTax = newSubtotal * taxRatio;
+      
+      // Calculate new total (subtotal + tax + delivery fee)
+      const deliveryFee = parseFloat(order.deliveryFee || '0');
+      const newTotal = newSubtotal + newTax + deliveryFee;
+      
+      await storage.updateOrderTotals(orderId, {
+        subtotal: newSubtotal.toFixed(2),
+        tax: newTax.toFixed(2),
+        total: newTotal.toFixed(2),
+      });
+      
+      res.json({ message: "تم حذف المنتج بنجاح", orderCancelled: false });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

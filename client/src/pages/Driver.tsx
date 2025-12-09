@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { 
   Package, MapPin, Phone, User, Navigation, Truck, CheckCircle, Clock, 
   XCircle, Map, List, RefreshCw, ChevronLeft, Copy, ExternalLink, LogIn, LogOut, Lock,
-  Route, Sparkles, ArrowDown, Timer
+  Route, Sparkles, ArrowDown, Timer, Trash2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'wouter';
@@ -104,8 +104,12 @@ interface DeliveryOrder {
     facilityName: string;
   };
   items?: {
+    id: number;
+    productId: number;
     productName: string;
     quantity: number;
+    price: string;
+    unit: string;
   }[];
 }
 
@@ -324,6 +328,30 @@ export default function Driver() {
     },
     onError: () => {
       toast({ title: 'حدث خطأ', variant: 'destructive' });
+    },
+  });
+
+  const deleteItemMutation = useMutation({
+    mutationFn: async ({ orderId, itemId }: { orderId: number; itemId: number }) => {
+      const res = await fetch(`/api/driver/orders/${orderId}/items/${itemId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Failed to delete item');
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['driverOrders'] });
+      if (data.orderCancelled) {
+        toast({ title: 'تم حذف المنتج وإلغاء الطلب', className: 'bg-orange-600 text-white' });
+        setSelectedOrder(null);
+      } else {
+        toast({ title: 'تم حذف المنتج بنجاح', className: 'bg-green-600 text-white' });
+        // Refresh the selected order
+        refetch();
+      }
+    },
+    onError: () => {
+      toast({ title: 'حدث خطأ في حذف المنتج', variant: 'destructive' });
     },
   });
 
@@ -782,14 +810,45 @@ export default function Driver() {
 
                 {selectedOrder.items && selectedOrder.items.length > 0 && (
                   <Card className="p-4 bg-gray-50 rounded-2xl border-none">
-                    <h4 className="font-bold mb-2 flex items-center gap-2">
+                    <h4 className="font-bold mb-3 flex items-center gap-2">
                       <Package className="w-4 h-4" />المنتجات ({selectedOrder.items.length})
                     </h4>
-                    <div className="space-y-2 text-sm">
-                      {selectedOrder.items.map((item, idx) => (
-                        <div key={idx} className="flex justify-between">
-                          <span>{item.productName}</span>
-                          <span className="font-bold">×{item.quantity}</span>
+                    <div className="space-y-3">
+                      {selectedOrder.items.map((item) => (
+                        <div key={item.id} className="bg-white p-3 rounded-xl shadow-sm border border-gray-100">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <p className="font-bold text-gray-800">{item.productName}</p>
+                              <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
+                                <span className="flex items-center gap-1">
+                                  <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold">
+                                    ×{item.quantity}
+                                  </span>
+                                  <span className="text-gray-400">{item.unit}</span>
+                                </span>
+                                <span className="text-green-600 font-bold">
+                                  {parseFloat(item.price).toLocaleString('ar-SY')} ل.س
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-500 mt-1">
+                                الإجمالي: {(parseFloat(item.price) * item.quantity).toLocaleString('ar-SY')} ل.س
+                              </p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl"
+                              onClick={() => {
+                                if (confirm(`هل أنت متأكد من حذف "${item.productName}" من الطلب؟`)) {
+                                  deleteItemMutation.mutate({ orderId: selectedOrder.id, itemId: item.id });
+                                }
+                              }}
+                              disabled={deleteItemMutation.isPending}
+                              data-testid={`button-delete-item-${item.id}`}
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
