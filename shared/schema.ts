@@ -42,6 +42,7 @@ export const users = pgTable("users", {
   commercialRegister: text("commercial_register"),
   taxNumber: text("tax_number"),
   cityId: integer("city_id").references(() => cities.id),
+  avatarKey: text("avatar_key"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

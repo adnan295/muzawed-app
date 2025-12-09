@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 
 interface User {
   id: number;
@@ -8,6 +8,7 @@ interface User {
   commercialRegister?: string;
   taxNumber?: string;
   cityId?: number | null;
+  avatarKey?: string | null;
 }
 
 interface AuthContextType {
@@ -15,6 +16,7 @@ interface AuthContextType {
   login: (user: User) => void;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
+  refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -44,12 +46,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const refreshUser = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch(`/api/users/${user.id}`);
+      if (res.ok) {
+        const freshUser = await res.json();
+        setUser(freshUser);
+        localStorage.setItem("sary_user", JSON.stringify(freshUser));
+      }
+    } catch (error) {
+      console.error('Failed to refresh user:', error);
+    }
+  }, [user?.id]);
+
   return (
     <AuthContext.Provider value={{ 
       user, 
       login, 
       logout,
       updateUser,
+      refreshUser,
       isAuthenticated: !!user 
     }}>
       {children}

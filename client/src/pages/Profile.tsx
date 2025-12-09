@@ -1,21 +1,42 @@
+import { useState } from 'react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { 
   User, Package, MapPin, CreditCard, Settings, LogOut, Store, Gift, 
   ChevronLeft, CheckCircle, Wallet, Crown, Star, 
   Heart, Bell, HelpCircle, FileText, Award, Sparkles,
-  Zap, Clock, ArrowUpRight
+  Zap, Clock, ArrowUpRight, Camera
 } from 'lucide-react';
 import { useLocation, Link } from 'wouter';
 import { useAuth } from '@/lib/AuthContext';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { ordersAPI, walletAPI, creditsAPI } from '@/lib/api';
 import { motion } from 'framer-motion';
 import type { Favorite, Notification } from '@shared/schema';
+
+const PROFILE_AVATARS = [
+  { key: 'store1', emoji: '🏪' },
+  { key: 'store2', emoji: '🏬' },
+  { key: 'market', emoji: '🛒' },
+  { key: 'shop', emoji: '🛍️' },
+  { key: 'business', emoji: '💼' },
+  { key: 'building', emoji: '🏢' },
+  { key: 'warehouse', emoji: '🏭' },
+  { key: 'truck', emoji: '🚚' },
+  { key: 'box', emoji: '📦' },
+  { key: 'star', emoji: '⭐' },
+  { key: 'crown', emoji: '👑' },
+  { key: 'diamond', emoji: '💎' },
+  { key: 'rocket', emoji: '🚀' },
+  { key: 'target', emoji: '🎯' },
+  { key: 'money', emoji: '💰' },
+  { key: 'chart', emoji: '📈' },
+];
 
 interface MenuItem {
   icon: any;
@@ -42,8 +63,31 @@ interface WalletData {
 
 export default function Profile() {
   const [, setLocation] = useLocation();
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, refreshUser } = useAuth();
   const queryClient = useQueryClient();
+  const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false);
+
+  const updateAvatarMutation = useMutation({
+    mutationFn: async (avatarKey: string) => {
+      const res = await fetch(`/api/users/${user?.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatarKey }),
+      });
+      if (!res.ok) throw new Error('Failed to update avatar');
+      return res.json();
+    },
+    onSuccess: () => {
+      refreshUser();
+      setIsAvatarDialogOpen(false);
+      toast.success('تم تحديث الصورة الرمزية');
+    },
+    onError: () => {
+      toast.error('فشل في تحديث الصورة');
+    },
+  });
+
+  const currentAvatar = PROFILE_AVATARS.find(a => a.key === user?.avatarKey);
 
   const { data: orders = [] } = useQuery<Order[]>({
     queryKey: ['orders', user?.id],
@@ -211,8 +255,18 @@ export default function Profile() {
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-center gap-4">
               <div className="relative">
-                <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-xl flex items-center justify-center border-2 border-white/30 text-3xl font-bold text-white shadow-lg">
-                  {user?.facilityName?.charAt(0) || 'س'}
+                <div 
+                  className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-xl flex items-center justify-center border-2 border-white/30 text-3xl font-bold text-white shadow-lg cursor-pointer hover:bg-white/30 transition-colors"
+                  onClick={() => setIsAvatarDialogOpen(true)}
+                  data-testid="button-change-avatar"
+                >
+                  {currentAvatar ? currentAvatar.emoji : (user?.facilityName?.charAt(0) || 'س')}
+                </div>
+                <div 
+                  className="absolute -bottom-1 -left-1 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center shadow-lg cursor-pointer"
+                  onClick={() => setIsAvatarDialogOpen(true)}
+                >
+                  <Camera className="w-3 h-3 text-gray-600" />
                 </div>
                 <div className={`absolute -bottom-1 -right-1 w-7 h-7 rounded-lg bg-gradient-to-r ${loyaltyLevel.color} flex items-center justify-center shadow-lg`}>
                   <LoyaltyIcon className="w-4 h-4 text-white" />
@@ -468,6 +522,35 @@ export default function Profile() {
           <span className="text-gray-400">الإصدار 1.0.0</span>
         </p>
       </div>
+
+      {/* Avatar Picker Dialog */}
+      <Dialog open={isAvatarDialogOpen} onOpenChange={setIsAvatarDialogOpen}>
+        <DialogContent className="max-w-sm rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl">اختر صورة رمزية</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-4 gap-3 p-4">
+            {PROFILE_AVATARS.map((avatar) => (
+              <button
+                key={avatar.key}
+                onClick={() => updateAvatarMutation.mutate(avatar.key)}
+                className={`w-16 h-16 rounded-2xl flex items-center justify-center text-3xl transition-all hover:scale-110 ${
+                  user?.avatarKey === avatar.key 
+                    ? 'bg-primary/20 ring-2 ring-primary shadow-lg' 
+                    : 'bg-gray-100 hover:bg-gray-200'
+                }`}
+                data-testid={`avatar-option-${avatar.key}`}
+                disabled={updateAvatarMutation.isPending}
+              >
+                {avatar.emoji}
+              </button>
+            ))}
+          </div>
+          <p className="text-center text-xs text-muted-foreground pb-2">
+            اضغط على الرمز لاختياره كصورة رمزية
+          </p>
+        </DialogContent>
+      </Dialog>
     </MobileLayout>
   );
 }
