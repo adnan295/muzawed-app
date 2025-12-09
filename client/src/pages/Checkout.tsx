@@ -3,12 +3,13 @@ import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { CreditCard, Calendar, CheckCircle2, MapPin, ShoppingBag } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { CreditCard, Calendar, CheckCircle2, MapPin, ShoppingBag, Clock, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
 import { useLocation, Link } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { cartAPI, addressesAPI, ordersAPI, deliverySettingsAPI, warehousesAPI } from '@/lib/api';
+import { cartAPI, addressesAPI, ordersAPI, deliverySettingsAPI, warehousesAPI, creditsAPI } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import {
   Dialog,
@@ -86,10 +87,37 @@ export default function Checkout() {
     initialData: { fee: 0, isFree: true }
   });
 
+  // Fetch customer credit info
+  const { data: creditInfo } = useQuery<{
+    id: number;
+    userId: number;
+    creditLimit: string;
+    currentBalance: string;
+    loyaltyLevel: string;
+    creditPeriodDays: number;
+    isEligible: boolean;
+  }>({
+    queryKey: ['credit', user?.id],
+    queryFn: () => creditsAPI.get(user!.id) as any,
+    enabled: !!user?.id,
+  });
+
+  const getLoyaltyLabel = (level: string) => {
+    switch (level) {
+      case 'diamond': return 'ماسي';
+      case 'gold': return 'ذهبي';
+      case 'silver': return 'فضي';
+      default: return 'برونزي';
+    }
+  };
+
   const deliveryFee = deliveryInfo?.fee || 0;
   const isDeliveryFree = deliveryInfo?.isFree || deliveryFee === 0;
   const tax = subtotal * 0.15;
   const total = subtotal + tax + deliveryFee;
+
+  const creditAvailable = creditInfo ? parseFloat(creditInfo.creditLimit) - parseFloat(creditInfo.currentBalance) : 0;
+  const canUseCredit = creditInfo?.isEligible && creditAvailable >= total;
 
   const createOrderMutation = useMutation({
     mutationFn: async () => {
@@ -103,7 +131,7 @@ export default function Checkout() {
         tax: tax.toFixed(2),
         deliveryFee: deliveryFee.toFixed(2),
         total: total.toFixed(2),
-        paymentMethod: paymentMethod === 'card' ? 'card' : paymentMethod === 'cod' ? 'cash' : 'wallet',
+        paymentMethod: paymentMethod === 'credit' ? 'credit' : paymentMethod === 'cod' ? 'cash' : 'wallet',
       };
 
       const orderItems = cartItems.map(item => ({
@@ -247,22 +275,64 @@ export default function Checkout() {
             </h3>
             <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-3">
               <div className="flex items-center space-x-2 space-x-reverse rounded-xl border p-3 hover:bg-accent cursor-pointer transition-colors">
-                <RadioGroupItem value="card" id="card" />
-                <Label htmlFor="card" className="flex-1 cursor-pointer flex items-center justify-between mr-2">
-                  <span>بطاقة مدى / ائتمانية</span>
-                  <div className="flex gap-1">
-                    <div className="w-8 h-5 bg-blue-100 rounded text-[8px] flex items-center justify-center font-bold text-blue-600">مدى</div>
-                    <div className="w-8 h-5 bg-orange-100 rounded text-[8px] flex items-center justify-center font-bold text-orange-600">Visa</div>
-                  </div>
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2 space-x-reverse rounded-xl border p-3 hover:bg-accent cursor-pointer transition-colors">
                 <RadioGroupItem value="cod" id="cod" />
                 <Label htmlFor="cod" className="flex-1 cursor-pointer mr-2">الدفع عند الاستلام (نقدي)</Label>
               </div>
               <div className="flex items-center space-x-2 space-x-reverse rounded-xl border p-3 hover:bg-accent cursor-pointer transition-colors">
                 <RadioGroupItem value="wallet" id="wallet" />
                 <Label htmlFor="wallet" className="flex-1 cursor-pointer mr-2">المحفظة</Label>
+              </div>
+              
+              {/* Credit/Deferred Payment Option */}
+              <div className={`rounded-xl border-2 p-3 transition-colors ${
+                canUseCredit 
+                  ? 'border-green-200 bg-green-50/50 hover:bg-green-50 cursor-pointer' 
+                  : 'border-gray-200 bg-gray-50 opacity-60'
+              }`}>
+                <div className="flex items-center space-x-2 space-x-reverse">
+                  <RadioGroupItem value="credit" id="credit" disabled={!canUseCredit} />
+                  <Label htmlFor="credit" className={`flex-1 mr-2 ${canUseCredit ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-green-600" />
+                        <span className="font-bold">الدفع الآجل</span>
+                        {creditInfo && (
+                          <Badge variant="secondary" className="text-xs">
+                            عميل {getLoyaltyLabel(creditInfo.loyaltyLevel)}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    {creditInfo && (
+                      <div className="mt-2 text-xs text-gray-600 space-y-1">
+                        <div className="flex justify-between">
+                          <span>مدة السداد:</span>
+                          <span className="font-bold text-green-700">{creditInfo.creditPeriodDays} يوم</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>الرصيد المتاح:</span>
+                          <span className={`font-bold ${creditAvailable >= total ? 'text-green-700' : 'text-red-600'}`}>
+                            {creditAvailable.toLocaleString('ar-SY')} ل.س
+                          </span>
+                        </div>
+                        {parseFloat(creditInfo.currentBalance) > 0 && (
+                          <div className="flex justify-between text-orange-600">
+                            <span>رصيد مستحق:</span>
+                            <span className="font-bold">{parseFloat(creditInfo.currentBalance).toLocaleString('ar-SY')} ل.س</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {!canUseCredit && creditInfo && (
+                      <div className="mt-2 flex items-center gap-1 text-xs text-red-600">
+                        <AlertCircle className="w-3 h-3" />
+                        {!creditInfo.isEligible 
+                          ? 'غير مؤهل للدفع الآجل' 
+                          : 'الرصيد المتاح غير كافي'}
+                      </div>
+                    )}
+                  </Label>
+                </div>
               </div>
             </RadioGroup>
           </div>

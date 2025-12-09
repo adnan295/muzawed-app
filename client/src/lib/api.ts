@@ -586,3 +586,29 @@ export const deliverySettingsAPI = {
     method: "DELETE",
   }),
 };
+
+// Customer Credit API - نظام الآجل
+export const creditsAPI = {
+  get: (userId: number) => request(`/credits/${userId}`),
+  getAll: () => request("/credits"),
+  checkEligibility: (userId: number, amount: number) => request(`/credits/${userId}/check-eligibility`, {
+    method: "POST",
+    body: JSON.stringify({ amount }),
+  }),
+  updateLevel: (userId: number) => request(`/credits/${userId}/update-level`, {
+    method: "POST",
+  }),
+  getTransactions: (userId: number) => request(`/credits/${userId}/transactions`),
+  createPurchase: (userId: number, orderId: number, amount: number) => request(`/credits/${userId}/purchase`, {
+    method: "POST",
+    body: JSON.stringify({ orderId, amount }),
+  }),
+  createPayment: (userId: number, amount: number, notes?: string) => request(`/credits/${userId}/payment`, {
+    method: "POST",
+    body: JSON.stringify({ amount, notes }),
+  }),
+  update: (userId: number, data: Partial<{ creditLimit: string; isEligible: boolean }>) => request(`/credits/${userId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }),
+};
