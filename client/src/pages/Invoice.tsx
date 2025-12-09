@@ -14,8 +14,7 @@ export default function Invoice() {
   // Mock invoice items
   const items = [PRODUCTS[0], PRODUCTS[3], PRODUCTS[1]];
   const subtotal = items.reduce((acc, item) => acc + (item.price * item.minOrder), 0);
-  const vat = subtotal * 0.15;
-  const total = subtotal + vat;
+  const total = subtotal; // No tax
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 font-sans" dir="rtl">
@@ -45,9 +44,8 @@ export default function Invoice() {
           <div className="w-16 h-16 bg-primary text-white rounded-2xl flex items-center justify-center text-2xl font-bold mx-auto mb-4">
             م
           </div>
-          <h1 className="text-xl font-bold mb-1">فاتورة ضريبية مبسطة</h1>
+          <h1 className="text-xl font-bold mb-1">فاتورة</h1>
           <p className="text-sm text-muted-foreground">شركة مزود لتقنية المعلومات</p>
-          <p className="text-xs text-muted-foreground mt-1">الرقم الضريبي: 300123456789003</p>
         </div>
 
         {/* Info Grid */}
@@ -63,10 +61,6 @@ export default function Invoice() {
           <div>
             <p className="text-muted-foreground text-xs mb-1">العميل</p>
             <p className="font-bold">سوبر ماركت السعادة</p>
-          </div>
-          <div className="text-left">
-            <p className="text-muted-foreground text-xs mb-1">الرقم الضريبي للعميل</p>
-            <p className="font-bold font-mono">310123456700003</p>
           </div>
         </div>
 
@@ -93,12 +87,8 @@ export default function Invoice() {
         {/* Totals */}
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">المجموع الخاضع للضريبة</span>
+            <span className="text-muted-foreground">المجموع</span>
             <span>{subtotal.toFixed(2)} ل.س</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">ضريبة القيمة المضافة (15%)</span>
-            <span>{vat.toFixed(2)} ل.س</span>
           </div>
           <div className="flex justify-between text-lg font-bold mt-4 pt-4 border-t border-dashed border-gray-200">
             <span>الإجمالي المستحق</span>
@@ -110,14 +100,12 @@ export default function Invoice() {
         <div className="mt-8 flex justify-center">
           <div className="w-32 h-32 bg-gray-100 rounded-lg border-2 border-gray-200 flex items-center justify-center text-xs text-muted-foreground text-center p-2">
             [QR Code]
-            <br/>
-            هيئة الزكاة والضريبة
           </div>
         </div>
 
         <div className="mt-8 text-center text-xs text-muted-foreground">
           <p>شكراً لتعاملكم معنا</p>
-          <p className="mt-1">support@sary.com | 9200XXXXX</p>
+          <p className="mt-1">support@muzwd.com | 9200XXXXX</p>
         </div>
       </Card>
     </div>

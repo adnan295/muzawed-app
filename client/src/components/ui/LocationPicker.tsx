@@ -91,7 +91,7 @@ export default function LocationPicker({
     try {
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery + ', Syria')}&limit=1`,
-        { headers: { 'User-Agent': 'SaryWholesaleApp/1.0' } }
+        { headers: { 'User-Agent': 'MuzwdWholesaleApp/1.0' } }
       );
       const data = await response.json();
       

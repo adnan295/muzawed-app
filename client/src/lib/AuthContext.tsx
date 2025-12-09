@@ -24,25 +24,25 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem("sary_user");
+    const saved = localStorage.getItem("muzwd_user");
     return saved ? JSON.parse(saved) : null;
   });
 
   const login = (user: User) => {
     setUser(user);
-    localStorage.setItem("sary_user", JSON.stringify(user));
+    localStorage.setItem("muzwd_user", JSON.stringify(user));
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem("sary_user");
+    localStorage.removeItem("muzwd_user");
   };
 
   const updateUser = (updates: Partial<User>) => {
     if (user) {
       const updatedUser = { ...user, ...updates };
       setUser(updatedUser);
-      localStorage.setItem("sary_user", JSON.stringify(updatedUser));
+      localStorage.setItem("muzwd_user", JSON.stringify(updatedUser));
     }
   };
 
@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (res.ok) {
         const freshUser = await res.json();
         setUser(freshUser);
-        localStorage.setItem("sary_user", JSON.stringify(freshUser));
+        localStorage.setItem("muzwd_user", JSON.stringify(freshUser));
       }
     } catch (error) {
       console.error('Failed to refresh user:', error);

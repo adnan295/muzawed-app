@@ -5413,7 +5413,7 @@ export default function Admin() {
                             <Label>البريد الإلكتروني *</Label>
                             <Input 
                               className="rounded-xl mt-1" 
-                              placeholder="ahmed@sary.sa"
+                              placeholder="ahmed@muzwd.com"
                               type="email"
                               value={newStaff.email}
                               onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}

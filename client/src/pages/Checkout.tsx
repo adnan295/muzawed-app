@@ -113,8 +113,8 @@ export default function Checkout() {
 
   const deliveryFee = deliveryInfo?.fee || 0;
   const isDeliveryFree = deliveryInfo?.isFree || deliveryFee === 0;
-  const tax = subtotal * 0.15;
-  const total = subtotal + tax + deliveryFee;
+  const tax = 0; // No tax
+  const total = subtotal + deliveryFee;
 
   const creditAvailable = creditInfo ? parseFloat(creditInfo.creditLimit) - parseFloat(creditInfo.currentBalance) : 0;
   const canUseCredit = creditInfo?.isEligible && creditAvailable >= total;
@@ -352,10 +352,6 @@ export default function Checkout() {
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">المجموع</span>
               <span>{subtotal.toFixed(2)} ل.س</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">الضريبة (15%)</span>
-              <span>{tax.toFixed(2)} ل.س</span>
             </div>
             <div className={`flex justify-between text-sm ${isDeliveryFree ? 'text-green-600' : ''}`}>
               <span className="text-muted-foreground">التوصيل</span>

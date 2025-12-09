@@ -60,8 +60,7 @@ export default function Cart() {
 
   const subtotal = cartItems.reduce((acc, item) => 
     acc + (parseFloat(item.product?.price || '0') * item.quantity), 0);
-  const vat = subtotal * 0.15;
-  const total = subtotal + vat;
+  const total = subtotal; // No tax
 
   if (!isAuthenticated) {
     return (
@@ -159,10 +158,6 @@ export default function Cart() {
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">المجموع الفرعي</span>
               <span>{subtotal.toFixed(2)} ل.س</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">ضريبة القيمة المضافة (15%)</span>
-              <span>{vat.toFixed(2)} ل.س</span>
             </div>
             <div className="flex justify-between text-sm text-green-600">
               <span className="text-muted-foreground">التوصيل</span>
