@@ -9,10 +9,13 @@ import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/lib/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { NotificationPreferences } from '@shared/schema';
 
 export default function Settings() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPasswords, setShowPasswords] = useState(false);
@@ -20,6 +23,35 @@ export default function Settings() {
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
+  });
+
+  const { data: notifPrefs } = useQuery<NotificationPreferences>({
+    queryKey: ['notificationPreferences', user?.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/notification-preferences/${user?.id}`);
+      if (!res.ok) throw new Error('Failed to fetch preferences');
+      return res.json();
+    },
+    enabled: !!user?.id,
+  });
+
+  const updatePrefsMutation = useMutation({
+    mutationFn: async (data: Partial<NotificationPreferences>) => {
+      const res = await fetch(`/api/notification-preferences/${user?.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error('Failed to update preferences');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notificationPreferences', user?.id] });
+      toast({ title: 'تم الحفظ', description: 'تم تحديث إعدادات الإشعارات' });
+    },
+    onError: () => {
+      toast({ title: 'خطأ', description: 'فشل في تحديث الإعدادات', variant: 'destructive' });
+    },
   });
 
   const handleChangePassword = async () => {
@@ -122,14 +154,22 @@ export default function Settings() {
                     <Bell className="w-5 h-5 text-gray-500" />
                     <span>إشعارات الطلبات</span>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch 
+                    checked={notifPrefs?.ordersEnabled ?? true}
+                    onCheckedChange={(checked) => updatePrefsMutation.mutate({ ordersEnabled: checked })}
+                    data-testid="switch-orders-notifications"
+                  />
                 </div>
                 <div className="bg-white p-4 flex items-center justify-between border-b border-gray-100 last:border-0">
                   <div className="flex items-center gap-3">
                     <Bell className="w-5 h-5 text-gray-500" />
                     <span>العروض والخصومات</span>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch 
+                    checked={notifPrefs?.promotionsEnabled ?? true}
+                    onCheckedChange={(checked) => updatePrefsMutation.mutate({ promotionsEnabled: checked })}
+                    data-testid="switch-promotions-notifications"
+                  />
                 </div>
              </Card>
           </div>
