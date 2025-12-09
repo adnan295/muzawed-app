@@ -8,9 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { 
-  User, Package, MapPin, CreditCard, Settings, LogOut, Phone, Store, Gift, 
-  TrendingUp, Shield, ChevronLeft, CheckCircle, Wallet, Crown, Star, 
-  ShoppingBag, Heart, Bell, HelpCircle, FileText, Award, Sparkles,
+  User, Package, MapPin, CreditCard, Settings, LogOut, Store, Gift, 
+  ChevronLeft, CheckCircle, Wallet, Crown, Star, 
+  Heart, Bell, HelpCircle, FileText, Award, Sparkles,
   Zap, Clock, ArrowUpRight
 } from 'lucide-react';
 import { useLocation, Link } from 'wouter';
@@ -430,27 +430,6 @@ export default function Profile() {
             </Card>
           </motion.div>
         ))}
-
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.5 }}
-        >
-          <Card 
-            className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-none shadow-md cursor-pointer bg-gradient-to-l from-primary/5 to-transparent"
-            onClick={() => setLocation('/admin/login')}
-            data-testid="link-admin"
-          >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center shadow-lg shadow-primary/30">
-              <Shield className="w-5 h-5" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-bold text-sm text-foreground">لوحة تحكم المدير</h3>
-              <p className="text-xs text-muted-foreground">إدارة المنتجات والطلبات والعملاء</p>
-            </div>
-            <ChevronLeft className="w-5 h-5 text-gray-400" />
-          </Card>
-        </motion.div>
 
         <motion.div
           initial={{ y: 20, opacity: 0 }}
