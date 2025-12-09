@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { 
   User, Package, MapPin, CreditCard, Settings, LogOut, Store, Gift, 
@@ -528,6 +528,9 @@ export default function Profile() {
         <DialogContent className="max-w-sm rounded-3xl">
           <DialogHeader>
             <DialogTitle className="text-center text-xl">اختر صورة رمزية</DialogTitle>
+            <DialogDescription className="text-center text-sm text-muted-foreground">
+              اختر رمزًا يمثل منشأتك
+            </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-4 gap-3 p-4">
             {PROFILE_AVATARS.map((avatar) => (
