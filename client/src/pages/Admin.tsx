@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -31,7 +32,7 @@ import {
   GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight, LogOut, MousePointer, EyeOff
 } from 'lucide-react';
 import { Link } from 'wouter';
-import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI, bannersAPI, segmentsAPI, suppliersAPI, reportsAPI, expensesAPI, expenseCategoriesAPI, deliverySettingsAPI, staffAPI } from '@/lib/api';
+import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI, bannersAPI, segmentsAPI, suppliersAPI, reportsAPI, expensesAPI, expenseCategoriesAPI, deliverySettingsAPI, staffAPI, promotionsAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart, Line, Legend, ComposedChart, RadialBarChart, RadialBar, Treemap, FunnelChart, Funnel, LabelList } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -209,11 +210,6 @@ const mockSuppliers = [
   { id: 4, name: 'شركة بيبسي', code: 'SUP-004', contact: 'سعد الدوسري', phone: '0567891234', city: 'الرياض', rating: 4, orders: 87, balance: 52000 },
 ];
 
-const mockPromotions = [
-  { id: 1, name: 'تخفيضات الصيف', type: 'flash_sale', discount: 25, startDate: '2024-06-01', endDate: '2024-08-31', status: 'active', views: 15420, conversions: 2340 },
-  { id: 2, name: 'عرض المشروبات', type: 'category', discount: 15, startDate: '2024-05-15', endDate: '2024-06-15', status: 'active', views: 8750, conversions: 1120 },
-  { id: 3, name: 'باندل التنظيف', type: 'bundle', discount: 30, startDate: '2024-04-01', endDate: '2024-04-30', status: 'ended', views: 6200, conversions: 890 },
-];
 
 const mockShipments = [
   { id: 1, trackingNumber: 'SHP-2024-001', orderId: 1024, carrier: 'in_house', status: 'in_transit', driver: 'سعيد محمد', phone: '0501234567', eta: '30 دقيقة', location: 'حي النرجس' },
@@ -699,6 +695,14 @@ export default function Admin() {
   const [filterBrand, setFilterBrand] = useState<string>('all');
   const [filterStock, setFilterStock] = useState<string>('all');
   const [isAddPromotionOpen, setIsAddPromotionOpen] = useState(false);
+  const [isEditPromotionOpen, setIsEditPromotionOpen] = useState(false);
+  const [isDeletePromotionOpen, setIsDeletePromotionOpen] = useState(false);
+  const [editingPromotion, setEditingPromotion] = useState<any>(null);
+  const [promotionToDelete, setPromotionToDelete] = useState<any>(null);
+  const [newPromotion, setNewPromotion] = useState({
+    name: '', type: 'flash_sale', description: '', discountType: 'percentage', discountValue: '',
+    targetType: 'all', startDate: '', endDate: '', isActive: true, priority: 0
+  });
   const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [dateRange, setDateRange] = useState('week');
@@ -856,6 +860,12 @@ export default function Admin() {
     queryFn: () => suppliersAPI.getAll() as Promise<any[]>,
   });
 
+  // Promotions Query
+  const { data: promotionsList = [], refetch: refetchPromotions } = useQuery<any[]>({
+    queryKey: ['promotions'],
+    queryFn: () => promotionsAPI.getAll() as Promise<any[]>,
+  });
+
   // Product Profit Report Query
   const { data: profitReport, isLoading: profitReportLoading, refetch: refetchProfitReport } = useQuery({
     queryKey: ['productProfitReport'],
@@ -918,6 +928,46 @@ export default function Admin() {
       setIsDeleteStaffOpen(false);
       setStaffToDelete(null);
       toast({ title: 'تم حذف الموظف بنجاح' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'خطأ', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Promotions Mutations
+  const createPromotionMutation = useMutation({
+    mutationFn: (data: any) => promotionsAPI.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['promotions'] });
+      setIsAddPromotionOpen(false);
+      setNewPromotion({ name: '', type: 'flash_sale', description: '', discountType: 'percentage', discountValue: '', targetType: 'all', startDate: '', endDate: '', isActive: true, priority: 0 });
+      toast({ title: 'تم إنشاء العرض بنجاح' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'خطأ', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const updatePromotionMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) => promotionsAPI.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['promotions'] });
+      setIsEditPromotionOpen(false);
+      setEditingPromotion(null);
+      toast({ title: 'تم تحديث العرض بنجاح' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'خطأ', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const deletePromotionMutation = useMutation({
+    mutationFn: (id: number) => promotionsAPI.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['promotions'] });
+      setIsDeletePromotionOpen(false);
+      setPromotionToDelete(null);
+      toast({ title: 'تم حذف العرض بنجاح' });
     },
     onError: (error: any) => {
       toast({ title: 'خطأ', description: error.message, variant: 'destructive' });
@@ -4638,71 +4688,191 @@ export default function Admin() {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h3 className="font-bold text-xl flex items-center gap-2"><Megaphone className="w-5 h-5 text-orange-500" />العروض والحملات الترويجية</h3>
-                  <p className="text-gray-500 text-sm mt-1">{mockPromotions.length} حملة</p>
+                  <p className="text-gray-500 text-sm mt-1">{promotionsList.length} عرض</p>
                 </div>
-                <Dialog open={isAddPromotionOpen} onOpenChange={setIsAddPromotionOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="rounded-xl gap-2"><Plus className="w-4 h-4" />إنشاء عرض</Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-lg">
-                    <DialogHeader><DialogTitle>إنشاء عرض ترويجي</DialogTitle></DialogHeader>
-                    <div className="space-y-4 mt-4">
-                      <div><Label>اسم العرض</Label><Input className="rounded-xl mt-1" placeholder="تخفيضات الصيف" /></div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label>نوع العرض</Label>
-                          <Select>
-                            <SelectTrigger className="rounded-xl mt-1"><SelectValue placeholder="اختر" /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="flash_sale">تخفيض سريع</SelectItem>
-                              <SelectItem value="category">على قسم</SelectItem>
-                              <SelectItem value="bundle">باندل</SelectItem>
-                              <SelectItem value="free_shipping">شحن مجاني</SelectItem>
-                            </SelectContent>
-                          </Select>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="rounded-xl gap-2" onClick={() => refetchPromotions()}>
+                    <RefreshCw className="w-4 h-4" />تحديث
+                  </Button>
+                  <Dialog open={isAddPromotionOpen} onOpenChange={setIsAddPromotionOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="rounded-xl gap-2" data-testid="button-add-promotion"><Plus className="w-4 h-4" />إنشاء عرض</Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-lg">
+                      <DialogHeader><DialogTitle>إنشاء عرض ترويجي</DialogTitle></DialogHeader>
+                      <div className="space-y-4 mt-4">
+                        <div><Label>اسم العرض</Label><Input className="rounded-xl mt-1" placeholder="تخفيضات الصيف" value={newPromotion.name} onChange={(e) => setNewPromotion({...newPromotion, name: e.target.value})} data-testid="input-promotion-name" /></div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>نوع العرض</Label>
+                            <Select value={newPromotion.type} onValueChange={(v) => setNewPromotion({...newPromotion, type: v})}>
+                              <SelectTrigger className="rounded-xl mt-1"><SelectValue placeholder="اختر" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="flash_sale">تخفيض سريع</SelectItem>
+                                <SelectItem value="category">على قسم</SelectItem>
+                                <SelectItem value="bundle">باندل</SelectItem>
+                                <SelectItem value="free_shipping">شحن مجاني</SelectItem>
+                                <SelectItem value="banner">بانر إعلاني</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label>نوع الخصم</Label>
+                            <Select value={newPromotion.discountType} onValueChange={(v) => setNewPromotion({...newPromotion, discountType: v})}>
+                              <SelectTrigger className="rounded-xl mt-1"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="percentage">نسبة مئوية %</SelectItem>
+                                <SelectItem value="fixed">مبلغ ثابت</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div><Label>قيمة الخصم</Label><Input className="rounded-xl mt-1" type="number" placeholder="25" value={newPromotion.discountValue} onChange={(e) => setNewPromotion({...newPromotion, discountValue: e.target.value})} data-testid="input-promotion-discount" /></div>
+                          <div>
+                            <Label>الفئة المستهدفة</Label>
+                            <Select value={newPromotion.targetType} onValueChange={(v) => setNewPromotion({...newPromotion, targetType: v})}>
+                              <SelectTrigger className="rounded-xl mt-1"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">جميع العملاء</SelectItem>
+                                <SelectItem value="category">قسم معين</SelectItem>
+                                <SelectItem value="product">منتج معين</SelectItem>
+                                <SelectItem value="customer_tier">مستوى العميل</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div><Label>تاريخ البداية</Label><Input className="rounded-xl mt-1" type="datetime-local" value={newPromotion.startDate} onChange={(e) => setNewPromotion({...newPromotion, startDate: e.target.value})} data-testid="input-promotion-start" /></div>
+                          <div><Label>تاريخ الانتهاء</Label><Input className="rounded-xl mt-1" type="datetime-local" value={newPromotion.endDate} onChange={(e) => setNewPromotion({...newPromotion, endDate: e.target.value})} data-testid="input-promotion-end" /></div>
                         </div>
-                        <div><Label>نسبة الخصم</Label><Input className="rounded-xl mt-1" type="number" placeholder="25" /></div>
-                        <div><Label>تاريخ البداية</Label><Input className="rounded-xl mt-1" type="date" /></div>
-                        <div><Label>تاريخ الانتهاء</Label><Input className="rounded-xl mt-1" type="date" /></div>
+                        <div><Label>الوصف</Label><Textarea className="rounded-xl mt-1" placeholder="وصف العرض..." value={newPromotion.description} onChange={(e) => setNewPromotion({...newPromotion, description: e.target.value})} data-testid="input-promotion-description" /></div>
+                        <div className="flex items-center gap-2">
+                          <Switch checked={newPromotion.isActive} onCheckedChange={(v) => setNewPromotion({...newPromotion, isActive: v})} />
+                          <Label>العرض مفعّل</Label>
+                        </div>
+                        <Button className="w-full rounded-xl" onClick={() => createPromotionMutation.mutate({...newPromotion, discountValue: newPromotion.discountValue ? parseFloat(newPromotion.discountValue) : null, startDate: new Date(newPromotion.startDate), endDate: new Date(newPromotion.endDate)})} disabled={createPromotionMutation.isPending} data-testid="button-submit-promotion">
+                          {createPromotionMutation.isPending ? 'جاري الإنشاء...' : 'إنشاء العرض'}
+                        </Button>
                       </div>
-                      <div><Label>الوصف</Label><Textarea className="rounded-xl mt-1" placeholder="وصف العرض..." /></div>
-                      <Button className="w-full rounded-xl">إنشاء العرض</Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </div>
 
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {mockPromotions.map((promo) => (
-                  <div key={promo.id} className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-5 border border-orange-100 hover:shadow-md transition-all relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-20 h-20 bg-orange-200/30 rounded-full -translate-x-1/2 -translate-y-1/2"></div>
-                    <div className="flex items-center justify-between mb-4 relative z-10">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white">
-                        {promo.type === 'flash_sale' ? <Flame className="w-6 h-6" /> : promo.type === 'bundle' ? <Boxes className="w-6 h-6" /> : <Sparkles className="w-6 h-6" />}
+              {promotionsList.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <Megaphone className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                  <p>لا توجد عروض ترويجية حالياً</p>
+                  <p className="text-sm mt-1">أنشئ عرضاً جديداً للبدء</p>
+                </div>
+              ) : (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {promotionsList.map((promo: any) => {
+                    const now = new Date();
+                    const startDate = new Date(promo.startDate);
+                    const endDate = new Date(promo.endDate);
+                    const status = !promo.isActive ? 'inactive' : now < startDate ? 'scheduled' : now > endDate ? 'ended' : 'active';
+                    return (
+                      <div key={promo.id} className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-5 border border-orange-100 hover:shadow-md transition-all relative overflow-hidden" data-testid={`card-promotion-${promo.id}`}>
+                        <div className="absolute top-0 left-0 w-20 h-20 bg-orange-200/30 rounded-full -translate-x-1/2 -translate-y-1/2"></div>
+                        <div className="flex items-center justify-between mb-4 relative z-10">
+                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white">
+                            {promo.type === 'flash_sale' ? <Flame className="w-6 h-6" /> : promo.type === 'bundle' ? <Boxes className="w-6 h-6" /> : promo.type === 'free_shipping' ? <Truck className="w-6 h-6" /> : <Sparkles className="w-6 h-6" />}
+                          </div>
+                          {getStatusBadge(status)}
+                        </div>
+                        <h4 className="font-bold text-lg mb-1">{promo.name}</h4>
+                        <p className="text-sm text-orange-700 mb-3">
+                          {promo.discountType === 'percentage' ? `خصم ${promo.discountValue}%` : promo.discountValue ? `خصم ${Number(promo.discountValue).toLocaleString()} ل.س` : promo.type === 'free_shipping' ? 'شحن مجاني' : ''}
+                        </p>
+                        {promo.description && <p className="text-xs text-gray-600 mb-3 line-clamp-2">{promo.description}</p>}
+                        <div className="grid grid-cols-2 gap-3 text-sm mb-4">
+                          <div className="bg-white/60 rounded-lg p-2">
+                            <p className="text-xs text-gray-500">نوع الهدف</p>
+                            <p className="font-bold text-sm">{promo.targetType === 'all' ? 'الجميع' : promo.targetType === 'category' ? 'قسم' : promo.targetType === 'product' ? 'منتج' : 'مستوى'}</p>
+                          </div>
+                          <div className="bg-white/60 rounded-lg p-2">
+                            <p className="text-xs text-gray-500">الأولوية</p>
+                            <p className="font-bold text-sm">{promo.priority}</p>
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-500 mb-4">
+                          {new Date(promo.startDate).toLocaleDateString('ar-SY')} - {new Date(promo.endDate).toLocaleDateString('ar-SY')}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" className="flex-1 rounded-xl text-sm bg-white/80" onClick={() => {setEditingPromotion(promo); setIsEditPromotionOpen(true);}} data-testid={`button-edit-promotion-${promo.id}`}>تحرير</Button>
+                          <Button variant="outline" className="rounded-xl text-sm bg-white/80 text-red-600 hover:bg-red-50" onClick={() => {setPromotionToDelete(promo); setIsDeletePromotionOpen(true);}} data-testid={`button-delete-promotion-${promo.id}`}><Trash2 className="w-4 h-4" /></Button>
+                        </div>
                       </div>
-                      {getStatusBadge(promo.status)}
-                    </div>
-                    <h4 className="font-bold text-lg mb-1">{promo.name}</h4>
-                    <p className="text-sm text-orange-700 mb-3">خصم {promo.discount}%</p>
-                    <div className="grid grid-cols-2 gap-3 text-sm mb-4">
-                      <div className="bg-white/60 rounded-lg p-2">
-                        <p className="text-xs text-gray-500">المشاهدات</p>
-                        <p className="font-bold">{promo.views.toLocaleString()}</p>
-                      </div>
-                      <div className="bg-white/60 rounded-lg p-2">
-                        <p className="text-xs text-gray-500">التحويلات</p>
-                        <p className="font-bold">{promo.conversions.toLocaleString()}</p>
-                      </div>
-                    </div>
-                    <div className="text-xs text-gray-500">{promo.startDate} - {promo.endDate}</div>
-                    <div className="flex gap-2 mt-4">
-                      <Button variant="outline" className="flex-1 rounded-xl text-sm bg-white/80">تحرير</Button>
-                      <Button variant="outline" className="rounded-xl text-sm bg-white/80"><BarChart3 className="w-4 h-4" /></Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </Card>
+
+            {/* Edit Promotion Dialog */}
+            <Dialog open={isEditPromotionOpen} onOpenChange={setIsEditPromotionOpen}>
+              <DialogContent className="max-w-lg">
+                <DialogHeader><DialogTitle>تعديل العرض الترويجي</DialogTitle></DialogHeader>
+                {editingPromotion && (
+                  <div className="space-y-4 mt-4">
+                    <div><Label>اسم العرض</Label><Input className="rounded-xl mt-1" value={editingPromotion.name} onChange={(e) => setEditingPromotion({...editingPromotion, name: e.target.value})} /></div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>نوع العرض</Label>
+                        <Select value={editingPromotion.type} onValueChange={(v) => setEditingPromotion({...editingPromotion, type: v})}>
+                          <SelectTrigger className="rounded-xl mt-1"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="flash_sale">تخفيض سريع</SelectItem>
+                            <SelectItem value="category">على قسم</SelectItem>
+                            <SelectItem value="bundle">باندل</SelectItem>
+                            <SelectItem value="free_shipping">شحن مجاني</SelectItem>
+                            <SelectItem value="banner">بانر إعلاني</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>نوع الخصم</Label>
+                        <Select value={editingPromotion.discountType || 'percentage'} onValueChange={(v) => setEditingPromotion({...editingPromotion, discountType: v})}>
+                          <SelectTrigger className="rounded-xl mt-1"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="percentage">نسبة مئوية %</SelectItem>
+                            <SelectItem value="fixed">مبلغ ثابت</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div><Label>قيمة الخصم</Label><Input className="rounded-xl mt-1" type="number" value={editingPromotion.discountValue || ''} onChange={(e) => setEditingPromotion({...editingPromotion, discountValue: e.target.value})} /></div>
+                      <div><Label>الأولوية</Label><Input className="rounded-xl mt-1" type="number" value={editingPromotion.priority} onChange={(e) => setEditingPromotion({...editingPromotion, priority: parseInt(e.target.value) || 0})} /></div>
+                      <div><Label>تاريخ البداية</Label><Input className="rounded-xl mt-1" type="datetime-local" value={editingPromotion.startDate ? new Date(editingPromotion.startDate).toISOString().slice(0, 16) : ''} onChange={(e) => setEditingPromotion({...editingPromotion, startDate: e.target.value})} /></div>
+                      <div><Label>تاريخ الانتهاء</Label><Input className="rounded-xl mt-1" type="datetime-local" value={editingPromotion.endDate ? new Date(editingPromotion.endDate).toISOString().slice(0, 16) : ''} onChange={(e) => setEditingPromotion({...editingPromotion, endDate: e.target.value})} /></div>
+                    </div>
+                    <div><Label>الوصف</Label><Textarea className="rounded-xl mt-1" value={editingPromotion.description || ''} onChange={(e) => setEditingPromotion({...editingPromotion, description: e.target.value})} /></div>
+                    <div className="flex items-center gap-2">
+                      <Switch checked={editingPromotion.isActive} onCheckedChange={(v) => setEditingPromotion({...editingPromotion, isActive: v})} />
+                      <Label>العرض مفعّل</Label>
+                    </div>
+                    <Button className="w-full rounded-xl" onClick={() => updatePromotionMutation.mutate({id: editingPromotion.id, data: {...editingPromotion, discountValue: editingPromotion.discountValue ? parseFloat(editingPromotion.discountValue) : null, startDate: new Date(editingPromotion.startDate), endDate: new Date(editingPromotion.endDate)}})} disabled={updatePromotionMutation.isPending}>
+                      {updatePromotionMutation.isPending ? 'جاري الحفظ...' : 'حفظ التغييرات'}
+                    </Button>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+
+            {/* Delete Promotion Dialog */}
+            <AlertDialog open={isDeletePromotionOpen} onOpenChange={setIsDeletePromotionOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>حذف العرض الترويجي</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    هل أنت متأكد من حذف العرض "{promotionToDelete?.name}"؟ لا يمكن التراجع عن هذا الإجراء.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="gap-2">
+                  <AlertDialogCancel className="rounded-xl">إلغاء</AlertDialogCancel>
+                  <AlertDialogAction className="rounded-xl bg-red-600 hover:bg-red-700" onClick={() => promotionToDelete && deletePromotionMutation.mutate(promotionToDelete.id)}>
+                    {deletePromotionMutation.isPending ? 'جاري الحذف...' : 'حذف'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </TabsContent>
 
           {/* Reports Tab */}
