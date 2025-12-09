@@ -56,6 +56,8 @@ export const addresses = pgTable("addresses", {
   title: text("title").notNull(),
   details: text("details").notNull(),
   type: text("type").notNull(), // محل تجاري, مستودع
+  latitude: decimal("latitude", { precision: 10, scale: 7 }),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }),
   isDefault: boolean("is_default").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

@@ -3,14 +3,16 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { MapPin, Plus, Trash2, Edit2, Check, X, Home } from 'lucide-react';
+import { MapPin, Plus, Trash2, Check, Home, Map } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { addressesAPI } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { Link } from 'wouter';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+
+const LocationPicker = lazy(() => import('@/components/ui/LocationPicker'));
 
 interface Address {
   id: number;
@@ -18,6 +20,8 @@ interface Address {
   title: string;
   details: string;
   type: string;
+  latitude?: string | null;
+  longitude?: string | null;
   isDefault: boolean;
 }
 
@@ -26,10 +30,13 @@ export default function Addresses() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const [newAddress, setNewAddress] = useState({
     title: '',
     details: '',
     type: 'محل تجاري',
+    latitude: null as number | null,
+    longitude: null as number | null,
   });
 
   const { data: addresses = [], isLoading } = useQuery<Address[]>({
@@ -43,7 +50,8 @@ export default function Addresses() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['addresses'] });
       setIsAddOpen(false);
-      setNewAddress({ title: '', details: '', type: 'محل تجاري' });
+      setShowMap(false);
+      setNewAddress({ title: '', details: '', type: 'محل تجاري', latitude: null, longitude: null });
       toast({ title: "تم إضافة العنوان بنجاح" });
     },
   });
@@ -64,11 +72,19 @@ export default function Addresses() {
     },
   });
 
+  const handleLocationSelect = (lat: number, lng: number) => {
+    setNewAddress({ ...newAddress, latitude: lat, longitude: lng });
+  };
+
   const handleAddAddress = () => {
     if (!user) return;
     createMutation.mutate({
       userId: user.id,
-      ...newAddress,
+      title: newAddress.title,
+      details: newAddress.details,
+      type: newAddress.type,
+      latitude: newAddress.latitude?.toString(),
+      longitude: newAddress.longitude?.toString(),
       isDefault: addresses.length === 0,
     });
   };
@@ -93,14 +109,14 @@ export default function Addresses() {
       <div className="min-h-screen bg-gray-50 pb-24">
         <div className="bg-white p-4 shadow-sm sticky top-0 z-10 flex items-center justify-between">
           <h1 className="text-xl font-bold">عناويني</h1>
-          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+          <Dialog open={isAddOpen} onOpenChange={(open) => { setIsAddOpen(open); if (!open) setShowMap(false); }}>
             <DialogTrigger asChild>
               <Button size="sm" variant="ghost" className="text-primary hover:text-primary/80 p-0 h-auto font-bold">
                 <Plus className="w-4 h-4 ml-1" />
                 إضافة جديد
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-sm mx-auto">
+            <DialogContent className="max-w-md mx-auto max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>إضافة عنوان جديد</DialogTitle>
               </DialogHeader>
@@ -129,6 +145,7 @@ export default function Addresses() {
                     {['محل تجاري', 'مستودع', 'مكتب'].map((type) => (
                       <Button
                         key={type}
+                        type="button"
                         variant={newAddress.type === type ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => setNewAddress({ ...newAddress, type })}
@@ -139,6 +156,46 @@ export default function Addresses() {
                     ))}
                   </div>
                 </div>
+                
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>الموقع على الخريطة</Label>
+                    <Button 
+                      type="button"
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setShowMap(!showMap)}
+                      className="text-primary h-auto p-0"
+                    >
+                      <Map className="w-4 h-4 ml-1" />
+                      {showMap ? 'إخفاء الخريطة' : 'تحديد الموقع'}
+                    </Button>
+                  </div>
+                  
+                  {showMap && (
+                    <Suspense fallback={<div className="h-[300px] bg-gray-100 rounded-2xl animate-pulse flex items-center justify-center"><span className="text-gray-500">جاري تحميل الخريطة...</span></div>}>
+                      <LocationPicker
+                        initialLat={newAddress.latitude || undefined}
+                        initialLng={newAddress.longitude || undefined}
+                        onLocationSelect={handleLocationSelect}
+                        height="300px"
+                      />
+                    </Suspense>
+                  )}
+                  
+                  {!showMap && newAddress.latitude && newAddress.longitude && (
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-green-600" />
+                      <div>
+                        <p className="text-sm font-medium text-green-700">تم تحديد الموقع</p>
+                        <p className="text-xs text-green-600" dir="ltr">
+                          {newAddress.latitude.toFixed(6)}, {newAddress.longitude.toFixed(6)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <Button 
                   className="w-full rounded-xl" 
                   onClick={handleAddAddress}
@@ -170,11 +227,19 @@ export default function Addresses() {
                     <MapPin className={`w-5 h-5 ${address.isDefault ? 'text-primary' : 'text-muted-foreground'}`} />
                     <h3 className="font-bold">{address.title}</h3>
                   </div>
-                  {address.isDefault && (
-                    <span className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-full font-bold">
-                      الافتراضي
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {address.latitude && address.longitude && (
+                      <span className="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                        <Map className="w-3 h-3" />
+                        موقع محدد
+                      </span>
+                    )}
+                    {address.isDefault && (
+                      <span className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-full font-bold">
+                        الافتراضي
+                      </span>
+                    )}
+                  </div>
                 </div>
                 
                 <p className="text-sm text-muted-foreground mr-7 mb-4 leading-relaxed">
