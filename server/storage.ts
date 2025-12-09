@@ -30,6 +30,9 @@ import {
   type WalletTransaction,
   type InsertWalletTransaction,
   walletTransactions,
+  type WalletDepositRequest,
+  type InsertWalletDepositRequest,
+  walletDepositRequests,
   type Promotion,
   type InsertPromotion,
   promotions,
@@ -193,6 +196,13 @@ export interface IStorage {
   updateWalletBalance(userId: number, amount: string): Promise<Wallet | undefined>;
   getWalletTransactions(walletId: number): Promise<WalletTransaction[]>;
   createWalletTransaction(transaction: InsertWalletTransaction): Promise<WalletTransaction>;
+
+  // Wallet Deposit Requests
+  createWalletDepositRequest(request: InsertWalletDepositRequest): Promise<WalletDepositRequest>;
+  getWalletDepositRequests(userId: number): Promise<WalletDepositRequest[]>;
+  getAllWalletDepositRequests(status?: string): Promise<WalletDepositRequest[]>;
+  approveWalletDepositRequest(id: number, reviewedBy: number, notes?: string): Promise<WalletDepositRequest | undefined>;
+  rejectWalletDepositRequest(id: number, reviewedBy: number, notes?: string): Promise<WalletDepositRequest | undefined>;
 
   // Promotions
   getPromotions(): Promise<Promotion[]>;
@@ -776,6 +786,76 @@ export class DatabaseStorage implements IStorage {
   async createWalletTransaction(transaction: InsertWalletTransaction): Promise<WalletTransaction> {
     const [newTransaction] = await db.insert(walletTransactions).values(transaction).returning();
     return newTransaction;
+  }
+
+  // Wallet Deposit Requests
+  async createWalletDepositRequest(request: InsertWalletDepositRequest): Promise<WalletDepositRequest> {
+    const [newRequest] = await db.insert(walletDepositRequests).values(request).returning();
+    return newRequest;
+  }
+
+  async getWalletDepositRequests(userId: number): Promise<WalletDepositRequest[]> {
+    return await db.select()
+      .from(walletDepositRequests)
+      .where(eq(walletDepositRequests.userId, userId))
+      .orderBy(desc(walletDepositRequests.createdAt));
+  }
+
+  async getAllWalletDepositRequests(status?: string): Promise<WalletDepositRequest[]> {
+    if (status) {
+      return await db.select()
+        .from(walletDepositRequests)
+        .where(eq(walletDepositRequests.status, status))
+        .orderBy(desc(walletDepositRequests.createdAt));
+    }
+    return await db.select().from(walletDepositRequests).orderBy(desc(walletDepositRequests.createdAt));
+  }
+
+  async approveWalletDepositRequest(id: number, reviewedBy: number, notes?: string): Promise<WalletDepositRequest | undefined> {
+    const [request] = await db.select().from(walletDepositRequests).where(eq(walletDepositRequests.id, id));
+    if (!request || request.status !== 'pending') return undefined;
+
+    // Update request status
+    const [updatedRequest] = await db.update(walletDepositRequests)
+      .set({
+        status: 'approved',
+        reviewedBy,
+        reviewNotes: notes || null,
+        reviewedAt: new Date()
+      })
+      .where(eq(walletDepositRequests.id, id))
+      .returning();
+
+    // Get wallet and update balance
+    const wallet = await this.getWallet(request.userId);
+    if (wallet) {
+      const newBalance = (parseFloat(wallet.balance) + parseFloat(request.amount)).toFixed(2);
+      await this.updateWalletBalance(request.userId, newBalance);
+
+      // Create wallet transaction
+      await this.createWalletTransaction({
+        walletId: wallet.id,
+        type: 'deposit',
+        amount: request.amount,
+        title: 'شحن رصيد - بشام كاش',
+        method: 'basha_cash'
+      });
+    }
+
+    return updatedRequest;
+  }
+
+  async rejectWalletDepositRequest(id: number, reviewedBy: number, notes?: string): Promise<WalletDepositRequest | undefined> {
+    const [updatedRequest] = await db.update(walletDepositRequests)
+      .set({
+        status: 'rejected',
+        reviewedBy,
+        reviewNotes: notes || null,
+        reviewedAt: new Date()
+      })
+      .where(eq(walletDepositRequests.id, id))
+      .returning();
+    return updatedRequest || undefined;
   }
 
   // Promotions

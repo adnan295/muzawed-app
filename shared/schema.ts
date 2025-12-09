@@ -227,6 +227,25 @@ export const insertWalletTransactionSchema = createInsertSchema(walletTransactio
 export type InsertWalletTransaction = z.infer<typeof insertWalletTransactionSchema>;
 export type WalletTransaction = typeof walletTransactions.$inferSelect;
 
+// Wallet Deposit Requests table - طلبات شحن المحفظة
+export const walletDepositRequests = pgTable("wallet_deposit_requests", {
+  id: serial("id").primaryKey(),
+  walletId: integer("wallet_id").notNull().references(() => wallets.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  referenceCode: text("reference_code"), // رقم الحوالة
+  proofImage: text("proof_image"), // صورة الإيصال
+  status: text("status").default("pending").notNull(), // pending, approved, rejected
+  reviewNotes: text("review_notes"),
+  reviewedBy: integer("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertWalletDepositRequestSchema = createInsertSchema(walletDepositRequests).omit({ id: true, createdAt: true, reviewedAt: true });
+export type InsertWalletDepositRequest = z.infer<typeof insertWalletDepositRequestSchema>;
+export type WalletDepositRequest = typeof walletDepositRequests.$inferSelect;
+
 // Relations
 export const usersRelations = relations(users, ({ many, one }) => ({
   addresses: many(addresses),
