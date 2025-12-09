@@ -1,10 +1,6 @@
-import { useState } from 'react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { 
@@ -16,7 +12,7 @@ import {
 import { useLocation, Link } from 'wouter';
 import { useAuth } from '@/lib/AuthContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ordersAPI, walletAPI, citiesAPI, creditsAPI } from '@/lib/api';
+import { ordersAPI, walletAPI, creditsAPI } from '@/lib/api';
 import { motion } from 'framer-motion';
 import type { Favorite, Notification } from '@shared/schema';
 
@@ -41,18 +37,10 @@ interface WalletData {
   balance: string;
 }
 
-interface City {
-  id: number;
-  name: string;
-  region: string;
-  isActive: boolean;
-}
 
 export default function Profile() {
   const [, setLocation] = useLocation();
-  const { user, logout, updateUser, isAuthenticated } = useAuth();
-  const [isCityDialogOpen, setIsCityDialogOpen] = useState(false);
-  const [selectedCityId, setSelectedCityId] = useState<string>(user?.cityId?.toString() || '');
+  const { user, logout, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: orders = [] } = useQuery<Order[]>({
@@ -65,11 +53,6 @@ export default function Profile() {
     queryKey: ['wallet', user?.id],
     queryFn: () => walletAPI.get(user!.id) as Promise<WalletData>,
     enabled: !!user?.id,
-  });
-
-  const { data: cities = [] } = useQuery<City[]>({
-    queryKey: ['cities'],
-    queryFn: () => citiesAPI.getAll() as Promise<City[]>,
   });
 
   const { data: creditInfo } = useQuery<{
@@ -113,28 +96,6 @@ export default function Profile() {
     setLocation('/');
   };
 
-  const handleCityChange = async () => {
-    if (selectedCityId && user) {
-      try {
-        const response = await fetch(`/api/users/${user.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cityId: parseInt(selectedCityId) }),
-        });
-        if (!response.ok) {
-          throw new Error('Failed to update city');
-        }
-        updateUser({ cityId: parseInt(selectedCityId) });
-        await queryClient.refetchQueries({ queryKey: ['products'], exact: false });
-        setIsCityDialogOpen(false);
-      } catch (error) {
-        console.error('Error updating city:', error);
-        alert('حدث خطأ أثناء تحديث المدينة. حاول مرة أخرى.');
-      }
-    }
-  };
-
-  const userCity = cities.find(c => c.id === user?.cityId);
   const totalSpent = orders.reduce((acc: number, order: any) => acc + parseFloat(order.total || '0'), 0);
   
   const getLoyaltyLevel = (spent: number) => {
@@ -323,66 +284,6 @@ export default function Profile() {
       </div>
 
       <div className="px-4 -mt-20 relative z-20 space-y-4 pb-8">
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.1 }}
-        >
-          <Card 
-            className="p-4 flex items-center gap-4 hover:shadow-lg transition-all border-none shadow-md cursor-pointer bg-gradient-to-l from-blue-500/10 via-white to-white"
-            onClick={() => setIsCityDialogOpen(true)}
-            data-testid="button-select-city"
-          >
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30">
-              <MapPin className="w-6 h-6" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-bold text-foreground">مدينة التوصيل</h3>
-              <p className="text-sm text-muted-foreground">
-                {userCity ? userCity.name : 'اختر مدينتك لعرض المنتجات المتوفرة'}
-              </p>
-            </div>
-            {userCity && (
-              <CheckCircle className="w-5 h-5 text-green-500" />
-            )}
-            <ChevronLeft className="w-5 h-5 text-gray-400" />
-          </Card>
-        </motion.div>
-
-        <Dialog open={isCityDialogOpen} onOpenChange={setIsCityDialogOpen}>
-          <DialogContent className="max-w-sm max-h-[80vh] overflow-y-auto rounded-3xl">
-            <DialogHeader>
-              <DialogTitle className="text-center text-xl">اختر مدينة التوصيل</DialogTitle>
-            </DialogHeader>
-            <p className="text-sm text-gray-500 text-center mb-4">
-              سيتم عرض المنتجات المتوفرة في مستودع المدينة المختارة
-            </p>
-            <RadioGroup value={selectedCityId} onValueChange={setSelectedCityId} className="space-y-2">
-              {cities.filter(c => c.isActive).map((city) => (
-                <motion.div 
-                  key={city.id} 
-                  whileHover={{ scale: 1.01 }}
-                  className={`flex items-center space-x-2 p-4 rounded-2xl border-2 transition-all cursor-pointer ${
-                    selectedCityId === city.id.toString() 
-                      ? 'border-primary bg-primary/5' 
-                      : 'border-gray-100 hover:border-primary/30'
-                  }`}
-                  onClick={() => setSelectedCityId(city.id.toString())}
-                >
-                  <RadioGroupItem value={city.id.toString()} id={`city-${city.id}`} className="mr-3" />
-                  <Label htmlFor={`city-${city.id}`} className="flex-1 cursor-pointer">
-                    <span className="font-bold">{city.name}</span>
-                    <span className="text-xs text-gray-500 block">{city.region}</span>
-                  </Label>
-                </motion.div>
-              ))}
-            </RadioGroup>
-            <Button className="w-full mt-4 rounded-2xl h-12" onClick={handleCityChange} disabled={!selectedCityId}>
-              تأكيد المدينة
-            </Button>
-          </DialogContent>
-        </Dialog>
-
         {/* Credit/Deferred Payment Card */}
         {creditInfo && (
           <motion.div

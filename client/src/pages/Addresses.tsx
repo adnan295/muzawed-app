@@ -3,9 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { MapPin, Plus, Trash2, Check, Home, Map } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MapPin, Plus, Trash2, Check, Home, Map, Building2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { addressesAPI } from '@/lib/api';
+import { addressesAPI, citiesAPI } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import { useState, lazy, Suspense, useCallback } from 'react';
 import { Link } from 'wouter';
@@ -17,6 +18,7 @@ const LocationPicker = lazy(() => import('@/components/ui/LocationPicker'));
 interface Address {
   id: number;
   userId: number;
+  cityId?: number | null;
   title: string;
   details: string;
   type: string;
@@ -25,8 +27,15 @@ interface Address {
   isDefault: boolean;
 }
 
+interface City {
+  id: number;
+  name: string;
+  region: string;
+  isActive: boolean;
+}
+
 export default function Addresses() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, updateUser } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -35,6 +44,7 @@ export default function Addresses() {
     title: '',
     details: '',
     type: 'محل تجاري',
+    cityId: null as number | null,
     latitude: null as number | null,
     longitude: null as number | null,
   });
@@ -45,13 +55,43 @@ export default function Addresses() {
     enabled: !!user?.id,
   });
 
+  const { data: cities = [] } = useQuery<City[]>({
+    queryKey: ['cities'],
+    queryFn: () => citiesAPI.getAll() as Promise<City[]>,
+  });
+
+  const activeCities = cities.filter(c => c.isActive);
+
+  const getCityName = (cityId: number | null | undefined) => {
+    if (!cityId) return null;
+    const city = cities.find(c => c.id === cityId);
+    return city?.name || null;
+  };
+
   const createMutation = useMutation({
     mutationFn: (data: any) => addressesAPI.create(data),
-    onSuccess: () => {
+    onSuccess: async (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['addresses'] });
+      
+      if (variables.cityId && user) {
+        try {
+          const response = await fetch(`/api/users/${user.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cityId: variables.cityId }),
+          });
+          if (response.ok) {
+            const updatedUser = await response.json();
+            updateUser(updatedUser);
+          }
+        } catch (e) {
+          console.error('Failed to update user city:', e);
+        }
+      }
+      
       setIsAddOpen(false);
       setShowMap(false);
-      setNewAddress({ title: '', details: '', type: 'محل تجاري', latitude: null, longitude: null });
+      setNewAddress({ title: '', details: '', type: 'محل تجاري', cityId: null, latitude: null, longitude: null });
       toast({ title: "تم إضافة العنوان بنجاح" });
     },
   });
@@ -65,7 +105,26 @@ export default function Addresses() {
   });
 
   const setDefaultMutation = useMutation({
-    mutationFn: (addressId: number) => addressesAPI.setDefault(user!.id, addressId),
+    mutationFn: async (addressId: number) => {
+      const address = addresses.find(a => a.id === addressId);
+      await addressesAPI.setDefault(user!.id, addressId);
+      
+      if (address?.cityId && user) {
+        try {
+          const response = await fetch(`/api/users/${user.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cityId: address.cityId }),
+          });
+          if (response.ok) {
+            const updatedUser = await response.json();
+            updateUser(updatedUser);
+          }
+        } catch (e) {
+          console.error('Failed to update user city:', e);
+        }
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['addresses'] });
       toast({ title: "تم تعيين العنوان الافتراضي" });
@@ -78,8 +137,13 @@ export default function Addresses() {
 
   const handleAddAddress = () => {
     if (!user) return;
+    if (!newAddress.cityId) {
+      toast({ title: "يرجى اختيار المدينة", variant: "destructive" });
+      return;
+    }
     createMutation.mutate({
       userId: user.id,
+      cityId: newAddress.cityId,
       title: newAddress.title,
       details: newAddress.details,
       type: newAddress.type,
@@ -121,6 +185,29 @@ export default function Addresses() {
                 <DialogTitle>إضافة عنوان جديد</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 mt-4">
+                <div>
+                  <Label>المدينة <span className="text-red-500">*</span></Label>
+                  <Select
+                    value={newAddress.cityId?.toString() || ''}
+                    onValueChange={(value) => setNewAddress({ ...newAddress, cityId: parseInt(value) })}
+                  >
+                    <SelectTrigger className="mt-1" data-testid="select-city">
+                      <SelectValue placeholder="اختر المدينة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activeCities.map((city) => (
+                        <SelectItem key={city.id} value={city.id.toString()}>
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4 text-gray-400" />
+                            <span>{city.name}</span>
+                            <span className="text-xs text-gray-400">({city.region})</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-500 mt-1">سيتم عرض المنتجات المتوفرة في مستودع المدينة المختارة</p>
+                </div>
                 <div>
                   <Label>عنوان الموقع</Label>
                   <Input 
@@ -199,7 +286,7 @@ export default function Addresses() {
                 <Button 
                   className="w-full rounded-xl" 
                   onClick={handleAddAddress}
-                  disabled={!newAddress.title || !newAddress.details || createMutation.isPending}
+                  disabled={!newAddress.title || !newAddress.details || !newAddress.cityId || createMutation.isPending}
                   data-testid="button-save-address"
                 >
                   {createMutation.isPending ? 'جاري الحفظ...' : 'حفظ العنوان'}
@@ -227,7 +314,13 @@ export default function Addresses() {
                     <MapPin className={`w-5 h-5 ${address.isDefault ? 'text-primary' : 'text-muted-foreground'}`} />
                     <h3 className="font-bold">{address.title}</h3>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
+                    {address.cityId && getCityName(address.cityId) && (
+                      <span className="bg-purple-100 text-purple-700 text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                        <Building2 className="w-3 h-3" />
+                        {getCityName(address.cityId)}
+                      </span>
+                    )}
                     {address.latitude && address.longitude && (
                       <span className="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
                         <Map className="w-3 h-3" />

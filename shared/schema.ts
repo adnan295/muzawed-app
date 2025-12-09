@@ -53,6 +53,7 @@ export type User = typeof users.$inferSelect;
 export const addresses = pgTable("addresses", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  cityId: integer("city_id").references(() => cities.id),
   title: text("title").notNull(),
   details: text("details").notNull(),
   type: text("type").notNull(), // محل تجاري, مستودع
