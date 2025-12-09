@@ -1202,22 +1202,41 @@ export default function Admin() {
   });
 
   useEffect(() => {
-    const adminAuth = localStorage.getItem('adminAuth');
-    if (adminAuth) {
+    const verifyAuth = async () => {
+      const adminAuth = localStorage.getItem('adminAuth');
+      if (!adminAuth) {
+        setLocation('/admin/login');
+        setIsLoading(false);
+        return;
+      }
+      
       try {
         const auth = JSON.parse(adminAuth);
-        if (auth.loggedIn) {
-          setIsAuthenticated(true);
-        } else {
+        if (!auth.loggedIn || !auth.staffId) {
+          localStorage.removeItem('adminAuth');
           setLocation('/admin/login');
+          setIsLoading(false);
+          return;
         }
+        
+        // Verify with server
+        const response = await fetch(`/api/auth/staff/verify/${auth.staffId}`);
+        if (!response.ok) {
+          localStorage.removeItem('adminAuth');
+          setLocation('/admin/login');
+          setIsLoading(false);
+          return;
+        }
+        
+        setIsAuthenticated(true);
       } catch {
+        localStorage.removeItem('adminAuth');
         setLocation('/admin/login');
       }
-    } else {
-      setLocation('/admin/login');
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    };
+    
+    verifyAuth();
   }, [setLocation]);
 
   const handleLogout = () => {

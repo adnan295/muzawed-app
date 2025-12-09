@@ -10,12 +10,35 @@ import {
   insertCitySchema, insertProductInventorySchema, insertDriverSchema, insertBannerSchema
 } from "@shared/schema";
 import { fromError } from "zod-validation-error";
+import bcrypt from "bcrypt";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
   
+  // Create default admin if no staff exists
+  try {
+    const existingStaff = await storage.getStaff();
+    if (existingStaff.length === 0) {
+      const hashedPassword = await bcrypt.hash('admin123', 10);
+      await storage.createStaff({
+        name: 'مدير النظام',
+        email: 'admin@sary.sy',
+        phone: '+963900000000',
+        password: hashedPassword,
+        role: 'admin',
+        department: 'الإدارة',
+        permissions: ['orders', 'products', 'customers', 'reports', 'settings', 'staff', 'warehouses'],
+        status: 'active',
+        avatar: null,
+      });
+      console.log('✅ Default admin account initialized');
+    }
+  } catch (error) {
+    // Silently fail - staff may already exist
+  }
+
   // ==================== Auth Routes ====================
   
   app.post("/api/auth/register", async (req, res) => {
@@ -52,6 +75,53 @@ export async function registerRoutes(
       }
 
       res.json({ user });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Staff/Admin authentication
+  app.post("/api/auth/staff/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ error: "البريد الإلكتروني وكلمة المرور مطلوبان" });
+      }
+
+      const staffMember = await storage.getStaffByEmail(email);
+      if (!staffMember) {
+        return res.status(401).json({ error: "البريد الإلكتروني أو كلمة المرور غير صحيحة" });
+      }
+
+      // Check password with bcrypt
+      const passwordMatch = await bcrypt.compare(password, staffMember.password);
+      if (!passwordMatch) {
+        return res.status(401).json({ error: "البريد الإلكتروني أو كلمة المرور غير صحيحة" });
+      }
+
+      // Check if staff is active
+      if (staffMember.status !== 'active') {
+        return res.status(403).json({ error: "حسابك غير نشط، يرجى التواصل مع المدير" });
+      }
+
+      // Return staff info without password
+      const { password: _, ...staffData } = staffMember;
+      res.json({ staff: staffData });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Verify staff session
+  app.get("/api/auth/staff/verify/:id", async (req, res) => {
+    try {
+      const staffMember = await storage.getStaffMember(parseInt(req.params.id));
+      if (!staffMember || staffMember.status !== 'active') {
+        return res.status(401).json({ error: "جلسة غير صالحة" });
+      }
+      const { password: _, ...staffData } = staffMember;
+      res.json({ staff: staffData });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

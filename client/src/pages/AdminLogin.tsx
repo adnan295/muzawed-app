@@ -7,9 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Shield, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-const ADMIN_EMAIL = 'admin@sary.sa';
-const ADMIN_PASSWORD = 'admin123';
-
 export default function AdminLogin() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -22,23 +19,49 @@ export default function AdminLogin() {
     e.preventDefault();
     setIsLoading(true);
 
-    setTimeout(() => {
-      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-        localStorage.setItem('adminAuth', JSON.stringify({ email, loggedIn: true, timestamp: Date.now() }));
-        toast({
-          title: 'تم تسجيل الدخول بنجاح',
-          description: 'مرحباً بك في لوحة الإدارة',
-        });
-        setLocation('/admin');
-      } else {
+    try {
+      const response = await fetch('/api/auth/staff/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
         toast({
           title: 'خطأ في تسجيل الدخول',
-          description: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+          description: data.error || 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
           variant: 'destructive',
         });
+        setIsLoading(false);
+        return;
       }
+
+      localStorage.setItem('adminAuth', JSON.stringify({ 
+        staffId: data.staff.id,
+        email: data.staff.email,
+        name: data.staff.name,
+        role: data.staff.role,
+        permissions: data.staff.permissions,
+        loggedIn: true, 
+        timestamp: Date.now() 
+      }));
+      
+      toast({
+        title: 'تم تسجيل الدخول بنجاح',
+        description: `مرحباً ${data.staff.name}`,
+      });
+      setLocation('/admin');
+    } catch (error) {
+      toast({
+        title: 'خطأ في الاتصال',
+        description: 'تعذر الاتصال بالخادم، يرجى المحاولة لاحقاً',
+        variant: 'destructive',
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -63,7 +86,7 @@ export default function AdminLogin() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="pr-11 rounded-xl h-12 border-gray-200 focus:border-purple-500 focus:ring-purple-500"
-                placeholder="admin@sary.sa"
+                placeholder="أدخل بريدك الإلكتروني"
                 required
                 data-testid="input-admin-email"
               />
@@ -106,10 +129,7 @@ export default function AdminLogin() {
 
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-500">
-            للدخول استخدم: <span className="font-mono text-purple-600">admin@sary.sa</span>
-          </p>
-          <p className="text-sm text-gray-500">
-            كلمة المرور: <span className="font-mono text-purple-600">admin123</span>
+            للدخول يجب أن يكون لديك حساب موظف مفعّل
           </p>
         </div>
       </Card>
