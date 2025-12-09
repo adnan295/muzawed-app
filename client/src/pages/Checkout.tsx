@@ -372,15 +372,34 @@ export default function Checkout() {
         </div>
 
         {/* Action Button */}
-        <div className="sticky bottom-0 bg-white border-t border-gray-100 p-4 mt-4 -mx-4 shadow-lg">
-          <Button 
-            className="w-full h-14 text-lg font-bold rounded-xl shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90"
-            onClick={() => createOrderMutation.mutate()}
-            disabled={!defaultAddress || createOrderMutation.isPending}
-            data-testid="button-confirm-order"
-          >
-            {createOrderMutation.isPending ? 'جاري الإرسال...' : `تأكيد الطلب (${total.toFixed(2)} ل.س)`}
-          </Button>
+        <div className="mt-6 mb-4">
+          <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-2xl p-4 border border-primary/20">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm text-muted-foreground">المبلغ المطلوب</span>
+              <span className="text-xl font-bold text-primary">{total.toFixed(2)} ل.س</span>
+            </div>
+            <Button 
+              className="w-full h-14 text-lg font-bold rounded-2xl shadow-xl shadow-primary/30 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
+              onClick={() => createOrderMutation.mutate()}
+              disabled={!defaultAddress || createOrderMutation.isPending}
+              data-testid="button-confirm-order"
+            >
+              {createOrderMutation.isPending ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                  جاري إرسال الطلب...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5" />
+                  تأكيد الطلب
+                </span>
+              )}
+            </Button>
+            {!defaultAddress && (
+              <p className="text-xs text-destructive text-center mt-2">يرجى إضافة عنوان توصيل أولاً</p>
+            )}
+          </div>
         </div>
 
         {/* Success Modal */}
