@@ -32,6 +32,7 @@ import Invoice from "@/pages/Invoice";
 import Admin from "@/pages/Admin";
 import AdminLogin from "@/pages/AdminLogin";
 import Promo from "@/pages/Promo";
+import Register from "@/pages/Register";
 
 function Router() {
   return (
@@ -39,6 +40,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
       <Route path="/categories" component={Categories} />
       <Route path="/category/:id" component={CategoryProducts} />
       <Route path="/cart" component={Cart} />

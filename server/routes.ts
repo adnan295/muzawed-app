@@ -43,7 +43,18 @@ export async function registerRoutes(
   
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const validData = insertUserSchema.parse(req.body);
+      const { password, ...otherData } = req.body;
+      
+      // Hash password if provided
+      let hashedPassword = null;
+      if (password) {
+        hashedPassword = await bcrypt.hash(password, 10);
+      }
+      
+      const validData = insertUserSchema.parse({
+        ...otherData,
+        password: hashedPassword,
+      });
       
       // Check if user already exists
       const existingUser = await storage.getUserByPhone(validData.phone);
@@ -56,7 +67,9 @@ export async function registerRoutes(
       // Create wallet for new user
       await storage.createWallet({ userId: user.id, balance: "0" });
       
-      res.json({ user });
+      // Don't send password in response
+      const { password: _, ...userWithoutPassword } = user;
+      res.json({ user: userWithoutPassword });
     } catch (error: any) {
       if (error.name === "ZodError") {
         return res.status(400).json({ error: fromError(error).toString() });
@@ -65,16 +78,40 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/auth/login", async (req, res) => {
+  // Check if phone exists
+  app.post("/api/auth/check-phone", async (req, res) => {
     try {
       const { phone } = req.body;
+      
+      const user = await storage.getUserByPhone(phone);
+      res.json({ exists: !!user });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { phone, password } = req.body;
       
       const user = await storage.getUserByPhone(phone);
       if (!user) {
         return res.status(404).json({ error: "المستخدم غير موجود" });
       }
 
-      res.json({ user });
+      // Verify password
+      if (!user.password) {
+        return res.status(401).json({ error: "كلمة السر غير مسجلة، يرجى إعادة التسجيل" });
+      }
+
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
+        return res.status(401).json({ error: "كلمة السر غير صحيحة" });
+      }
+
+      // Don't send password in response
+      const { password: _, ...userWithoutPassword } = user;
+      res.json({ user: userWithoutPassword });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
