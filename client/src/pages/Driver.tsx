@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -10,10 +10,71 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
   Package, MapPin, Phone, User, Navigation, Truck, CheckCircle, Clock, 
-  XCircle, Map, List, RefreshCw, ChevronLeft, Copy, ExternalLink, LogIn, LogOut, Lock
+  XCircle, Map, List, RefreshCw, ChevronLeft, Copy, ExternalLink, LogIn, LogOut, Lock,
+  Route, Sparkles, ArrowDown, Timer
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'wouter';
+
+// Haversine distance calculation (in km)
+function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// Nearest neighbor algorithm for route optimization
+function optimizeRoute(orders: DeliveryOrder[], startLat?: number, startLng?: number): { optimizedOrders: DeliveryOrder[], totalDistance: number } {
+  if (orders.length <= 1) return { optimizedOrders: orders, totalDistance: 0 };
+  
+  const ordersWithCoords = orders.filter(o => o.address?.latitude && o.address?.longitude);
+  if (ordersWithCoords.length === 0) return { optimizedOrders: orders, totalDistance: 0 };
+  
+  const remaining = [...ordersWithCoords];
+  const optimized: DeliveryOrder[] = [];
+  let totalDistance = 0;
+  
+  // Start from driver's location or first order
+  let currentLat = startLat || parseFloat(remaining[0].address!.latitude);
+  let currentLng = startLng || parseFloat(remaining[0].address!.longitude);
+  
+  while (remaining.length > 0) {
+    let nearestIdx = 0;
+    let nearestDist = Infinity;
+    
+    for (let i = 0; i < remaining.length; i++) {
+      const order = remaining[i];
+      const dist = haversineDistance(
+        currentLat, currentLng,
+        parseFloat(order.address!.latitude),
+        parseFloat(order.address!.longitude)
+      );
+      if (dist < nearestDist) {
+        nearestDist = dist;
+        nearestIdx = i;
+      }
+    }
+    
+    const nearest = remaining.splice(nearestIdx, 1)[0];
+    optimized.push(nearest);
+    totalDistance += nearestDist;
+    currentLat = parseFloat(nearest.address!.latitude);
+    currentLng = parseFloat(nearest.address!.longitude);
+  }
+  
+  // Add orders without coordinates at the end
+  const ordersWithoutCoords = orders.filter(o => !o.address?.latitude || !o.address?.longitude);
+  
+  return { 
+    optimizedOrders: [...optimized, ...ordersWithoutCoords], 
+    totalDistance: Math.round(totalDistance * 10) / 10 
+  };
+}
 
 interface DriverSession {
   id: number;
@@ -48,7 +109,7 @@ interface DeliveryOrder {
   }[];
 }
 
-function DeliveryMapMultiple({ orders }: { orders: DeliveryOrder[] }) {
+function DeliveryMapMultiple({ orders, showRoute = false }: { orders: DeliveryOrder[], showRoute?: boolean }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
 
@@ -116,6 +177,16 @@ function DeliveryMapMultiple({ orders }: { orders: DeliveryOrder[] }) {
 
       if (bounds.length > 0) {
         mapInstance.fitBounds(bounds, { padding: [30, 30] });
+        
+        // Draw route line if showRoute is true
+        if (showRoute && bounds.length > 1) {
+          L.polyline(bounds, {
+            color: '#8b5cf6',
+            weight: 4,
+            opacity: 0.8,
+            dashArray: '10, 10',
+          }).addTo(mapInstance);
+        }
       }
 
       setMapLoaded(true);
@@ -128,7 +199,7 @@ function DeliveryMapMultiple({ orders }: { orders: DeliveryOrder[] }) {
         mapInstance.remove();
       }
     };
-  }, [orders]);
+  }, [orders, showRoute]);
 
   return (
     <div className="relative rounded-2xl overflow-hidden border-2 border-gray-200" style={{ height: '400px' }}>
@@ -175,6 +246,9 @@ export default function Driver() {
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [selectedOrder, setSelectedOrder] = useState<DeliveryOrder | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [isOptimized, setIsOptimized] = useState(false);
+  const [optimizedOrderIds, setOptimizedOrderIds] = useState<number[]>([]);
+  const [totalDistance, setTotalDistance] = useState(0);
   
   // Login state
   const [driver, setDriver] = useState<DriverSession | null>(() => {
@@ -253,6 +327,41 @@ export default function Driver() {
     },
   });
 
+  // Compute filtered and display orders (hooks must be called before any early return)
+  const filteredOrders = useMemo(() => {
+    return orders.filter(order => {
+      if (statusFilter === 'all') return true;
+      if (statusFilter === 'active') return ['confirmed', 'processing', 'shipped'].includes(order.status);
+      return order.status === statusFilter;
+    });
+  }, [orders, statusFilter]);
+
+  // Derive display orders from fresh data using stored IDs
+  const displayOrders = useMemo(() => {
+    if (!isOptimized || optimizedOrderIds.length === 0) {
+      return filteredOrders;
+    }
+    // Map IDs to current orders, preserving optimization sequence
+    const orderMap = new Map(filteredOrders.map(o => [o.id, o]));
+    return optimizedOrderIds
+      .map(id => orderMap.get(id))
+      .filter((o): o is DeliveryOrder => o !== undefined);
+  }, [isOptimized, optimizedOrderIds, filteredOrders]);
+
+  const ordersWithLocation = useMemo(() => 
+    displayOrders.filter(o => o.address?.latitude && o.address?.longitude),
+    [displayOrders]
+  );
+
+  // Reset optimization when filter changes
+  useEffect(() => {
+    if (isOptimized) {
+      setIsOptimized(false);
+      setOptimizedOrderIds([]);
+      setTotalDistance(0);
+    }
+  }, [statusFilter]);
+
   // Show login screen if not authenticated
   if (!driver) {
     return (
@@ -324,13 +433,59 @@ export default function Driver() {
     );
   }
 
-  const filteredOrders = orders.filter(order => {
-    if (statusFilter === 'all') return true;
-    if (statusFilter === 'active') return ['confirmed', 'processing', 'shipped'].includes(order.status);
-    return order.status === statusFilter;
-  });
+  // Handle route optimization
+  const handleOptimizeRoute = () => {
+    if (filteredOrders.length < 2) {
+      toast({ title: 'يجب وجود طلبين على الأقل لتحسين المسار', variant: 'destructive' });
+      return;
+    }
+    
+    // Get driver's current location if available
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const result = optimizeRoute(filteredOrders, position.coords.latitude, position.coords.longitude);
+          setOptimizedOrderIds(result.optimizedOrders.map(o => o.id));
+          setTotalDistance(result.totalDistance);
+          setIsOptimized(true);
+          toast({ 
+            title: `✨ تم تحسين المسار!`, 
+            description: `المسافة الإجمالية: ${result.totalDistance} كم`,
+            className: 'bg-green-600 text-white' 
+          });
+        },
+        () => {
+          // Fallback without GPS
+          const result = optimizeRoute(filteredOrders);
+          setOptimizedOrderIds(result.optimizedOrders.map(o => o.id));
+          setTotalDistance(result.totalDistance);
+          setIsOptimized(true);
+          toast({ 
+            title: `✨ تم تحسين المسار!`, 
+            description: `المسافة الإجمالية: ${result.totalDistance} كم`,
+            className: 'bg-green-600 text-white' 
+          });
+        }
+      );
+    } else {
+      const result = optimizeRoute(filteredOrders);
+      setOptimizedOrderIds(result.optimizedOrders.map(o => o.id));
+      setTotalDistance(result.totalDistance);
+      setIsOptimized(true);
+      toast({ 
+        title: `✨ تم تحسين المسار!`, 
+        description: `المسافة الإجمالية: ${result.totalDistance} كم`,
+        className: 'bg-green-600 text-white' 
+      });
+    }
+  };
 
-  const ordersWithLocation = filteredOrders.filter(o => o.address?.latitude && o.address?.longitude);
+  const handleResetRoute = () => {
+    setIsOptimized(false);
+    setOptimizedOrderIds([]);
+    setTotalDistance(0);
+    toast({ title: 'تم إلغاء تحسين المسار', className: 'bg-gray-600 text-white' });
+  };
 
   const stats = {
     total: orders.length,
@@ -398,6 +553,47 @@ export default function Driver() {
           </Button>
         </div>
 
+        {/* Route Optimization Button */}
+        {filteredOrders.length >= 2 && (
+          <div className="mb-4">
+            {!isOptimized ? (
+              <Button
+                className="w-full rounded-xl gap-2 bg-gradient-to-l from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                onClick={handleOptimizeRoute}
+                data-testid="button-optimize-route"
+              >
+                <Sparkles className="w-5 h-5" />
+                تحسين المسار بالذكاء الاصطناعي
+              </Button>
+            ) : (
+              <Card className="p-3 bg-gradient-to-l from-green-50 to-emerald-50 border-green-200 rounded-2xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                      <Route className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-green-700">المسار الأمثل</p>
+                      <p className="text-sm text-green-600">
+                        <Timer className="w-3 h-3 inline ml-1" />
+                        {totalDistance} كم إجمالي المسافة
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl text-red-600 border-red-200 hover:bg-red-50"
+                    onClick={handleResetRoute}
+                  >
+                    إلغاء
+                  </Button>
+                </div>
+              </Card>
+            )}
+          </div>
+        )}
+
         <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
           {[
             { value: 'all', label: 'الكل' },
@@ -420,7 +616,7 @@ export default function Driver() {
 
         {viewMode === 'map' ? (
           <div className="space-y-4">
-            <DeliveryMapMultiple orders={ordersWithLocation} />
+            <DeliveryMapMultiple orders={ordersWithLocation} showRoute={isOptimized} />
             <p className="text-sm text-gray-500 text-center">
               {ordersWithLocation.length} طلب على الخريطة
             </p>
@@ -439,16 +635,17 @@ export default function Driver() {
                   <p className="text-gray-500">لا توجد طلبات</p>
                 </div>
               ) : (
-                filteredOrders.map((order, index) => (
+                displayOrders.map((order, index) => (
                   <Card
                     key={order.id}
-                    className="p-4 border-none shadow-md rounded-2xl cursor-pointer hover:shadow-lg transition-shadow"
+                    className={`p-4 border-none shadow-md rounded-2xl cursor-pointer hover:shadow-lg transition-shadow ${isOptimized ? 'border-r-4 border-r-purple-500' : ''}`}
                     onClick={() => setSelectedOrder(order)}
                     data-testid={`order-card-${order.id}`}
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center font-bold text-purple-600">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${isOptimized ? 'bg-gradient-to-br from-purple-500 to-blue-500 text-white' : 'bg-purple-100 text-purple-600'}`}>
+                          {isOptimized && <span className="text-[8px] absolute -mt-6">المحطة</span>}
                           {index + 1}
                         </div>
                         <div>
