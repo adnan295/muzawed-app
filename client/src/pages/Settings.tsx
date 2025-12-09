@@ -10,12 +10,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useAuth } from '@/lib/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTheme } from 'next-themes';
 import type { NotificationPreferences } from '@shared/schema';
 
 export default function Settings() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { theme, setTheme } = useTheme();
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPasswords, setShowPasswords] = useState(false);
@@ -135,12 +137,22 @@ export default function Settings() {
                   </div>
                   <Button variant="ghost" size="sm" className="text-primary font-bold">العربية</Button>
                 </div>
-                <div className="bg-white p-4 flex items-center justify-between border-b border-gray-100 last:border-0">
+                <div className="bg-white dark:bg-gray-800 p-4 flex items-center justify-between border-b border-gray-100 dark:border-gray-700 last:border-0">
                   <div className="flex items-center gap-3">
-                    <Moon className="w-5 h-5 text-gray-500" />
+                    <Moon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                     <span>الوضع الليلي</span>
                   </div>
-                  <Switch />
+                  <Switch 
+                    checked={theme === 'dark'}
+                    onCheckedChange={(checked) => {
+                      setTheme(checked ? 'dark' : 'light');
+                      toast({
+                        title: checked ? 'تم تفعيل الوضع الليلي' : 'تم تفعيل الوضع النهاري',
+                        description: checked ? 'تم التبديل إلى الوضع الداكن' : 'تم التبديل إلى الوضع الفاتح',
+                      });
+                    }}
+                    data-testid="switch-dark-mode"
+                  />
                 </div>
              </Card>
           </div>
