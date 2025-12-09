@@ -7,7 +7,7 @@ import { MapPin, Plus, Trash2, Check, Home, Map } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { addressesAPI } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
-import { useState, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense, useCallback } from 'react';
 import { Link } from 'wouter';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -72,9 +72,9 @@ export default function Addresses() {
     },
   });
 
-  const handleLocationSelect = (lat: number, lng: number) => {
-    setNewAddress({ ...newAddress, latitude: lat, longitude: lng });
-  };
+  const handleLocationSelect = useCallback((lat: number, lng: number) => {
+    setNewAddress(prev => ({ ...prev, latitude: lat, longitude: lng }));
+  }, []);
 
   const handleAddAddress = () => {
     if (!user) return;
