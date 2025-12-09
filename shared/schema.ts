@@ -66,6 +66,18 @@ export const insertAddressSchema = createInsertSchema(addresses).omit({ id: true
 export type InsertAddress = z.infer<typeof insertAddressSchema>;
 export type Address = typeof addresses.$inferSelect;
 
+// Favorites table - المفضلة
+export const favorites = pgTable("favorites", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  productId: integer("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertFavoriteSchema = createInsertSchema(favorites).omit({ id: true, createdAt: true });
+export type InsertFavorite = z.infer<typeof insertFavoriteSchema>;
+export type Favorite = typeof favorites.$inferSelect;
+
 // Categories table
 export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),

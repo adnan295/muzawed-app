@@ -389,6 +389,57 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== Favorites Routes ====================
+
+  app.get("/api/favorites/:userId", async (req, res) => {
+    try {
+      const favoriteItems = await storage.getFavorites(parseInt(req.params.userId));
+      
+      // Get product details for each favorite
+      const favoritesWithProducts = await Promise.all(
+        favoriteItems.map(async (item) => {
+          const product = await storage.getProduct(item.productId);
+          return {
+            ...item,
+            product
+          };
+        })
+      );
+      
+      res.json(favoritesWithProducts);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/favorites", async (req, res) => {
+    try {
+      const { userId, productId } = req.body;
+      const favorite = await storage.addFavorite({ userId, productId });
+      res.json(favorite);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/favorites/:userId/:productId", async (req, res) => {
+    try {
+      await storage.removeFavorite(parseInt(req.params.userId), parseInt(req.params.productId));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/favorites/:userId/:productId/check", async (req, res) => {
+    try {
+      const isFavorite = await storage.isFavorite(parseInt(req.params.userId), parseInt(req.params.productId));
+      res.json({ isFavorite });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ==================== Cart Routes ====================
   
   app.get("/api/cart/:userId", async (req, res) => {
@@ -1394,6 +1445,20 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/users/:id", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "المستخدم غير موجود" });
+      }
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.put("/api/users/:id", async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
@@ -1402,6 +1467,39 @@ export async function registerRoutes(
         return res.status(404).json({ error: "المستخدم غير موجود" });
       }
       res.json(updatedUser);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Change user password
+  app.put("/api/users/:id/password", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: "كلمة السر الحالية والجديدة مطلوبتان" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "المستخدم غير موجود" });
+      }
+
+      if (!user.password) {
+        return res.status(400).json({ error: "لم يتم تعيين كلمة سر لهذا الحساب" });
+      }
+
+      const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+      if (!isPasswordValid) {
+        return res.status(401).json({ error: "كلمة السر الحالية غير صحيحة" });
+      }
+
+      const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+      await storage.updateUser(userId, { password: hashedNewPassword });
+
+      res.json({ success: true, message: "تم تغيير كلمة السر بنجاح" });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

@@ -33,6 +33,7 @@ import Admin from "@/pages/Admin";
 import AdminLogin from "@/pages/AdminLogin";
 import Promo from "@/pages/Promo";
 import Register from "@/pages/Register";
+import Terms from "@/pages/Terms";
 
 function Router() {
   return (
@@ -58,6 +59,7 @@ function Router() {
       <Route path="/buy-again" component={BuyAgain} />
       <Route path="/notifications" component={Notifications} />
       <Route path="/support" component={Support} />
+      <Route path="/terms" component={Terms} />
       <Route path="/favorites" component={Favorites} />
       <Route path="/addresses" component={Addresses} />
       <Route path="/facility" component={FacilityDetails} />

@@ -1,13 +1,13 @@
-import { Plus, Minus, ShoppingBag } from 'lucide-react';
+import { Plus, Minus, ShoppingBag, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { cartAPI } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 
@@ -41,6 +41,56 @@ export function ProductCard({ product }: ProductCardProps) {
       queryClient.invalidateQueries({ queryKey: ['cart'] });
     },
   });
+
+  // Favorites functionality
+  const { data: favoriteStatus } = useQuery({
+    queryKey: ['favorite', user?.id, product.id],
+    queryFn: async () => {
+      if (!user?.id) return { isFavorite: false };
+      const res = await fetch(`/api/favorites/${user.id}/${product.id}/check`);
+      return res.json();
+    },
+    enabled: !!user?.id,
+  });
+
+  const isFavorite = favoriteStatus?.isFavorite || false;
+
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: async () => {
+      if (!user?.id) return;
+      if (isFavorite) {
+        await fetch(`/api/favorites/${user.id}/${product.id}`, { method: 'DELETE' });
+      } else {
+        await fetch('/api/favorites', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id, productId: product.id }),
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['favorite', user?.id, product.id] });
+      queryClient.invalidateQueries({ queryKey: ['favorites'] });
+      toast({
+        title: isFavorite ? "تمت الإزالة من المفضلة" : "تمت الإضافة للمفضلة",
+        description: product.name,
+        className: "bg-secondary text-white border-none",
+      });
+    },
+  });
+
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) {
+      toast({
+        title: "يرجى تسجيل الدخول",
+        description: "قم بتسجيل الدخول لإضافة المنتجات للمفضلة",
+        variant: "destructive",
+      });
+      return;
+    }
+    toggleFavoriteMutation.mutate();
+  };
 
   const price = typeof product.price === 'string' ? parseFloat(product.price) : product.price;
   const originalPrice = product.originalPrice 
@@ -103,6 +153,18 @@ export function ProductCard({ product }: ProductCardProps) {
               {discount}% خصم
             </Badge>
           )}
+          <button
+            onClick={handleToggleFavorite}
+            className={cn(
+              "absolute top-3 left-3 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm",
+              isFavorite 
+                ? "bg-red-500 text-white" 
+                : "bg-white/80 text-gray-400 hover:text-red-500 hover:bg-white"
+            )}
+            data-testid={`button-favorite-${product.id}`}
+          >
+            <Heart className={cn("w-4 h-4", isFavorite && "fill-current")} />
+          </button>
           <div className="absolute bottom-2 left-2">
              <Badge variant="secondary" className="bg-white/80 text-foreground backdrop-blur-md text-[10px] shadow-sm border border-gray-100 font-bold">
                {product.minOrder} {product.unit}

@@ -18,6 +18,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ordersAPI, walletAPI, citiesAPI, creditsAPI } from '@/lib/api';
 import { motion } from 'framer-motion';
+import type { Favorite, Notification } from '@shared/schema';
 
 interface MenuItem {
   icon: any;
@@ -85,6 +86,28 @@ export default function Profile() {
     enabled: !!user?.id,
   });
 
+  const { data: favorites = [] } = useQuery<Favorite[]>({
+    queryKey: ['favorites', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const res = await fetch(`/api/favorites/${user.id}`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!user?.id,
+  });
+
+  const { data: unreadNotifications } = useQuery<{ count: number }>({
+    queryKey: ['unreadNotifications', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return { count: 0 };
+      const res = await fetch(`/api/notifications/unread/count?userId=${user.id}`);
+      if (!res.ok) return { count: 0 };
+      return res.json();
+    },
+    enabled: !!user?.id,
+  });
+
   const handleLogout = () => {
     logout();
     setLocation('/');
@@ -128,13 +151,16 @@ export default function Profile() {
 
   const pendingOrdersCount = orders.filter(o => o.status === 'pending').length;
 
+  const favoritesCount = favorites.length;
+  const notificationsCount = unreadNotifications?.count || 0;
+
   const menuSections: { title: string; items: MenuItem[] }[] = [
     {
       title: 'الطلبات والمشتريات',
       items: [
         { icon: Package, label: 'طلباتي', desc: 'تتبع طلباتك الحالية والسابقة', href: '/orders', badge: pendingOrdersCount || null },
         { icon: Clock, label: 'اشترِ مجدداً', desc: 'أعد طلب منتجاتك السابقة بسهولة', href: '/buy-again' },
-        { icon: Heart, label: 'المفضلة', desc: 'منتجاتك المحفوظة', href: '/favorites' },
+        { icon: Heart, label: 'المفضلة', desc: 'منتجاتك المحفوظة', href: '/favorites', badge: favoritesCount || null },
       ]
     },
     {
@@ -149,7 +175,7 @@ export default function Profile() {
       items: [
         { icon: MapPin, label: 'عناويني', desc: 'إدارة مواقع التوصيل', href: '/addresses' },
         { icon: Store, label: 'تفاصيل المنشأة', desc: 'معلومات السجل التجاري', href: '/facility' },
-        { icon: Bell, label: 'الإشعارات', desc: 'إدارة التنبيهات', href: '/notifications' },
+        { icon: Bell, label: 'الإشعارات', desc: 'إدارة التنبيهات', href: '/notifications', badge: notificationsCount || null },
         { icon: Settings, label: 'الإعدادات', desc: 'اللغة والخصوصية', href: '/settings' },
       ]
     },
@@ -289,7 +315,7 @@ export default function Profile() {
               onClick={() => setLocation('/favorites')}
             >
               <Heart className="w-6 h-6 text-white/80 mx-auto mb-2" />
-              <div className="font-bold text-xl text-white">-</div>
+              <div className="font-bold text-xl text-white">{favoritesCount}</div>
               <div className="text-xs text-white/60">مفضلة</div>
             </motion.div>
           </div>

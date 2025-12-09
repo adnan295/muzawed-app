@@ -111,6 +111,9 @@ import {
   type CreditTransaction,
   type InsertCreditTransaction,
   creditTransactions,
+  type Favorite,
+  type InsertFavorite,
+  favorites,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte, count, or } from "drizzle-orm";
@@ -139,6 +142,12 @@ export interface IStorage {
   getBrands(): Promise<Brand[]>;
   createBrand(brand: Omit<Brand, 'id'>): Promise<Brand>;
   deleteBrand(id: number): Promise<void>;
+
+  // Favorites
+  getFavorites(userId: number): Promise<Favorite[]>;
+  addFavorite(data: InsertFavorite): Promise<Favorite>;
+  removeFavorite(userId: number, productId: number): Promise<void>;
+  isFavorite(userId: number, productId: number): Promise<boolean>;
 
   // Cart
   getCart(userId: number): Promise<CartItem[]>;
@@ -496,6 +505,35 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBrand(id: number): Promise<void> {
     await db.delete(brands).where(eq(brands.id, id));
+  }
+
+  // Favorites
+  async getFavorites(userId: number): Promise<Favorite[]> {
+    return await db.select().from(favorites).where(eq(favorites.userId, userId)).orderBy(desc(favorites.createdAt));
+  }
+
+  async addFavorite(data: InsertFavorite): Promise<Favorite> {
+    const [existing] = await db.select().from(favorites).where(
+      and(eq(favorites.userId, data.userId), eq(favorites.productId, data.productId))
+    );
+    if (existing) {
+      return existing;
+    }
+    const [favorite] = await db.insert(favorites).values(data).returning();
+    return favorite;
+  }
+
+  async removeFavorite(userId: number, productId: number): Promise<void> {
+    await db.delete(favorites).where(
+      and(eq(favorites.userId, userId), eq(favorites.productId, productId))
+    );
+  }
+
+  async isFavorite(userId: number, productId: number): Promise<boolean> {
+    const [existing] = await db.select().from(favorites).where(
+      and(eq(favorites.userId, userId), eq(favorites.productId, productId))
+    );
+    return !!existing;
   }
 
   // Cart
