@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { toast } from 'sonner';
 import { 
   User, Package, MapPin, CreditCard, Settings, LogOut, Store, Gift, 
   ChevronLeft, CheckCircle, Wallet, Crown, Star, 
@@ -23,6 +24,7 @@ interface MenuItem {
   href: string;
   badge?: number | null;
   highlight?: boolean;
+  comingSoon?: boolean;
 }
 
 interface Order {
@@ -127,8 +129,8 @@ export default function Profile() {
     {
       title: 'الدفع والمحفظة',
       items: [
-        { icon: Wallet, label: 'المحفظة', desc: 'رصيدك الحالي والعمليات', href: '/wallet' },
-        { icon: CreditCard, label: 'طرق الدفع', desc: 'إدارة بطاقاتك المحفوظة', href: '/cards' },
+        { icon: Wallet, label: 'المحفظة', desc: 'رصيدك الحالي والعمليات', href: '/wallet', comingSoon: true },
+        { icon: CreditCard, label: 'طرق الدفع', desc: 'إدارة بطاقاتك المحفوظة', href: '/cards', comingSoon: true },
       ]
     },
     {
@@ -264,7 +266,7 @@ export default function Profile() {
             <motion.div 
               whileHover={{ scale: 1.02 }}
               className="bg-white/15 backdrop-blur-xl rounded-2xl p-4 text-center border border-white/10 cursor-pointer"
-              onClick={() => setLocation('/wallet')}
+              onClick={() => toast.info('قريباً')}
             >
               <Wallet className="w-6 h-6 text-white/80 mx-auto mb-2" />
               <div className="font-bold text-xl text-white">{parseFloat(wallet?.balance || '0').toLocaleString('ar-SY')}</div>
@@ -409,7 +411,13 @@ export default function Profile() {
                       ? 'bg-gradient-to-l from-primary/10 via-white to-white hover:from-primary/20' 
                       : 'hover:bg-gray-50'
                   } ${itemIdx !== section.items.length - 1 ? 'border-b border-gray-100' : ''}`}
-                  onClick={() => item.href && setLocation(item.href)}
+                  onClick={() => {
+                    if (item.comingSoon) {
+                      toast.info('قريباً');
+                      return;
+                    }
+                    item.href && setLocation(item.href);
+                  }}
                   data-testid={`menu-${item.href?.replace('/', '')}`}
                 >
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
