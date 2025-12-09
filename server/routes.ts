@@ -2171,5 +2171,107 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== Customer Credit Routes - نظام الآجل ====================
+  
+  // Get customer credit info
+  app.get("/api/credits/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const credit = await storage.getOrCreateCustomerCredit(userId);
+      res.json(credit);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get all customer credits (admin)
+  app.get("/api/credits", async (req, res) => {
+    try {
+      const credits = await storage.getAllCustomerCredits();
+      res.json(credits);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Check credit eligibility
+  app.post("/api/credits/:userId/check-eligibility", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const { amount } = req.body;
+      const result = await storage.checkCreditEligibility(userId, parseFloat(amount));
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update customer loyalty level
+  app.post("/api/credits/:userId/update-level", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const credit = await storage.updateCustomerLoyaltyLevel(userId);
+      res.json(credit);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get credit transactions
+  app.get("/api/credits/:userId/transactions", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const transactions = await storage.getCreditTransactions(userId);
+      res.json(transactions);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create credit purchase (buy on credit)
+  app.post("/api/credits/:userId/purchase", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const { orderId, amount } = req.body;
+      
+      // Check eligibility first
+      const eligibility = await storage.checkCreditEligibility(userId, parseFloat(amount));
+      if (!eligibility.eligible) {
+        return res.status(400).json({ error: eligibility.reason });
+      }
+      
+      const transaction = await storage.createCreditPurchase(userId, parseInt(orderId), parseFloat(amount));
+      res.status(201).json(transaction);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create credit payment (pay debt)
+  app.post("/api/credits/:userId/payment", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const { amount, notes } = req.body;
+      const transaction = await storage.createCreditPayment(userId, parseFloat(amount), notes);
+      res.json(transaction);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update customer credit settings (admin)
+  app.put("/api/credits/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const updated = await storage.updateCustomerCredit(userId, req.body);
+      if (!updated) {
+        return res.status(404).json({ error: "رصيد العميل غير موجود" });
+      }
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }
