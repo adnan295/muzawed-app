@@ -372,9 +372,9 @@ export default function Checkout() {
         </div>
 
         {/* Action Button */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 z-20 max-w-md mx-auto">
+        <div className="sticky bottom-0 bg-white border-t border-gray-100 p-4 mt-4 -mx-4 shadow-lg">
           <Button 
-            className="w-full h-12 text-lg font-bold rounded-xl shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90"
+            className="w-full h-14 text-lg font-bold rounded-xl shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90"
             onClick={() => createOrderMutation.mutate()}
             disabled={!defaultAddress || createOrderMutation.isPending}
             data-testid="button-confirm-order"
