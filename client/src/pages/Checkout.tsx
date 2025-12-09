@@ -44,7 +44,7 @@ export default function Checkout() {
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
-  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [paymentMethod, setPaymentMethod] = useState('cod');
   const [isSuccess, setIsSuccess] = useState(false);
   const [orderId, setOrderId] = useState<number | null>(null);
 
@@ -131,7 +131,7 @@ export default function Checkout() {
         tax: tax.toFixed(2),
         deliveryFee: deliveryFee.toFixed(2),
         total: total.toFixed(2),
-        paymentMethod: paymentMethod === 'credit' ? 'credit' : paymentMethod === 'cod' ? 'cash' : 'wallet',
+        paymentMethod: paymentMethod === 'credit' ? 'credit' : 'cash',
       };
 
       const orderItems = cartItems.map(item => ({
@@ -277,10 +277,6 @@ export default function Checkout() {
               <div className="flex items-center space-x-2 space-x-reverse rounded-xl border p-3 hover:bg-accent cursor-pointer transition-colors">
                 <RadioGroupItem value="cod" id="cod" />
                 <Label htmlFor="cod" className="flex-1 cursor-pointer mr-2">الدفع عند الاستلام (نقدي)</Label>
-              </div>
-              <div className="flex items-center space-x-2 space-x-reverse rounded-xl border p-3 hover:bg-accent cursor-pointer transition-colors">
-                <RadioGroupItem value="wallet" id="wallet" />
-                <Label htmlFor="wallet" className="flex-1 cursor-pointer mr-2">المحفظة</Label>
               </div>
               
               {/* Credit/Deferred Payment Option */}
