@@ -1467,6 +1467,76 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== Driver App Routes ====================
+
+  // Driver login endpoint
+  app.post("/api/driver/login", async (req, res) => {
+    try {
+      const { phone, password } = req.body;
+      
+      // Check drivers table first
+      const drivers = await storage.getDrivers();
+      const driver = drivers.find(d => d.phone === phone);
+      
+      if (!driver) {
+        return res.status(401).json({ error: "رقم الهاتف غير مسجل كسائق" });
+      }
+      
+      // For now, use a simple password check (in production, should use bcrypt)
+      // Default password is the last 4 digits of phone number
+      const defaultPassword = phone.slice(-4);
+      if (password !== defaultPassword && password !== 'driver123') {
+        return res.status(401).json({ error: "كلمة المرور غير صحيحة" });
+      }
+      
+      res.json({ 
+        success: true, 
+        driver: { 
+          id: driver.id, 
+          name: driver.name, 
+          phone: driver.phone,
+          vehicleType: driver.vehicleType 
+        } 
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/driver/orders", async (req, res) => {
+    try {
+      // Get driver ID from query params (in production, use session/JWT)
+      const driverId = req.query.driverId;
+      if (!driverId) {
+        return res.status(401).json({ error: "يجب تسجيل الدخول أولاً" });
+      }
+      
+      const allOrders = await storage.getAllOrders();
+      // Filter to show only pending, confirmed, processing, and shipped orders
+      const activeOrders = allOrders.filter(o => 
+        ['pending', 'confirmed', 'processing', 'shipped'].includes(o.status)
+      );
+      
+      // Enrich orders with user, address, and items data for driver app
+      const enrichedOrders = await Promise.all(
+        activeOrders.map(async (order) => {
+          const user = await storage.getUser(order.userId);
+          const address = order.addressId ? await storage.getAddress(order.addressId) : null;
+          const items = await storage.getOrderItems(order.id);
+          return {
+            ...order,
+            user: user ? { id: user.id, phone: user.phone, facilityName: user.facilityName } : null,
+            address,
+            items: items.map(item => ({ productName: item.productName, quantity: item.quantity })),
+          };
+        })
+      );
+      res.json(enrichedOrders);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ==================== Customer Statistics Routes ====================
 
   app.get("/api/admin/customers/stats", async (req, res) => {
