@@ -16,7 +16,7 @@ import {
 import { useLocation, Link } from 'wouter';
 import { useAuth } from '@/lib/AuthContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ordersAPI, walletAPI, citiesAPI } from '@/lib/api';
+import { ordersAPI, walletAPI, citiesAPI, creditsAPI } from '@/lib/api';
 import { motion } from 'framer-motion';
 
 interface MenuItem {
@@ -69,6 +69,20 @@ export default function Profile() {
   const { data: cities = [] } = useQuery<City[]>({
     queryKey: ['cities'],
     queryFn: () => citiesAPI.getAll() as Promise<City[]>,
+  });
+
+  const { data: creditInfo } = useQuery<{
+    id: number;
+    userId: number;
+    creditLimit: string;
+    currentBalance: string;
+    loyaltyLevel: string;
+    creditPeriodDays: number;
+    isEligible: boolean;
+  }>({
+    queryKey: ['credit', user?.id],
+    queryFn: () => creditsAPI.get(user!.id) as any,
+    enabled: !!user?.id,
   });
 
   const handleLogout = () => {
@@ -342,6 +356,71 @@ export default function Profile() {
             </Button>
           </DialogContent>
         </Dialog>
+
+        {/* Credit/Deferred Payment Card */}
+        {creditInfo && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.15 }}
+          >
+            <Card className={`p-4 border-none shadow-md ${creditInfo.isEligible ? 'bg-gradient-to-l from-green-500/10 via-white to-white' : 'bg-gradient-to-l from-gray-500/10 via-white to-white'}`}>
+              <div className="flex items-center gap-4 mb-4">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg ${creditInfo.isEligible ? 'bg-gradient-to-br from-green-500 to-green-600 shadow-green-500/30' : 'bg-gradient-to-br from-gray-400 to-gray-500 shadow-gray-400/30'}`}>
+                  <Clock className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-foreground">الدفع الآجل</h3>
+                    <Badge variant={creditInfo.isEligible ? "default" : "secondary"} className="text-xs">
+                      {creditInfo.isEligible ? 'مفعّل' : 'غير مفعّل'}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    مدة السداد: {creditInfo.creditPeriodDays} يوم
+                  </p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gray-50 rounded-xl p-3 text-center">
+                  <div className="text-xs text-gray-500 mb-1">الحد الائتماني</div>
+                  <div className="font-bold text-green-600">
+                    {parseFloat(creditInfo.creditLimit).toLocaleString('ar-SY')} ل.س
+                  </div>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3 text-center">
+                  <div className="text-xs text-gray-500 mb-1">الرصيد المستخدم</div>
+                  <div className={`font-bold ${parseFloat(creditInfo.currentBalance) > 0 ? 'text-orange-600' : 'text-gray-600'}`}>
+                    {parseFloat(creditInfo.currentBalance).toLocaleString('ar-SY')} ل.س
+                  </div>
+                </div>
+              </div>
+              
+              {parseFloat(creditInfo.currentBalance) > 0 && (
+                <div className="mt-3 p-3 bg-orange-50 rounded-xl border border-orange-200">
+                  <div className="flex items-center gap-2 text-sm text-orange-700">
+                    <Clock className="w-4 h-4" />
+                    <span>لديك رصيد مستحق بقيمة {parseFloat(creditInfo.currentBalance).toLocaleString('ar-SY')} ل.س</span>
+                  </div>
+                </div>
+              )}
+              
+              <div className="mt-3">
+                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                  <span>الرصيد المتاح</span>
+                  <span className="font-bold text-green-600">
+                    {(parseFloat(creditInfo.creditLimit) - parseFloat(creditInfo.currentBalance)).toLocaleString('ar-SY')} ل.س
+                  </span>
+                </div>
+                <Progress 
+                  value={(parseFloat(creditInfo.currentBalance) / parseFloat(creditInfo.creditLimit)) * 100} 
+                  className="h-2" 
+                />
+              </div>
+            </Card>
+          </motion.div>
+        )}
 
         {recentOrders.length > 0 && (
           <motion.div
