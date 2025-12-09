@@ -482,8 +482,8 @@ export default function Driver() {
                       <span className="font-bold text-purple-600">
                         {parseFloat(order.total).toLocaleString('ar-SY')} ل.س
                       </span>
-                      <Badge variant="outline" className="rounded-full">
-                        {order.paymentMethod === 'cash' ? 'نقدي' : 'آجل'}
+                      <Badge className={`rounded-full ${order.paymentMethod === 'cash' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-orange-100 text-orange-700 border-orange-200'}`}>
+                        {order.paymentMethod === 'cash' ? '💵 نقدي' : '📅 آجل'}
                       </Badge>
                     </div>
                   </Card>
@@ -599,11 +599,19 @@ export default function Driver() {
                   </Card>
                 )}
 
-                <div className="flex items-center justify-between p-4 bg-green-50 rounded-2xl">
-                  <span className="font-bold">الإجمالي:</span>
-                  <span className="text-xl font-bold text-green-600">
-                    {parseFloat(selectedOrder.total).toLocaleString('ar-SY')} ل.س
-                  </span>
+                <div className="p-4 bg-green-50 rounded-2xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold">الإجمالي:</span>
+                    <span className="text-xl font-bold text-green-600">
+                      {parseFloat(selectedOrder.total).toLocaleString('ar-SY')} ل.س
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-green-200">
+                    <span className="font-bold">طريقة الدفع:</span>
+                    <Badge className={`rounded-full text-sm px-3 py-1 ${selectedOrder.paymentMethod === 'cash' ? 'bg-green-500 text-white' : 'bg-orange-500 text-white'}`}>
+                      {selectedOrder.paymentMethod === 'cash' ? '💵 الدفع نقداً عند الاستلام' : '📅 دفع آجل (ذمم)'}
+                    </Badge>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
