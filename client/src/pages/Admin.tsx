@@ -2114,7 +2114,7 @@ export default function Admin() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <ScrollArea className="w-full">
+          <div className="overflow-x-auto pb-2 -mx-4 px-4" style={{ WebkitOverflowScrolling: 'touch' }}>
             <TabsList className="bg-white shadow-lg rounded-2xl p-2 mb-6 flex gap-1 h-auto w-max min-w-full">
               <TabsTrigger value="dashboard" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
                 <LayoutDashboard className="w-4 h-4 ml-2" />الرئيسية
@@ -2180,7 +2180,7 @@ export default function Admin() {
                 <Settings className="w-4 h-4 ml-2" />الإعدادات
               </TabsTrigger>
             </TabsList>
-          </ScrollArea>
+          </div>
 
           {/* Dashboard Tab */}
           <TabsContent value="dashboard">
