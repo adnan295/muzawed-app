@@ -2408,5 +2408,54 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== Site Settings Routes ====================
+
+  // Get all site settings
+  app.get("/api/site-settings", async (req, res) => {
+    try {
+      const settings = await storage.getSiteSettings();
+      res.json(settings);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get site setting by key
+  app.get("/api/site-settings/:key", async (req, res) => {
+    try {
+      const setting = await storage.getSiteSetting(req.params.key);
+      if (!setting) {
+        return res.status(404).json({ error: "الإعداد غير موجود" });
+      }
+      res.json(setting);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create or update site setting (admin)
+  app.post("/api/site-settings", async (req, res) => {
+    try {
+      const { key, value, label } = req.body;
+      if (!key || !value) {
+        return res.status(400).json({ error: "المفتاح والقيمة مطلوبان" });
+      }
+      const setting = await storage.upsertSiteSetting({ key, value, label });
+      res.json(setting);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Delete site setting (admin)
+  app.delete("/api/site-settings/:key", async (req, res) => {
+    try {
+      await storage.deleteSiteSetting(req.params.key);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }

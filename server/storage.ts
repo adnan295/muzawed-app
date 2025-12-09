@@ -114,6 +114,9 @@ import {
   type Favorite,
   type InsertFavorite,
   favorites,
+  type SiteSetting,
+  type InsertSiteSetting,
+  siteSettings,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte, count, or } from "drizzle-orm";
@@ -2400,6 +2403,33 @@ export class DatabaseStorage implements IStorage {
     }
     
     return { eligible: true, reason: "مؤهل للشراء بالآجل", credit };
+  }
+  // Site Settings - إعدادات الموقع
+  async getSiteSettings(): Promise<SiteSetting[]> {
+    return await db.select().from(siteSettings).orderBy(siteSettings.key);
+  }
+
+  async getSiteSetting(key: string): Promise<SiteSetting | undefined> {
+    const [setting] = await db.select().from(siteSettings).where(eq(siteSettings.key, key));
+    return setting || undefined;
+  }
+
+  async upsertSiteSetting(data: InsertSiteSetting): Promise<SiteSetting> {
+    const existing = await this.getSiteSetting(data.key);
+    if (existing) {
+      const [updated] = await db.update(siteSettings)
+        .set({ value: data.value, label: data.label, updatedAt: new Date() })
+        .where(eq(siteSettings.key, data.key))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(siteSettings).values(data).returning();
+      return created;
+    }
+  }
+
+  async deleteSiteSetting(key: string): Promise<void> {
+    await db.delete(siteSettings).where(eq(siteSettings.key, key));
   }
 }
 

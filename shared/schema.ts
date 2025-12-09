@@ -865,3 +865,17 @@ export const creditTransactions = pgTable("credit_transactions", {
 export const insertCreditTransactionSchema = createInsertSchema(creditTransactions).omit({ id: true, createdAt: true });
 export type InsertCreditTransaction = z.infer<typeof insertCreditTransactionSchema>;
 export type CreditTransaction = typeof creditTransactions.$inferSelect;
+
+// Site Settings table - إعدادات الموقع (الشروط والأحكام، الدعم)
+export const siteSettings = pgTable("site_settings", {
+  id: serial("id").primaryKey(),
+  key: text("key").notNull().unique(), // terms, support_phone, support_email, support_whatsapp, faq
+  value: text("value").notNull(),
+  label: text("label"), // وصف للمفتاح بالعربي
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertSiteSettingSchema = createInsertSchema(siteSettings).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertSiteSetting = z.infer<typeof insertSiteSettingSchema>;
+export type SiteSetting = typeof siteSettings.$inferSelect;
