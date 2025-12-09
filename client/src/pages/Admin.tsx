@@ -32,7 +32,7 @@ import {
   GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight, LogOut, MousePointer, EyeOff
 } from 'lucide-react';
 import { Link } from 'wouter';
-import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI, bannersAPI, segmentsAPI, suppliersAPI, reportsAPI, expensesAPI, expenseCategoriesAPI, deliverySettingsAPI, staffAPI, promotionsAPI } from '@/lib/api';
+import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI, bannersAPI, segmentsAPI, suppliersAPI, reportsAPI, expensesAPI, expenseCategoriesAPI, deliverySettingsAPI, staffAPI, promotionsAPI, creditsAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart, Line, Legend, ComposedChart, RadialBarChart, RadialBar, Treemap, FunnelChart, Funnel, LabelList } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -865,6 +865,18 @@ export default function Admin() {
     queryKey: ['promotions'],
     queryFn: () => promotionsAPI.getAll() as Promise<any[]>,
   });
+
+  // Credits/Receivables Query
+  const { data: creditsList = [], refetch: refetchCredits } = useQuery<any[]>({
+    queryKey: ['credits'],
+    queryFn: () => creditsAPI.getAll() as Promise<any[]>,
+  });
+
+  const [selectedCreditUser, setSelectedCreditUser] = useState<any>(null);
+  const [creditTransactions, setCreditTransactions] = useState<any[]>([]);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentNotes, setPaymentNotes] = useState('');
 
   // Product Profit Report Query
   const { data: profitReport, isLoading: profitReportLoading, refetch: refetchProfitReport } = useQuery({
@@ -2101,6 +2113,9 @@ export default function Admin() {
               </TabsTrigger>
               <TabsTrigger value="analytics" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
                 <BarChart3 className="w-4 h-4 ml-2" />التحليلات
+              </TabsTrigger>
+              <TabsTrigger value="credits" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
+                <CreditCard className="w-4 h-4 ml-2" />الديون
               </TabsTrigger>
               <TabsTrigger value="settings" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
                 <Settings className="w-4 h-4 ml-2" />الإعدادات
@@ -8916,6 +8931,277 @@ export default function Admin() {
                   </div>
                 </div>
               </Card>
+            </div>
+          </TabsContent>
+
+          {/* Credits/Receivables Tab */}
+          <TabsContent value="credits">
+            <div className="space-y-6">
+              {/* Header */}
+              <Card className="p-6 border-none shadow-lg rounded-2xl bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-2xl flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                        <CreditCard className="w-6 h-6" />
+                      </div>
+                      الديون والمستحقات
+                    </h3>
+                    <p className="text-emerald-200 mt-2">إدارة ديون العملاء ومتابعة تواريخ الاستحقاق</p>
+                  </div>
+                  <Button variant="outline" className="rounded-xl gap-2 bg-white/10 border-white/30 text-white hover:bg-white/20" onClick={() => refetchCredits()}>
+                    <RefreshCw className="w-4 h-4" />تحديث
+                  </Button>
+                </div>
+              </Card>
+
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center text-white">
+                      <Users className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-blue-600">عملاء بديون</p>
+                      <p className="text-2xl font-bold text-blue-800">{creditsList.filter((c: any) => parseFloat(c.currentBalance || 0) > 0).length}</p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-red-50 to-red-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-red-500 flex items-center justify-center text-white">
+                      <AlertTriangle className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-red-600">إجمالي الديون</p>
+                      <p className="text-2xl font-bold text-red-800">{creditsList.reduce((sum: number, c: any) => sum + parseFloat(c.currentBalance || 0), 0).toLocaleString()} ل.س</p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-orange-50 to-orange-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-orange-500 flex items-center justify-center text-white">
+                      <Clock className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-orange-600">ديون متأخرة</p>
+                      <p className="text-2xl font-bold text-orange-800">{creditsList.filter((c: any) => c.hasOverdue).length}</p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-4 border-none shadow-lg rounded-2xl bg-gradient-to-br from-green-50 to-green-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center text-white">
+                      <CheckCircle className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-green-600">إجمالي السداد</p>
+                      <p className="text-2xl font-bold text-green-800">{creditsList.reduce((sum: number, c: any) => sum + parseFloat(c.totalPaid || 0), 0).toLocaleString()} ل.س</p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Credits Table */}
+              <Card className="p-6 border-none shadow-lg rounded-2xl">
+                <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><CreditCard className="w-5 h-5 text-teal-600" />قائمة ديون العملاء</h3>
+                {creditsList.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <CreditCard className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p>لا توجد ديون مسجلة حالياً</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-right">العميل</TableHead>
+                          <TableHead className="text-right">المستوى</TableHead>
+                          <TableHead className="text-right">الحد الأقصى</TableHead>
+                          <TableHead className="text-right">الرصيد الحالي</TableHead>
+                          <TableHead className="text-right">مدة السداد</TableHead>
+                          <TableHead className="text-right">الحالة</TableHead>
+                          <TableHead className="text-right">إجراءات</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {creditsList.map((credit: any) => {
+                          const loyaltyLabels: Record<string, string> = { bronze: 'برونزي', silver: 'فضي', gold: 'ذهبي', diamond: 'ماسي' };
+                          const loyaltyColors: Record<string, string> = { bronze: 'bg-orange-100 text-orange-700', silver: 'bg-gray-100 text-gray-700', gold: 'bg-yellow-100 text-yellow-700', diamond: 'bg-cyan-100 text-cyan-700' };
+                          return (
+                            <TableRow key={credit.id} data-testid={`row-credit-${credit.id}`}>
+                              <TableCell className="font-medium">{credit.user?.facilityName || credit.user?.phone || `عميل #${credit.userId}`}</TableCell>
+                              <TableCell>
+                                <Badge className={`rounded-full ${loyaltyColors[credit.loyaltyLevel] || 'bg-gray-100'}`}>
+                                  {loyaltyLabels[credit.loyaltyLevel] || credit.loyaltyLevel}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{parseFloat(credit.creditLimit || 0).toLocaleString()} ل.س</TableCell>
+                              <TableCell className={parseFloat(credit.currentBalance || 0) > 0 ? 'text-red-600 font-bold' : 'text-green-600'}>
+                                {parseFloat(credit.currentBalance || 0).toLocaleString()} ل.س
+                              </TableCell>
+                              <TableCell>{credit.creditPeriodDays} يوم</TableCell>
+                              <TableCell>
+                                {credit.hasOverdue ? (
+                                  <Badge className="bg-red-100 text-red-700 rounded-full gap-1"><AlertTriangle className="w-3 h-3" />متأخر</Badge>
+                                ) : parseFloat(credit.currentBalance || 0) > 0 ? (
+                                  <Badge className="bg-yellow-100 text-yellow-700 rounded-full">مستحق</Badge>
+                                ) : (
+                                  <Badge className="bg-green-100 text-green-700 rounded-full">مسدد</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-2">
+                                  <Button variant="outline" size="sm" className="rounded-lg text-xs" onClick={async () => {
+                                    setSelectedCreditUser(credit);
+                                    const transactions = await creditsAPI.getTransactions(credit.userId);
+                                    setCreditTransactions(transactions as any[]);
+                                  }} data-testid={`button-view-transactions-${credit.id}`}>
+                                    <Eye className="w-3 h-3 ml-1" />المعاملات
+                                  </Button>
+                                  {parseFloat(credit.currentBalance || 0) > 0 && (
+                                    <Button size="sm" className="rounded-lg text-xs bg-green-600 hover:bg-green-700" onClick={() => {
+                                      setSelectedCreditUser(credit);
+                                      setIsPaymentDialogOpen(true);
+                                    }} data-testid={`button-record-payment-${credit.id}`}>
+                                      <DollarSign className="w-3 h-3 ml-1" />تسجيل دفعة
+                                    </Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </Card>
+
+              {/* Transactions Detail Dialog */}
+              <Dialog open={!!selectedCreditUser && !isPaymentDialogOpen} onOpenChange={(open) => { if (!open) { setSelectedCreditUser(null); setCreditTransactions([]); } }}>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Receipt className="w-5 h-5 text-teal-600" />
+                      معاملات العميل: {selectedCreditUser?.user?.facilityName || `عميل #${selectedCreditUser?.userId}`}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="mt-4">
+                    <div className="grid grid-cols-3 gap-4 mb-6">
+                      <div className="bg-blue-50 rounded-xl p-3 text-center">
+                        <p className="text-xs text-blue-600">الحد الأقصى</p>
+                        <p className="font-bold text-blue-800">{parseFloat(selectedCreditUser?.creditLimit || 0).toLocaleString()} ل.س</p>
+                      </div>
+                      <div className="bg-red-50 rounded-xl p-3 text-center">
+                        <p className="text-xs text-red-600">الرصيد المستحق</p>
+                        <p className="font-bold text-red-800">{parseFloat(selectedCreditUser?.currentBalance || 0).toLocaleString()} ل.س</p>
+                      </div>
+                      <div className="bg-green-50 rounded-xl p-3 text-center">
+                        <p className="text-xs text-green-600">إجمالي السداد</p>
+                        <p className="font-bold text-green-800">{parseFloat(selectedCreditUser?.totalPaid || 0).toLocaleString()} ل.س</p>
+                      </div>
+                    </div>
+                    {creditTransactions.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        <Receipt className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                        <p>لا توجد معاملات</p>
+                      </div>
+                    ) : (
+                      <ScrollArea className="h-[300px]">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-right">التاريخ</TableHead>
+                              <TableHead className="text-right">النوع</TableHead>
+                              <TableHead className="text-right">المبلغ</TableHead>
+                              <TableHead className="text-right">تاريخ الاستحقاق</TableHead>
+                              <TableHead className="text-right">الحالة</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {creditTransactions.map((tx: any) => (
+                              <TableRow key={tx.id}>
+                                <TableCell className="text-sm">{new Date(tx.createdAt).toLocaleDateString('ar-SY')}</TableCell>
+                                <TableCell>
+                                  <Badge className={tx.type === 'purchase' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}>
+                                    {tx.type === 'purchase' ? 'شراء آجل' : 'سداد'}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className={`font-bold ${tx.type === 'purchase' ? 'text-red-600' : 'text-green-600'}`}>
+                                  {tx.type === 'purchase' ? '+' : '-'}{parseFloat(tx.amount).toLocaleString()} ل.س
+                                </TableCell>
+                                <TableCell className="text-sm">
+                                  {tx.dueDate ? (
+                                    <span className={new Date(tx.dueDate) < new Date() && tx.status === 'pending' ? 'text-red-600 font-bold' : ''}>
+                                      {new Date(tx.dueDate).toLocaleDateString('ar-SY')}
+                                    </span>
+                                  ) : '-'}
+                                </TableCell>
+                                <TableCell>
+                                  {tx.status === 'paid' ? (
+                                    <Badge className="bg-green-100 text-green-700 rounded-full">مسدد</Badge>
+                                  ) : tx.dueDate && new Date(tx.dueDate) < new Date() ? (
+                                    <Badge className="bg-red-100 text-red-700 rounded-full">متأخر</Badge>
+                                  ) : (
+                                    <Badge className="bg-yellow-100 text-yellow-700 rounded-full">معلق</Badge>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </ScrollArea>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Payment Dialog */}
+              <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <DollarSign className="w-5 h-5 text-green-600" />
+                      تسجيل دفعة للعميل
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 mt-4">
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <p className="text-sm text-gray-600">العميل: <span className="font-bold">{selectedCreditUser?.user?.facilityName || `عميل #${selectedCreditUser?.userId}`}</span></p>
+                      <p className="text-sm text-gray-600 mt-1">الرصيد المستحق: <span className="font-bold text-red-600">{parseFloat(selectedCreditUser?.currentBalance || 0).toLocaleString()} ل.س</span></p>
+                    </div>
+                    <div>
+                      <Label>مبلغ الدفعة</Label>
+                      <Input className="rounded-xl mt-1" type="number" placeholder="0" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} data-testid="input-payment-amount" />
+                    </div>
+                    <div>
+                      <Label>ملاحظات (اختياري)</Label>
+                      <Textarea className="rounded-xl mt-1" placeholder="ملاحظات عن الدفعة..." value={paymentNotes} onChange={(e) => setPaymentNotes(e.target.value)} />
+                    </div>
+                    <Button className="w-full rounded-xl bg-green-600 hover:bg-green-700" onClick={async () => {
+                      if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
+                        toast({ title: 'خطأ', description: 'يرجى إدخال مبلغ صحيح', variant: 'destructive' });
+                        return;
+                      }
+                      try {
+                        await creditsAPI.createPayment(selectedCreditUser.userId, parseFloat(paymentAmount), paymentNotes);
+                        toast({ title: 'تم تسجيل الدفعة بنجاح' });
+                        setIsPaymentDialogOpen(false);
+                        setSelectedCreditUser(null);
+                        setPaymentAmount('');
+                        setPaymentNotes('');
+                        refetchCredits();
+                      } catch (error: any) {
+                        toast({ title: 'خطأ', description: error.message, variant: 'destructive' });
+                      }
+                    }} data-testid="button-submit-payment">
+                      تسجيل الدفعة
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </TabsContent>
 
