@@ -1,61 +1,13 @@
-import { useRef, useState, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import { Button } from './button';
 import { MapPin, Navigation, Search } from 'lucide-react';
 import { Input } from './input';
-
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-});
 
 interface LocationPickerProps {
   initialLat?: number;
   initialLng?: number;
   onLocationSelect: (lat: number, lng: number) => void;
   height?: string;
-}
-
-function LocationMarker({ position, onPositionChange }: { 
-  position: [number, number] | null; 
-  onPositionChange: (pos: [number, number]) => void;
-}) {
-  useMapEvents({
-    click(e) {
-      onPositionChange([e.latlng.lat, e.latlng.lng]);
-    },
-  });
-
-  return position ? <Marker position={position} /> : null;
-}
-
-function LocateButton({ onLocate }: { onLocate: (lat: number, lng: number) => void }) {
-  const map = useMap();
-  
-  const handleLocate = () => {
-    map.locate({ setView: true, maxZoom: 16 });
-    map.once('locationfound', (e) => {
-      onLocate(e.latlng.lat, e.latlng.lng);
-    });
-  };
-
-  return (
-    <Button
-      type="button"
-      variant="secondary"
-      size="sm"
-      className="absolute top-3 left-3 z-[1000] rounded-xl shadow-lg gap-2"
-      onClick={handleLocate}
-      data-testid="locate-me-btn"
-    >
-      <Navigation className="w-4 h-4" />
-      موقعي
-    </Button>
-  );
 }
 
 export default function LocationPicker({ 
@@ -69,15 +21,68 @@ export default function LocationPicker({
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
-  const mapRef = useRef<L.Map | null>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
 
   const defaultCenter: [number, number] = [33.5138, 36.2765];
-  const center = position || defaultCenter;
 
-  const handlePositionChange = useCallback((newPos: [number, number]) => {
-    setPosition(newPos);
-    onLocationSelect(newPos[0], newPos[1]);
+  const updateMarker = useCallback((lat: number, lng: number, L: any) => {
+    if (markerRef.current) {
+      markerRef.current.setLatLng([lat, lng]);
+    } else if (mapInstanceRef.current) {
+      markerRef.current = L.marker([lat, lng]).addTo(mapInstanceRef.current);
+    }
+    setPosition([lat, lng]);
+    onLocationSelect(lat, lng);
   }, [onLocationSelect]);
+
+  useEffect(() => {
+    let L: any;
+    
+    const initMap = async () => {
+      if (!mapContainerRef.current || mapInstanceRef.current) return;
+      
+      L = (await import('leaflet')).default;
+      await import('leaflet/dist/leaflet.css');
+      
+      delete (L.Icon.Default.prototype as any)._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+        iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+      });
+
+      const center = position || defaultCenter;
+      const map = L.map(mapContainerRef.current).setView(center, 13);
+      
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      }).addTo(map);
+
+      if (position) {
+        markerRef.current = L.marker(position).addTo(map);
+      }
+
+      map.on('click', (e: any) => {
+        updateMarker(e.latlng.lat, e.latlng.lng, L);
+      });
+
+      mapInstanceRef.current = map;
+      setMapLoaded(true);
+    };
+
+    initMap();
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+        markerRef.current = null;
+      }
+    };
+  }, []);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -93,9 +98,10 @@ export default function LocationPicker({
       if (data && data.length > 0) {
         const lat = parseFloat(data[0].lat);
         const lng = parseFloat(data[0].lon);
-        handlePositionChange([lat, lng]);
-        if (mapRef.current) {
-          mapRef.current.setView([lat, lng], 16);
+        const L = (await import('leaflet')).default;
+        updateMarker(lat, lng, L);
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.setView([lat, lng], 16);
         }
       }
     } catch (error) {
@@ -103,6 +109,18 @@ export default function LocationPicker({
     } finally {
       setSearching(false);
     }
+  };
+
+  const handleLocateMe = async () => {
+    if (!navigator.geolocation) return;
+    
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const L = (await import('leaflet')).default;
+      updateMarker(pos.coords.latitude, pos.coords.longitude, L);
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.setView([pos.coords.latitude, pos.coords.longitude], 16);
+      }
+    });
   };
 
   return (
@@ -131,19 +149,21 @@ export default function LocationPicker({
       </div>
 
       <div className="relative rounded-2xl overflow-hidden border-2 border-gray-200" style={{ height }}>
-        <MapContainer
-          center={center}
-          zoom={13}
-          style={{ height: '100%', width: '100%' }}
-          ref={mapRef}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <LocationMarker position={position} onPositionChange={handlePositionChange} />
-          <LocateButton onLocate={(lat, lng) => handlePositionChange([lat, lng])} />
-        </MapContainer>
+        <div ref={mapContainerRef} style={{ height: '100%', width: '100%' }} />
+        
+        {mapLoaded && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="absolute top-3 left-3 z-[1000] rounded-xl shadow-lg gap-2"
+            onClick={handleLocateMe}
+            data-testid="locate-me-btn"
+          >
+            <Navigation className="w-4 h-4" />
+            موقعي
+          </Button>
+        )}
         
         {!position && (
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[1000] bg-white/90 backdrop-blur-sm px-4 py-2 rounded-xl shadow-lg flex items-center gap-2">
