@@ -11,7 +11,13 @@ import {
 } from "@shared/schema";
 import { fromError } from "zod-validation-error";
 import bcrypt from "bcrypt";
+import multer from "multer";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }
+});
 
 export async function registerRoutes(
   httpServer: Server,
@@ -226,6 +232,36 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error confirming upload:", error);
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Upload and compress image
+  app.post("/api/objects/upload-compressed", upload.single('image'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "يجب تحميل صورة" });
+      }
+
+      const maxWidth = req.body.maxWidth ? parseInt(req.body.maxWidth) : 1920;
+      const quality = req.body.quality ? parseInt(req.body.quality) : 80;
+
+      const result = await objectStorageService.uploadCompressedImage(
+        req.file.buffer,
+        req.file.mimetype,
+        { maxWidth, quality }
+      );
+
+      const compressionRatio = ((1 - result.compressedSize / result.originalSize) * 100).toFixed(1);
+
+      res.json({
+        objectPath: result.objectPath,
+        originalSize: result.originalSize,
+        compressedSize: result.compressedSize,
+        compressionRatio: `${compressionRatio}%`,
+      });
+    } catch (error: any) {
+      console.error("Error uploading compressed image:", error);
+      res.status(500).json({ error: error.message });
     }
   });
 

@@ -1,6 +1,7 @@
 import { Storage, File } from "@google-cloud/storage";
 import { Response } from "express";
 import { randomUUID } from "crypto";
+import sharp from "sharp";
 import {
   ObjectAclPolicy,
   ObjectPermission,
@@ -217,6 +218,76 @@ export class ObjectStorageService {
       objectFile,
       requestedPermission: requestedPermission ?? ObjectPermission.READ,
     });
+  }
+
+  async uploadCompressedImage(
+    buffer: Buffer,
+    originalMimetype: string,
+    options: { maxWidth?: number; quality?: number } = {}
+  ): Promise<{ objectPath: string; originalSize: number; compressedSize: number }> {
+    const privateObjectDir = this.getPrivateObjectDir();
+    if (!privateObjectDir) {
+      throw new Error(
+        "PRIVATE_OBJECT_DIR not set. Create a bucket in 'Object Storage' " +
+          "tool and set PRIVATE_OBJECT_DIR env var."
+      );
+    }
+
+    const maxWidth = options.maxWidth || 1920;
+    const quality = options.quality || 80;
+    const originalSize = buffer.length;
+
+    let compressedBuffer: Buffer;
+    let contentType: string;
+    let extension: string;
+
+    const sharpInstance = sharp(buffer);
+    const metadata = await sharpInstance.metadata();
+
+    if (metadata.width && metadata.width > maxWidth) {
+      sharpInstance.resize({ width: maxWidth, withoutEnlargement: true });
+    }
+
+    if (originalMimetype === 'image/png') {
+      compressedBuffer = await sharpInstance
+        .png({ quality, compressionLevel: 9 })
+        .toBuffer();
+      contentType = 'image/png';
+      extension = 'png';
+    } else if (originalMimetype === 'image/webp') {
+      compressedBuffer = await sharpInstance
+        .webp({ quality })
+        .toBuffer();
+      contentType = 'image/webp';
+      extension = 'webp';
+    } else {
+      compressedBuffer = await sharpInstance
+        .jpeg({ quality, mozjpeg: true })
+        .toBuffer();
+      contentType = 'image/jpeg';
+      extension = 'jpg';
+    }
+
+    const objectId = `${randomUUID()}.${extension}`;
+    const fullPath = `${privateObjectDir}/uploads/${objectId}`;
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+    
+    const bucket = objectStorageClient.bucket(bucketName);
+    const file = bucket.file(objectName);
+
+    await file.save(compressedBuffer, {
+      metadata: {
+        contentType,
+      },
+    });
+
+    const objectPath = `/objects/uploads/${objectId}`;
+    
+    return {
+      objectPath,
+      originalSize,
+      compressedSize: compressedBuffer.length,
+    };
   }
 }
 
