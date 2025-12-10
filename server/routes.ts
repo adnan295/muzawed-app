@@ -97,6 +97,68 @@ export async function registerRoutes(
     }
   });
 
+  // Send OTP via WhatsApp
+  app.post("/api/auth/send-otp", async (req, res) => {
+    try {
+      const { phone } = req.body;
+      
+      if (!phone) {
+        return res.status(400).json({ error: "رقم الهاتف مطلوب" });
+      }
+
+      const { generateOTPCode, sendWhatsAppOTP } = await import('./whatsapp');
+      
+      const code = generateOTPCode();
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+      
+      await storage.createOtp(phone, code, expiresAt);
+      
+      const sent = await sendWhatsAppOTP(phone, code);
+      
+      if (!sent) {
+        return res.status(500).json({ error: "فشل في إرسال رمز التحقق. تأكد من صحة رقم واتساب" });
+      }
+      
+      res.json({ success: true, message: "تم إرسال رمز التحقق عبر واتساب" });
+    } catch (error: any) {
+      console.error("OTP send error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Verify OTP
+  app.post("/api/auth/verify-otp", async (req, res) => {
+    try {
+      const { phone, code } = req.body;
+      
+      if (!phone || !code) {
+        return res.status(400).json({ error: "رقم الهاتف ورمز التحقق مطلوبان" });
+      }
+
+      const otp = await storage.getValidOtp(phone, code);
+      
+      if (!otp) {
+        return res.status(400).json({ error: "رمز التحقق غير صحيح أو منتهي الصلاحية" });
+      }
+
+      if (otp.attempts >= 5) {
+        return res.status(429).json({ error: "تم تجاوز عدد المحاولات المسموحة. يرجى طلب رمز جديد" });
+      }
+
+      await storage.markOtpUsed(otp.id);
+      
+      const user = await storage.getUserByPhone(phone);
+      if (user) {
+        await storage.updateUser(user.id, { phoneVerified: true });
+      }
+      
+      res.json({ success: true, verified: true });
+    } catch (error: any) {
+      console.error("OTP verify error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { phone, password } = req.body;
