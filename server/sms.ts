@@ -1,11 +1,12 @@
-const EASYSENDSMS_API_KEY = process.env.EASYSENDSMS_API_KEY;
-const EASYSENDSMS_SENDER = process.env.EASYSENDSMS_SENDER || 'Mazoud';
+// SMS.to API for Syria (supports Syriatel and MTN)
+const SMSTO_API_KEY = process.env.SMSTO_API_KEY;
+const SMSTO_SENDER = process.env.SMSTO_SENDER || 'Mazoud';
 
-const REST_API_URL = 'https://restapi.easysendsms.app/v1/rest/sms/send';
+const SMSTO_API_URL = 'https://api.sms.to/sms/send';
 
 export async function sendSMSOTP(phoneNumber: string, code: string): Promise<boolean> {
-  if (!EASYSENDSMS_API_KEY) {
-    console.error('EasySendSMS API key not configured');
+  if (!SMSTO_API_KEY) {
+    console.error('SMS.to API key not configured');
     return false;
   }
 
@@ -13,35 +14,33 @@ export async function sendSMSOTP(phoneNumber: string, code: string): Promise<boo
   const message = `رمز التحقق الخاص بك في مزود هو: ${code}\n\nهذا الرمز صالح لمدة 5 دقائق فقط.`;
 
   try {
-    console.log('Sending SMS OTP to:', formattedPhone);
+    console.log('Sending SMS OTP via SMS.to to:', formattedPhone);
 
-    const response = await fetch(REST_API_URL, {
+    const response = await fetch(SMSTO_API_URL, {
       method: 'POST',
       headers: {
-        'apikey': EASYSENDSMS_API_KEY,
+        'Authorization': `Bearer ${SMSTO_API_KEY}`,
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
       },
       body: JSON.stringify({
-        from: EASYSENDSMS_SENDER,
-        to: formattedPhone,
-        text: message,
-        type: '1', // Unicode for Arabic
+        to: '+' + formattedPhone,
+        sender_id: SMSTO_SENDER,
+        message: message,
       }),
     });
 
     const responseData = await response.json();
-    console.log('EasySendSMS REST API Response:', response.status, JSON.stringify(responseData));
+    console.log('SMS.to API Response:', response.status, JSON.stringify(responseData));
 
-    if (response.ok && (responseData.status === 'OK' || responseData.status === 'success')) {
-      console.log('SMS sent successfully');
+    if (response.ok && responseData.success) {
+      console.log('SMS sent successfully via SMS.to');
       return true;
     }
 
-    console.error('EasySendSMS error:', responseData.message || responseData.error || 'Unknown error');
+    console.error('SMS.to error:', responseData.message || responseData.error || 'Unknown error');
     return false;
   } catch (error) {
-    console.error('Failed to send SMS:', error);
+    console.error('Failed to send SMS via SMS.to:', error);
     return false;
   }
 }
