@@ -792,15 +792,23 @@ export async function registerRoutes(
 
   app.post("/api/wallet/deposit-request", async (req, res) => {
     try {
-      const { userId, amount, proofImage, notes } = req.body;
+      const { userId, amount, proofImage, referenceCode } = req.body;
       if (!userId || !amount) {
         return res.status(400).json({ error: "userId و amount مطلوبين" });
       }
+      
+      // Get wallet for user
+      const wallet = await storage.getWallet(parseInt(userId));
+      if (!wallet) {
+        return res.status(400).json({ error: "لم يتم العثور على المحفظة" });
+      }
+      
       const request = await storage.createWalletDepositRequest({
         userId: parseInt(userId),
+        walletId: wallet.id,
         amount: amount.toString(),
         proofImage: proofImage || null,
-        notes: notes || null,
+        referenceCode: referenceCode || null,
         status: 'pending'
       });
       res.status(201).json(request);

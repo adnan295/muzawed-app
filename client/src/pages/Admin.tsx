@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ImageUploader } from '@/components/ImageUploader';
 import { 
   Package, ShoppingCart, Users, TrendingUp, Plus, Search, Edit, Trash2, ArrowRight,
   LayoutDashboard, Box, ClipboardList, Settings, DollarSign, Eye, CheckCircle, Clock,
@@ -4077,12 +4078,10 @@ export default function Admin() {
                       />
                     </div>
                     <div>
-                      <Label>رابط الصورة</Label>
-                      <Input 
+                      <Label>صورة الشريحة</Label>
+                      <ImageUploader 
                         value={newBanner.image} 
-                        onChange={(e) => setNewBanner({...newBanner, image: e.target.value})}
-                        placeholder="https://..."
-                        data-testid="input-banner-image"
+                        onChange={(url) => setNewBanner({...newBanner, image: url})}
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -6938,8 +6937,11 @@ export default function Admin() {
                         </div>
                       </div>
                       <div>
-                        <Label>رابط الصورة</Label>
-                        <Input placeholder="https://..." value={newProduct.image} onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })} data-testid="input-image" />
+                        <Label>صورة المنتج</Label>
+                        <ImageUploader 
+                          value={newProduct.image} 
+                          onChange={(url) => setNewProduct({ ...newProduct, image: url })} 
+                        />
                       </div>
                       
                       {/* Warehouse Inventory Section */}
