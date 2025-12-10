@@ -30,6 +30,8 @@ export async function sendWhatsAppOTP(phoneNumber: string, code: string): Promis
   };
 
   try {
+    console.log('Sending WhatsApp OTP to:', formattedPhone);
+    
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -39,13 +41,20 @@ export async function sendWhatsAppOTP(phoneNumber: string, code: string): Promis
       body: JSON.stringify(messageBody),
     });
 
+    const responseText = await response.text();
+    console.log('WhatsApp API Response:', response.status, responseText);
+
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('WhatsApp API error:', errorData);
+      try {
+        const errorData = JSON.parse(responseText);
+        console.error('WhatsApp API error details:', JSON.stringify(errorData, null, 2));
+      } catch {
+        console.error('WhatsApp API raw error:', responseText);
+      }
       return false;
     }
 
-    const data: WhatsAppMessageResponse = await response.json();
+    const data: WhatsAppMessageResponse = JSON.parse(responseText);
     console.log('WhatsApp message sent successfully:', data.messages[0].id);
     return true;
   } catch (error) {
