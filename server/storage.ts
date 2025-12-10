@@ -126,6 +126,9 @@ import {
   type Referral,
   type InsertReferral,
   referrals,
+  type OtpVerification,
+  type InsertOtpVerification,
+  otpVerifications,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, gte, lte, count, or } from "drizzle-orm";
@@ -460,6 +463,13 @@ export interface IStorage {
   updateDeliverySetting(id: number, setting: Partial<InsertDeliverySetting>): Promise<DeliverySetting | undefined>;
   deleteDeliverySetting(id: number): Promise<void>;
   resolveDeliveryFee(warehouseId: number, subtotal: number, quantity: number): Promise<{ fee: number; isFree: boolean; reason?: string }>;
+
+  // OTP Verification - رموز التحقق
+  createOtp(phone: string, code: string, expiresAt: Date): Promise<OtpVerification>;
+  getValidOtp(phone: string, code: string): Promise<OtpVerification | undefined>;
+  markOtpUsed(id: number): Promise<void>;
+  incrementOtpAttempts(id: number): Promise<void>;
+  deleteExpiredOtps(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2713,6 +2723,51 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSiteSetting(key: string): Promise<void> {
     await db.delete(siteSettings).where(eq(siteSettings.key, key));
+  }
+
+  // OTP Verification - رموز التحقق
+  async createOtp(phone: string, code: string, expiresAt: Date): Promise<OtpVerification> {
+    await db.delete(otpVerifications).where(
+      and(eq(otpVerifications.phone, phone), eq(otpVerifications.isUsed, false))
+    );
+    
+    const [otp] = await db.insert(otpVerifications).values({
+      phone,
+      code,
+      expiresAt,
+      isUsed: false,
+      attempts: 0,
+    }).returning();
+    return otp;
+  }
+
+  async getValidOtp(phone: string, code: string): Promise<OtpVerification | undefined> {
+    const [otp] = await db.select()
+      .from(otpVerifications)
+      .where(and(
+        eq(otpVerifications.phone, phone),
+        eq(otpVerifications.code, code),
+        eq(otpVerifications.isUsed, false),
+        gte(otpVerifications.expiresAt, new Date())
+      ));
+    return otp || undefined;
+  }
+
+  async markOtpUsed(id: number): Promise<void> {
+    await db.update(otpVerifications)
+      .set({ isUsed: true })
+      .where(eq(otpVerifications.id, id));
+  }
+
+  async incrementOtpAttempts(id: number): Promise<void> {
+    await db.update(otpVerifications)
+      .set({ attempts: sql`${otpVerifications.attempts} + 1` })
+      .where(eq(otpVerifications.id, id));
+  }
+
+  async deleteExpiredOtps(): Promise<void> {
+    await db.delete(otpVerifications)
+      .where(lte(otpVerifications.expiresAt, new Date()));
   }
 }
 
