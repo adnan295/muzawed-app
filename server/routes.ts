@@ -2815,6 +2815,27 @@ export async function registerRoutes(
     }
   });
 
+  // Get all pending credits with users (admin) - sorted by due date
+  app.get("/api/credits/pending/all", async (req, res) => {
+    try {
+      const pendingCredits = await storage.getAllPendingCreditsWithUsers();
+      res.json(pendingCredits);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get next due credit for a user (customer view)
+  app.get("/api/credits/:userId/next-due", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const nextDue = await storage.getNextDueCredit(userId);
+      res.json(nextDue);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ==================== Site Settings Routes ====================
 
   // Get all site settings

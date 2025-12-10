@@ -2652,6 +2652,41 @@ export class DatabaseStorage implements IStorage {
     
     return { eligible: true, reason: "مؤهل للشراء بالآجل", credit };
   }
+  // الحصول على جميع الديون المعلقة مرتبة حسب تاريخ الاستحقاق
+  async getAllPendingCreditsWithUsers(): Promise<Array<{
+    transaction: CreditTransaction;
+    user: User;
+    credit: CustomerCredit;
+  }>> {
+    const pendingTransactions = await db.select()
+      .from(creditTransactions)
+      .where(eq(creditTransactions.status, "pending"))
+      .orderBy(creditTransactions.dueDate);
+    
+    const result = [];
+    for (const transaction of pendingTransactions) {
+      const [user] = await db.select().from(users).where(eq(users.id, transaction.userId));
+      const credit = await this.getCustomerCredit(transaction.userId);
+      if (user && credit) {
+        result.push({ transaction, user, credit });
+      }
+    }
+    return result;
+  }
+
+  // الحصول على أقرب موعد سداد للعميل
+  async getNextDueCredit(userId: number): Promise<CreditTransaction | null> {
+    const [transaction] = await db.select()
+      .from(creditTransactions)
+      .where(and(
+        eq(creditTransactions.userId, userId),
+        eq(creditTransactions.status, "pending")
+      ))
+      .orderBy(creditTransactions.dueDate)
+      .limit(1);
+    return transaction || null;
+  }
+
   // Site Settings - إعدادات الموقع
   async getSiteSettings(): Promise<SiteSetting[]> {
     return await db.select().from(siteSettings).orderBy(siteSettings.key);
