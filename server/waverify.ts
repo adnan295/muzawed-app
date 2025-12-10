@@ -27,7 +27,7 @@ export async function sendWaVerifyOTP(phoneNumber: string): Promise<{ success: b
     const responseData = await response.json();
     console.log('WaVerify API Response:', response.status, JSON.stringify(responseData));
 
-    if (response.ok && (responseData.success || responseData.status === 'success')) {
+    if (response.ok && (responseData.success || responseData.status === 'success' || responseData.status === 'sent')) {
       console.log('OTP sent successfully via WaVerify');
       return { success: true, message: 'تم إرسال رمز التحقق عبر واتساب' };
     }
