@@ -1,12 +1,11 @@
-const EASYSENDSMS_USERNAME = process.env.EASYSENDSMS_USERNAME;
-const EASYSENDSMS_PASSWORD = process.env.EASYSENDSMS_PASSWORD;
+const EASYSENDSMS_API_KEY = process.env.EASYSENDSMS_API_KEY;
 const EASYSENDSMS_SENDER = process.env.EASYSENDSMS_SENDER || 'Mazoud';
 
-const API_URL = 'https://api.easysendsms.app/bulksms';
+const REST_API_URL = 'https://restapi.easysendsms.app/v1/rest/sms/send';
 
 export async function sendSMSOTP(phoneNumber: string, code: string): Promise<boolean> {
-  if (!EASYSENDSMS_USERNAME || !EASYSENDSMS_PASSWORD) {
-    console.error('EasySendSMS credentials not configured');
+  if (!EASYSENDSMS_API_KEY) {
+    console.error('EasySendSMS API key not configured');
     return false;
   }
 
@@ -16,45 +15,30 @@ export async function sendSMSOTP(phoneNumber: string, code: string): Promise<boo
   try {
     console.log('Sending SMS OTP to:', formattedPhone);
 
-    const params = new URLSearchParams({
-      username: EASYSENDSMS_USERNAME,
-      password: EASYSENDSMS_PASSWORD,
-      to: formattedPhone,
-      from: EASYSENDSMS_SENDER,
-      text: message,
-      type: '1',
-    });
-
-    const response = await fetch(API_URL, {
+    const response = await fetch(REST_API_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'apikey': EASYSENDSMS_API_KEY,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
-      body: params.toString(),
+      body: JSON.stringify({
+        from: EASYSENDSMS_SENDER,
+        to: formattedPhone,
+        text: message,
+        type: '1', // Unicode for Arabic
+      }),
     });
 
-    const responseText = await response.text();
-    console.log('EasySendSMS API Response:', response.status, responseText);
+    const responseData = await response.json();
+    console.log('EasySendSMS REST API Response:', response.status, JSON.stringify(responseData));
 
-    if (responseText.startsWith('OK')) {
+    if (response.ok && responseData.status === 'success') {
       console.log('SMS sent successfully');
       return true;
     }
 
-    const errorCodes: Record<string, string> = {
-      '1001': 'معلمات ناقصة',
-      '1002': 'اسم مستخدم أو كلمة مرور غير صحيحة',
-      '1003': 'نوع الرسالة غير صحيح',
-      '1004': 'الرسالة غير صالحة',
-      '1005': 'رقم الهاتف غير صحيح',
-      '1006': 'اسم المرسل غير صالح',
-      '1007': 'رصيد غير كافٍ',
-      '1008': 'خطأ داخلي',
-      '1009': 'الخدمة غير متوفرة',
-    };
-
-    const errorMessage = errorCodes[responseText] || responseText;
-    console.error('EasySendSMS error:', errorMessage);
+    console.error('EasySendSMS error:', responseData.message || responseData.error || 'Unknown error');
     return false;
   } catch (error) {
     console.error('Failed to send SMS:', error);
