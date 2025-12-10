@@ -112,7 +112,7 @@ export async function registerRoutes(
     }
   });
 
-  // Send OTP via WhatsApp
+  // Send OTP via SMS (EasySendSMS) with WhatsApp fallback
   app.post("/api/auth/send-otp", async (req, res) => {
     try {
       const { phone } = req.body;
@@ -127,17 +127,27 @@ export async function registerRoutes(
         return res.status(429).json({ error: "تم إرسال عدة رموز. يرجى الانتظار 10 دقائق" });
       }
 
-      const { generateOTPCode, sendWhatsAppOTP } = await import('./whatsapp');
+      const { generateOTPCode } = await import('./whatsapp');
+      const { sendSMSOTP } = await import('./sms');
       
       const code = generateOTPCode();
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
       
       await storage.createOtp(phone, code, expiresAt);
       
-      const sent = await sendWhatsAppOTP(phone, code);
+      // Try SMS first (works in Syria)
+      let sent = await sendSMSOTP(phone, code);
+      
+      if (sent) {
+        return res.json({ success: true, message: "تم إرسال رمز التحقق عبر SMS" });
+      }
+      
+      // Fallback to WhatsApp if SMS fails
+      const { sendWhatsAppOTP } = await import('./whatsapp');
+      sent = await sendWhatsAppOTP(phone, code);
       
       if (!sent) {
-        return res.status(500).json({ error: "فشل في إرسال رمز التحقق. تأكد من صحة رقم واتساب" });
+        return res.status(500).json({ error: "فشل في إرسال رمز التحقق. تأكد من صحة رقم الهاتف" });
       }
       
       res.json({ success: true, message: "تم إرسال رمز التحقق عبر واتساب" });
