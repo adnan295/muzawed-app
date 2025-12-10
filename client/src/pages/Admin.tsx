@@ -3858,12 +3858,12 @@ export default function Admin() {
                             </span>
                           </div>
                           
-                          {/* Reorder Buttons */}
-                          <div className="flex items-center justify-center gap-1 mb-2">
+                          {/* Reorder Buttons - Large for Mobile */}
+                          <div className="flex items-center justify-center gap-2 mb-3 bg-gray-50 rounded-xl p-2">
                             <Button 
-                              size="sm" 
-                              variant="ghost" 
-                              className="rounded-lg h-7 w-7 p-0"
+                              size="lg" 
+                              variant="outline" 
+                              className="rounded-xl h-12 w-12 p-0 bg-white border-2 border-blue-200 hover:bg-blue-50 hover:border-blue-400 active:scale-95 transition-all touch-manipulation"
                               disabled={index === 0}
                               onClick={async () => {
                                 const newOrder = filteredBanners.map((b: any) => b.id);
@@ -3876,13 +3876,15 @@ export default function Admin() {
                                   toast({ title: 'حدث خطأ', variant: 'destructive' });
                                 }
                               }}
+                              data-testid={`move-up-banner-${banner.id}`}
                             >
-                              <ChevronUp className="w-4 h-4" />
+                              <ChevronUp className="w-6 h-6 text-blue-600" />
                             </Button>
+                            <span className="text-sm font-bold text-gray-600 min-w-[3rem] text-center">{index + 1} / {filteredBanners.length}</span>
                             <Button 
-                              size="sm" 
-                              variant="ghost" 
-                              className="rounded-lg h-7 w-7 p-0"
+                              size="lg" 
+                              variant="outline" 
+                              className="rounded-xl h-12 w-12 p-0 bg-white border-2 border-blue-200 hover:bg-blue-50 hover:border-blue-400 active:scale-95 transition-all touch-manipulation"
                               disabled={index === filteredBanners.length - 1}
                               onClick={async () => {
                                 const newOrder = filteredBanners.map((b: any) => b.id);
@@ -3895,8 +3897,9 @@ export default function Admin() {
                                   toast({ title: 'حدث خطأ', variant: 'destructive' });
                                 }
                               }}
+                              data-testid={`move-down-banner-${banner.id}`}
                             >
-                              <ChevronDown className="w-4 h-4" />
+                              <ChevronDown className="w-6 h-6 text-blue-600" />
                             </Button>
                           </div>
                           
