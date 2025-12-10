@@ -1191,6 +1191,12 @@ export default function Admin() {
     queryFn: () => creditsAPI.getAll() as Promise<any[]>,
   });
 
+  // Pending Credits sorted by due date
+  const { data: pendingCreditsList = [], refetch: refetchPendingCredits } = useQuery<any[]>({
+    queryKey: ['pendingCredits'],
+    queryFn: () => creditsAPI.getAllPending() as Promise<any[]>,
+  });
+
   const [selectedCreditUser, setSelectedCreditUser] = useState<any>(null);
   const [creditTransactions, setCreditTransactions] = useState<any[]>([]);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
@@ -9472,6 +9478,91 @@ export default function Admin() {
                                     </Button>
                                   )}
                                 </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </Card>
+
+              {/* Pending Credits Table - sorted by due date */}
+              <Card className="p-6 border-none shadow-lg rounded-2xl">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-lg flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-orange-600" />
+                    الديون المستحقة (مرتبة حسب تاريخ السداد)
+                  </h3>
+                  <Button variant="outline" size="sm" className="rounded-lg" onClick={() => refetchPendingCredits()}>
+                    <RefreshCw className="w-4 h-4 ml-1" />تحديث
+                  </Button>
+                </div>
+                {pendingCreditsList.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-300" />
+                    <p>لا توجد ديون مستحقة حالياً</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-right">العميل</TableHead>
+                          <TableHead className="text-right">المبلغ</TableHead>
+                          <TableHead className="text-right">تاريخ الطلب</TableHead>
+                          <TableHead className="text-right">موعد السداد</TableHead>
+                          <TableHead className="text-right">الأيام المتبقية</TableHead>
+                          <TableHead className="text-right">الحالة</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {pendingCreditsList.map((item: any) => {
+                          const dueDate = item.transaction?.dueDate ? new Date(item.transaction.dueDate) : null;
+                          const now = new Date();
+                          const daysRemaining = dueDate ? Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+                          const isOverdue = daysRemaining < 0;
+                          const isNearDue = daysRemaining >= 0 && daysRemaining <= 3;
+                          
+                          return (
+                            <TableRow key={item.transaction?.id} data-testid={`row-pending-credit-${item.transaction?.id}`} className={isOverdue ? 'bg-red-50' : isNearDue ? 'bg-orange-50' : ''}>
+                              <TableCell>
+                                <div className="font-medium">{item.user?.facilityName || item.user?.phone || `عميل #${item.transaction?.userId}`}</div>
+                                <div className="text-xs text-gray-500">{item.user?.phone}</div>
+                              </TableCell>
+                              <TableCell className="font-bold text-red-600">
+                                {parseFloat(item.transaction?.amount || 0).toLocaleString()} ل.س
+                              </TableCell>
+                              <TableCell className="text-sm text-gray-600">
+                                {item.transaction?.createdAt ? new Date(item.transaction.createdAt).toLocaleDateString('ar-SY') : '-'}
+                              </TableCell>
+                              <TableCell className="text-sm">
+                                {dueDate ? dueDate.toLocaleDateString('ar-SY') : '-'}
+                              </TableCell>
+                              <TableCell>
+                                {isOverdue ? (
+                                  <span className="font-bold text-red-600">متأخر {Math.abs(daysRemaining)} يوم</span>
+                                ) : (
+                                  <span className={`font-bold ${isNearDue ? 'text-orange-600' : 'text-green-600'}`}>
+                                    {daysRemaining} يوم
+                                  </span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {isOverdue ? (
+                                  <Badge className="bg-red-100 text-red-700 rounded-full gap-1">
+                                    <AlertTriangle className="w-3 h-3" />متأخر
+                                  </Badge>
+                                ) : isNearDue ? (
+                                  <Badge className="bg-orange-100 text-orange-700 rounded-full gap-1">
+                                    <Clock className="w-3 h-3" />قريب
+                                  </Badge>
+                                ) : (
+                                  <Badge className="bg-green-100 text-green-700 rounded-full">
+                                    في الموعد
+                                  </Badge>
+                                )}
                               </TableCell>
                             </TableRow>
                           );

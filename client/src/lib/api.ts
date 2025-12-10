@@ -615,4 +615,6 @@ export const creditsAPI = {
     method: "PUT",
     body: JSON.stringify(data),
   }),
+  getAllPending: () => request("/credits/pending/all"),
+  getNextDue: (userId: number) => request(`/credits/${userId}/next-due`),
 };

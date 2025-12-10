@@ -115,6 +115,17 @@ export default function Profile() {
     enabled: !!user?.id,
   });
 
+  const { data: nextDueCredit } = useQuery<{
+    id: number;
+    amount: string;
+    dueDate: string;
+    createdAt: string;
+  } | null>({
+    queryKey: ['nextDueCredit', user?.id],
+    queryFn: () => creditsAPI.getNextDue(user!.id) as any,
+    enabled: !!user?.id && parseFloat(creditInfo?.currentBalance || '0') > 0,
+  });
+
   const { data: favorites = [] } = useQuery<Favorite[]>({
     queryKey: ['favorites', user?.id],
     queryFn: async () => {
@@ -382,10 +393,42 @@ export default function Profile() {
               
               {parseFloat(creditInfo.currentBalance) > 0 && (
                 <div className="mt-3 p-3 bg-orange-50 rounded-xl border border-orange-200">
-                  <div className="flex items-center gap-2 text-sm text-orange-700">
+                  <div className="flex items-center gap-2 text-sm text-orange-700 mb-2">
                     <Clock className="w-4 h-4" />
                     <span>لديك رصيد مستحق بقيمة {parseFloat(creditInfo.currentBalance).toLocaleString('ar-SY')} ل.س</span>
                   </div>
+                  {nextDueCredit?.dueDate && (() => {
+                    const dueDate = new Date(nextDueCredit.dueDate);
+                    const createdDate = new Date(nextDueCredit.createdAt);
+                    const now = new Date();
+                    const totalDays = Math.ceil((dueDate.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+                    const daysRemaining = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                    const isOverdue = daysRemaining < 0;
+                    const progress = totalDays <= 0 
+                      ? (isOverdue ? 100 : 0) 
+                      : Math.max(0, Math.min(100, ((totalDays - daysRemaining) / totalDays) * 100));
+                    
+                    return (
+                      <div className={`p-2 rounded-lg ${isOverdue ? 'bg-red-100 border border-red-300' : 'bg-white'}`}>
+                        <div className="flex justify-between items-center text-xs mb-1">
+                          <span className={isOverdue ? 'text-red-700 font-bold' : 'text-gray-600'}>
+                            {isOverdue ? 'متأخر!' : 'موعد السداد القادم'}
+                          </span>
+                          <span className={`font-bold ${isOverdue ? 'text-red-700' : 'text-orange-700'}`}>
+                            {isOverdue ? `متأخر ${Math.abs(daysRemaining)} يوم` : `${daysRemaining} يوم متبقي`}
+                          </span>
+                        </div>
+                        <Progress 
+                          value={isOverdue ? 100 : progress} 
+                          className={`h-2 ${isOverdue ? '[&>div]:bg-red-500' : '[&>div]:bg-orange-500'}`}
+                        />
+                        <div className="flex justify-between text-xs text-gray-500 mt-1">
+                          <span>{parseFloat(nextDueCredit.amount).toLocaleString('ar-SY')} ل.س</span>
+                          <span>{dueDate.toLocaleDateString('ar-SY')}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
               

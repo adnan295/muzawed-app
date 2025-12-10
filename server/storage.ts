@@ -128,7 +128,7 @@ import {
   referrals,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql, gte, lte, count, or } from "drizzle-orm";
+import { eq, and, desc, asc, sql, gte, lte, count, or } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -2652,7 +2652,7 @@ export class DatabaseStorage implements IStorage {
     
     return { eligible: true, reason: "مؤهل للشراء بالآجل", credit };
   }
-  // الحصول على جميع الديون المعلقة مرتبة حسب تاريخ الاستحقاق
+  // الحصول على جميع الديون المعلقة مرتبة حسب تاريخ الاستحقاق (الأقرب أولاً)
   async getAllPendingCreditsWithUsers(): Promise<Array<{
     transaction: CreditTransaction;
     user: User;
@@ -2661,7 +2661,7 @@ export class DatabaseStorage implements IStorage {
     const pendingTransactions = await db.select()
       .from(creditTransactions)
       .where(eq(creditTransactions.status, "pending"))
-      .orderBy(creditTransactions.dueDate);
+      .orderBy(asc(creditTransactions.dueDate));
     
     const result = [];
     for (const transaction of pendingTransactions) {
@@ -2674,7 +2674,7 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  // الحصول على أقرب موعد سداد للعميل
+  // الحصول على أقرب موعد سداد للعميل (الأقرب أولاً)
   async getNextDueCredit(userId: number): Promise<CreditTransaction | null> {
     const [transaction] = await db.select()
       .from(creditTransactions)
@@ -2682,7 +2682,7 @@ export class DatabaseStorage implements IStorage {
         eq(creditTransactions.userId, userId),
         eq(creditTransactions.status, "pending")
       ))
-      .orderBy(creditTransactions.dueDate)
+      .orderBy(asc(creditTransactions.dueDate))
       .limit(1);
     return transaction || null;
   }
