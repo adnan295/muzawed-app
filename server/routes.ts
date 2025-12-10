@@ -11,6 +11,7 @@ import {
 } from "@shared/schema";
 import { fromError } from "zod-validation-error";
 import bcrypt from "bcrypt";
+import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -161,6 +162,70 @@ export async function registerRoutes(
       res.json({ staff: staffData });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== Object Storage Routes ====================
+  
+  const objectStorageService = new ObjectStorageService();
+
+  // Serve public objects (product images, etc.)
+  app.get("/public-objects/:filePath(*)", async (req, res) => {
+    const filePath = req.params.filePath;
+    try {
+      const file = await objectStorageService.searchPublicObject(filePath);
+      if (!file) {
+        return res.status(404).json({ error: "الملف غير موجود" });
+      }
+      objectStorageService.downloadObject(file, res);
+    } catch (error) {
+      console.error("Error searching for public object:", error);
+      return res.status(500).json({ error: "خطأ في الخادم" });
+    }
+  });
+
+  // Serve private objects (uploaded files)
+  app.get("/objects/:objectPath(*)", async (req, res) => {
+    try {
+      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error("Error checking object access:", error);
+      if (error instanceof ObjectNotFoundError) {
+        return res.sendStatus(404);
+      }
+      return res.sendStatus(500);
+    }
+  });
+
+  // Get upload URL for image uploads
+  app.post("/api/objects/upload", async (req, res) => {
+    try {
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ uploadURL });
+    } catch (error: any) {
+      console.error("Error getting upload URL:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Confirm upload and get object path
+  app.put("/api/objects/confirm", async (req, res) => {
+    if (!req.body.uploadURL) {
+      return res.status(400).json({ error: "uploadURL is required" });
+    }
+
+    try {
+      const objectPath = objectStorageService.normalizeObjectEntityPath(
+        req.body.uploadURL,
+      );
+
+      res.status(200).json({
+        objectPath: objectPath,
+      });
+    } catch (error) {
+      console.error("Error confirming upload:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -727,14 +792,14 @@ export async function registerRoutes(
 
   app.post("/api/wallet/deposit-request", async (req, res) => {
     try {
-      const { userId, amount, proofImageUrl, notes } = req.body;
+      const { userId, amount, proofImage, notes } = req.body;
       if (!userId || !amount) {
         return res.status(400).json({ error: "userId و amount مطلوبين" });
       }
       const request = await storage.createWalletDepositRequest({
         userId: parseInt(userId),
         amount: amount.toString(),
-        proofImageUrl: proofImageUrl || null,
+        proofImage: proofImage || null,
         notes: notes || null,
         status: 'pending'
       });
