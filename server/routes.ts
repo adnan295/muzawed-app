@@ -50,7 +50,21 @@ export async function registerRoutes(
   
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const { password, ...otherData } = req.body;
+      const { password, verificationToken, ...otherData } = req.body;
+      
+      // Require verification token
+      if (!verificationToken) {
+        return res.status(403).json({ error: "يجب التحقق من رقم الهاتف قبل التسجيل" });
+      }
+      
+      // Validate the verification token
+      const isTokenValid = await storage.validateVerificationToken(otherData.phone, verificationToken);
+      if (!isTokenValid) {
+        return res.status(403).json({ error: "رمز التحقق غير صالح أو منتهي الصلاحية" });
+      }
+      
+      // Invalidate the token FIRST (single-use) - even if registration fails
+      await storage.invalidateVerificationToken(otherData.phone, verificationToken);
       
       // Hash password if provided
       let hashedPassword = null;
@@ -61,6 +75,7 @@ export async function registerRoutes(
       const validData = insertUserSchema.parse({
         ...otherData,
         password: hashedPassword,
+        phoneVerified: true,
       });
       
       // Check if user already exists
@@ -106,6 +121,12 @@ export async function registerRoutes(
         return res.status(400).json({ error: "رقم الهاتف مطلوب" });
       }
 
+      // Rate limiting: max 3 OTPs per 10 minutes
+      const recentCount = await storage.getRecentOtpCount(phone, 10);
+      if (recentCount >= 3) {
+        return res.status(429).json({ error: "تم إرسال عدة رموز. يرجى الانتظار 10 دقائق" });
+      }
+
       const { generateOTPCode, sendWhatsAppOTP } = await import('./whatsapp');
       
       const code = generateOTPCode();
@@ -135,24 +156,34 @@ export async function registerRoutes(
         return res.status(400).json({ error: "رقم الهاتف ورمز التحقق مطلوبان" });
       }
 
-      const otp = await storage.getValidOtp(phone, code);
+      // Get OTP by phone first to increment attempts on failed verification
+      const pendingOtp = await storage.getOtpByPhone(phone);
       
-      if (!otp) {
-        return res.status(400).json({ error: "رمز التحقق غير صحيح أو منتهي الصلاحية" });
+      if (!pendingOtp) {
+        return res.status(400).json({ error: "لا يوجد رمز تحقق لهذا الرقم. يرجى طلب رمز جديد" });
       }
 
-      if (otp.attempts >= 5) {
+      if (pendingOtp.attempts >= 5) {
         return res.status(429).json({ error: "تم تجاوز عدد المحاولات المسموحة. يرجى طلب رمز جديد" });
       }
 
-      await storage.markOtpUsed(otp.id);
-      
-      const user = await storage.getUserByPhone(phone);
-      if (user) {
-        await storage.updateUser(user.id, { phoneVerified: true });
+      // Increment attempts before checking code
+      await storage.incrementOtpAttempts(pendingOtp.id);
+
+      if (pendingOtp.code !== code) {
+        const remainingAttempts = 5 - (pendingOtp.attempts + 1);
+        return res.status(400).json({ 
+          error: `رمز التحقق غير صحيح. لديك ${remainingAttempts} محاولات متبقية` 
+        });
       }
+
+      // Generate a secure verification token
+      const { randomUUID } = await import('crypto');
+      const verificationToken = randomUUID();
       
-      res.json({ success: true, verified: true });
+      await storage.markOtpUsedWithToken(pendingOtp.id, verificationToken);
+      
+      res.json({ success: true, verified: true, verificationToken });
     } catch (error: any) {
       console.error("OTP verify error:", error);
       res.status(500).json({ error: error.message });

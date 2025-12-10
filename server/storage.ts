@@ -467,9 +467,14 @@ export interface IStorage {
   // OTP Verification - رموز التحقق
   createOtp(phone: string, code: string, expiresAt: Date): Promise<OtpVerification>;
   getValidOtp(phone: string, code: string): Promise<OtpVerification | undefined>;
-  markOtpUsed(id: number): Promise<void>;
+  getOtpByPhone(phone: string): Promise<OtpVerification | undefined>;
+  isPhoneVerified(phone: string): Promise<boolean>;
+  markOtpUsedWithToken(id: number, token: string): Promise<void>;
   incrementOtpAttempts(id: number): Promise<void>;
   deleteExpiredOtps(): Promise<void>;
+  getRecentOtpCount(phone: string, minutes: number): Promise<number>;
+  validateVerificationToken(phone: string, token: string): Promise<boolean>;
+  invalidateVerificationToken(phone: string, token: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2753,9 +2758,9 @@ export class DatabaseStorage implements IStorage {
     return otp || undefined;
   }
 
-  async markOtpUsed(id: number): Promise<void> {
+  async markOtpUsedWithToken(id: number, token: string): Promise<void> {
     await db.update(otpVerifications)
-      .set({ isUsed: true })
+      .set({ isUsed: true, verificationToken: token })
       .where(eq(otpVerifications.id, id));
   }
 
@@ -2768,6 +2773,69 @@ export class DatabaseStorage implements IStorage {
   async deleteExpiredOtps(): Promise<void> {
     await db.delete(otpVerifications)
       .where(lte(otpVerifications.expiresAt, new Date()));
+  }
+
+  async getOtpByPhone(phone: string): Promise<OtpVerification | undefined> {
+    const [otp] = await db.select()
+      .from(otpVerifications)
+      .where(and(
+        eq(otpVerifications.phone, phone),
+        eq(otpVerifications.isUsed, false),
+        gte(otpVerifications.expiresAt, new Date())
+      ))
+      .orderBy(desc(otpVerifications.createdAt))
+      .limit(1);
+    return otp || undefined;
+  }
+
+  async isPhoneVerified(phone: string): Promise<boolean> {
+    const [otp] = await db.select()
+      .from(otpVerifications)
+      .where(and(
+        eq(otpVerifications.phone, phone),
+        eq(otpVerifications.isUsed, true)
+      ))
+      .orderBy(desc(otpVerifications.createdAt))
+      .limit(1);
+    
+    if (!otp) return false;
+    
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+    return otp.createdAt >= thirtyMinutesAgo;
+  }
+
+  async getRecentOtpCount(phone: string, minutes: number): Promise<number> {
+    const timeAgo = new Date(Date.now() - minutes * 60 * 1000);
+    const result = await db.select({ count: sql<number>`count(*)::int` })
+      .from(otpVerifications)
+      .where(and(
+        eq(otpVerifications.phone, phone),
+        gte(otpVerifications.createdAt, timeAgo)
+      ));
+    return result[0]?.count || 0;
+  }
+
+  async validateVerificationToken(phone: string, token: string): Promise<boolean> {
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+    const [otp] = await db.select()
+      .from(otpVerifications)
+      .where(and(
+        eq(otpVerifications.phone, phone),
+        eq(otpVerifications.verificationToken, token),
+        eq(otpVerifications.isUsed, true),
+        gte(otpVerifications.createdAt, thirtyMinutesAgo)
+      ))
+      .limit(1);
+    return !!otp;
+  }
+
+  async invalidateVerificationToken(phone: string, token: string): Promise<void> {
+    await db.update(otpVerifications)
+      .set({ verificationToken: null })
+      .where(and(
+        eq(otpVerifications.phone, phone),
+        eq(otpVerifications.verificationToken, token)
+      ));
   }
 }
 

@@ -133,7 +133,8 @@ export default function Login() {
         description: "تم التحقق من رقم هاتفك بنجاح",
       });
       
-      setLocation(`/register?phone=${encodeURIComponent(fullPhone)}&verified=true`);
+      // Pass the verification token to the registration page
+      setLocation(`/register?phone=${encodeURIComponent(fullPhone)}&token=${encodeURIComponent(data.verificationToken)}`);
     } catch (error: any) {
       toast({
         title: "خطأ",

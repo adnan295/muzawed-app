@@ -2,9 +2,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { Store, Lock, MapPin, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { Store, Lock, MapPin, ArrowLeft, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { authAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
@@ -17,9 +17,22 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
-  // Get phone from URL params
+  // Get phone and verification token from URL params
   const urlParams = new URLSearchParams(window.location.search);
   const phoneFromUrl = urlParams.get('phone') || '';
+  const verificationToken = urlParams.get('token') || '';
+
+  // Redirect if phone not verified (no token)
+  useEffect(() => {
+    if (!phoneFromUrl || !verificationToken) {
+      toast({
+        title: "تنبيه",
+        description: "يجب التحقق من رقم الهاتف أولاً",
+        variant: "destructive",
+      });
+      setLocation('/login');
+    }
+  }, [phoneFromUrl, verificationToken, setLocation, toast]);
   
   const [formData, setFormData] = useState({
     phone: phoneFromUrl,
@@ -88,6 +101,7 @@ export default function Register() {
         password: formData.password,
         latitude: formData.latitude,
         longitude: formData.longitude,
+        verificationToken: verificationToken,
       });
       
       login(response.user);

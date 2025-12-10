@@ -937,6 +937,7 @@ export const otpVerifications = pgTable("otp_verifications", {
   id: serial("id").primaryKey(),
   phone: text("phone").notNull(),
   code: text("code").notNull(),
+  verificationToken: text("verification_token"),
   expiresAt: timestamp("expires_at").notNull(),
   isUsed: boolean("is_used").default(false).notNull(),
   attempts: integer("attempts").default(0).notNull(),
