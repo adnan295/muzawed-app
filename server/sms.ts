@@ -33,7 +33,7 @@ export async function sendSMSOTP(phoneNumber: string, code: string): Promise<boo
     const responseData = await response.json();
     console.log('EasySendSMS REST API Response:', response.status, JSON.stringify(responseData));
 
-    if (response.ok && responseData.status === 'success') {
+    if (response.ok && (responseData.status === 'OK' || responseData.status === 'success')) {
       console.log('SMS sent successfully');
       return true;
     }
