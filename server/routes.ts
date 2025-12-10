@@ -112,7 +112,7 @@ export async function registerRoutes(
     }
   });
 
-  // Send OTP via SMS (EasySendSMS) with WhatsApp fallback
+  // Send OTP via WaVerify (WhatsApp)
   app.post("/api/auth/send-otp", async (req, res) => {
     try {
       const { phone } = req.body;
@@ -127,37 +127,25 @@ export async function registerRoutes(
         return res.status(429).json({ error: "تم إرسال عدة رموز. يرجى الانتظار 10 دقائق" });
       }
 
-      const { generateOTPCode } = await import('./whatsapp');
-      const { sendSMSOTP } = await import('./sms');
+      const { sendWaVerifyOTP } = await import('./waverify');
       
-      const code = generateOTPCode();
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+      const result = await sendWaVerifyOTP(phone);
       
-      await storage.createOtp(phone, code, expiresAt);
-      
-      // Try SMS first (works in Syria)
-      let sent = await sendSMSOTP(phone, code);
-      
-      if (sent) {
-        return res.json({ success: true, message: "تم إرسال رمز التحقق عبر SMS" });
+      if (result.success) {
+        // Store a record for rate limiting
+        const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+        await storage.createOtp(phone, 'WAVERIFY', expiresAt);
+        return res.json({ success: true, message: result.message });
       }
       
-      // Fallback to WhatsApp if SMS fails
-      const { sendWhatsAppOTP } = await import('./whatsapp');
-      sent = await sendWhatsAppOTP(phone, code);
-      
-      if (!sent) {
-        return res.status(500).json({ error: "فشل في إرسال رمز التحقق. تأكد من صحة رقم الهاتف" });
-      }
-      
-      res.json({ success: true, message: "تم إرسال رمز التحقق عبر واتساب" });
+      return res.status(500).json({ error: result.message });
     } catch (error: any) {
       console.error("OTP send error:", error);
       res.status(500).json({ error: error.message });
     }
   });
 
-  // Verify OTP
+  // Verify OTP via WaVerify
   app.post("/api/auth/verify-otp", async (req, res) => {
     try {
       const { phone, code } = req.body;
@@ -166,34 +154,25 @@ export async function registerRoutes(
         return res.status(400).json({ error: "رقم الهاتف ورمز التحقق مطلوبان" });
       }
 
-      // Get OTP by phone first to increment attempts on failed verification
-      const pendingOtp = await storage.getOtpByPhone(phone);
+      const { verifyWaVerifyOTP } = await import('./waverify');
       
-      if (!pendingOtp) {
-        return res.status(400).json({ error: "لا يوجد رمز تحقق لهذا الرقم. يرجى طلب رمز جديد" });
-      }
-
-      if (pendingOtp.attempts >= 5) {
-        return res.status(429).json({ error: "تم تجاوز عدد المحاولات المسموحة. يرجى طلب رمز جديد" });
-      }
-
-      // Increment attempts before checking code
-      await storage.incrementOtpAttempts(pendingOtp.id);
-
-      if (pendingOtp.code !== code) {
-        const remainingAttempts = 5 - (pendingOtp.attempts + 1);
-        return res.status(400).json({ 
-          error: `رمز التحقق غير صحيح. لديك ${remainingAttempts} محاولات متبقية` 
-        });
-      }
-
-      // Generate a secure verification token
-      const { randomUUID } = await import('crypto');
-      const verificationToken = randomUUID();
+      const result = await verifyWaVerifyOTP(phone, code);
       
-      await storage.markOtpUsedWithToken(pendingOtp.id, verificationToken);
+      if (result.success) {
+        // Generate a secure verification token
+        const { randomUUID } = await import('crypto');
+        const verificationToken = randomUUID();
+        
+        // Mark any existing OTP as used
+        const pendingOtp = await storage.getOtpByPhone(phone);
+        if (pendingOtp) {
+          await storage.markOtpUsedWithToken(pendingOtp.id, verificationToken);
+        }
+        
+        return res.json({ success: true, verified: true, verificationToken });
+      }
       
-      res.json({ success: true, verified: true, verificationToken });
+      return res.status(400).json({ error: result.message });
     } catch (error: any) {
       console.error("OTP verify error:", error);
       res.status(500).json({ error: error.message });
