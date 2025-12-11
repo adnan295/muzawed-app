@@ -157,6 +157,7 @@ export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   addressId: integer("address_id").notNull().references(() => addresses.id),
+  warehouseId: integer("warehouse_id").references(() => warehouses.id), // المستودع المخصص للطلب
   bannerId: integer("banner_id").references(() => banners.id), // Track which promo banner the order came from
   status: text("status").notNull().default("pending"), // pending, processing, shipped, delivered, cancelled
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
