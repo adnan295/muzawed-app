@@ -8241,6 +8241,48 @@ export default function Admin() {
                       <Download className="w-5 h-5" />
                       تصدير قائمة العملاء
                     </Button>
+                    <Button 
+                      className="w-full rounded-xl justify-start gap-3 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200" 
+                      variant="outline"
+                      onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = '.xlsx,.xls';
+                        input.onchange = async (e: any) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          
+                          toast({ title: 'جاري استيراد العملاء...', className: 'bg-blue-600 text-white' });
+                          
+                          const reader = new FileReader();
+                          reader.onload = async (event) => {
+                            const base64 = (event.target?.result as string).split(',')[1];
+                            try {
+                              const res = await fetch('/api/admin/customers/import/excel', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ data: base64 })
+                              });
+                              const result = await res.json();
+                              if (res.ok) {
+                                toast({ title: result.message, className: 'bg-green-600 text-white' });
+                                refetchAdminUsers();
+                              } else {
+                                toast({ title: result.error, variant: 'destructive' });
+                              }
+                            } catch (err) {
+                              toast({ title: 'خطأ في الاستيراد', variant: 'destructive' });
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        };
+                        input.click();
+                      }}
+                      data-testid="button-import-customers"
+                    >
+                      <Upload className="w-5 h-5" />
+                      استيراد من Excel
+                    </Button>
                     <Button className="w-full rounded-xl justify-start gap-3 bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200" variant="outline">
                       <BarChart3 className="w-5 h-5" />
                       تقرير تحليلي

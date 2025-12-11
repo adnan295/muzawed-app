@@ -2102,6 +2102,143 @@ export async function registerRoutes(
     }
   });
 
+  // Import customers from Excel
+  app.post("/api/admin/customers/import/excel", async (req, res) => {
+    try {
+      const { data } = req.body;
+      
+      if (!data) {
+        return res.status(400).json({ error: 'لا توجد بيانات للاستيراد' });
+      }
+      
+      const XLSX = await import('xlsx');
+      const buffer = Buffer.from(data, 'base64');
+      const workbook = XLSX.read(buffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      
+      if (rows.length < 2) {
+        return res.status(400).json({ error: 'الملف فارغ أو لا يحتوي على بيانات' });
+      }
+      
+      const cities = await storage.getCities();
+      
+      // Map header columns dynamically
+      const headerRow = rows[0].map((h: any) => String(h || '').trim().toLowerCase());
+      console.log('Excel headers for customers:', headerRow);
+      
+      const columnMappings: Record<string, string[]> = {
+        phone: ['رقم الهاتف', 'الهاتف', 'الموبايل', 'الجوال', 'phone', 'mobile', 'رقم الموبايل', 'رقم الجوال', 'tel', 'telephone'],
+        facilityName: ['اسم المنشأة', 'اسم المحل', 'المنشأة', 'المحل', 'الاسم', 'name', 'facility', 'shop', 'store', 'اسم العميل', 'العميل'],
+        facilityType: ['نوع المنشأة', 'النوع', 'type', 'facility type', 'نوع النشاط'],
+        city: ['المدينة', 'مدينة', 'city', 'المنطقة', 'الحي'],
+        commercialRegister: ['السجل التجاري', 'سجل تجاري', 'commercial register', 'cr'],
+        taxNumber: ['الرقم الضريبي', 'ضريبي', 'tax', 'tax number'],
+      };
+      
+      const findColumnIndex = (field: string): number => {
+        const aliases = columnMappings[field] || [];
+        for (let i = 0; i < headerRow.length; i++) {
+          const header = headerRow[i];
+          if (aliases.some(alias => header.includes(alias.toLowerCase()))) {
+            return i;
+          }
+        }
+        return -1;
+      };
+      
+      const colIdx = {
+        phone: findColumnIndex('phone'),
+        facilityName: findColumnIndex('facilityName'),
+        facilityType: findColumnIndex('facilityType'),
+        city: findColumnIndex('city'),
+        commercialRegister: findColumnIndex('commercialRegister'),
+        taxNumber: findColumnIndex('taxNumber'),
+      };
+      
+      console.log('Column indexes for customers:', colIdx);
+      
+      if (colIdx.phone === -1) {
+        return res.status(400).json({ 
+          error: 'لم يتم العثور على عمود رقم الهاتف. تأكد من وجود عمود بعنوان: رقم الهاتف، الهاتف، الموبايل، أو phone' 
+        });
+      }
+      
+      let imported = 0;
+      let skipped = 0;
+      const errors: string[] = [];
+      
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length === 0) continue;
+        
+        let phone = String(row[colIdx.phone] || '').trim();
+        if (!phone) continue;
+        
+        // Format phone number - ensure it starts with +963
+        phone = phone.replace(/\s+/g, '').replace(/-/g, '');
+        if (phone.startsWith('0')) {
+          phone = '+963' + phone.substring(1);
+        } else if (phone.startsWith('963')) {
+          phone = '+' + phone;
+        } else if (!phone.startsWith('+')) {
+          phone = '+963' + phone;
+        }
+        
+        const facilityName = colIdx.facilityName !== -1 ? String(row[colIdx.facilityName] || '').trim() : '';
+        const facilityType = colIdx.facilityType !== -1 ? String(row[colIdx.facilityType] || '').trim() : '';
+        const cityName = colIdx.city !== -1 ? String(row[colIdx.city] || '').trim() : '';
+        const commercialRegister = colIdx.commercialRegister !== -1 ? String(row[colIdx.commercialRegister] || '').trim() : '';
+        const taxNumber = colIdx.taxNumber !== -1 ? String(row[colIdx.taxNumber] || '').trim() : '';
+        
+        // Find city by name
+        let cityId = null;
+        if (cityName) {
+          const city = cities.find((c: any) => 
+            c.name.toLowerCase().includes(cityName.toLowerCase()) || 
+            cityName.toLowerCase().includes(c.name.toLowerCase())
+          );
+          if (city) cityId = city.id;
+        }
+        
+        try {
+          // Check if phone already exists
+          const existingUser = await storage.getUserByPhone(phone);
+          if (existingUser) {
+            skipped++;
+            continue;
+          }
+          
+          await storage.createUser({
+            phone,
+            facilityName: facilityName || `عميل ${phone}`,
+            facilityType: facilityType || null,
+            cityId,
+            commercialRegister: commercialRegister || null,
+            taxNumber: taxNumber || null,
+            phoneVerified: false,
+          });
+          imported++;
+        } catch (err: any) {
+          errors.push(`خطأ في الصف ${i + 1}: ${err.message}`);
+          skipped++;
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        imported, 
+        skipped,
+        message: `تم استيراد ${imported} عميل بنجاح${skipped > 0 ? ` (تم تخطي ${skipped})` : ''}`,
+        errors: errors.slice(0, 10)
+      });
+    } catch (error: any) {
+      console.error('Error importing customers:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/users/:id", async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
