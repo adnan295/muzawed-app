@@ -893,14 +893,24 @@ export class DatabaseStorage implements IStorage {
       }
       
       const walletBalance = parseFloat(wallet.balance);
-      const orderTotal = parseFloat(order.total);
+      const originalTotal = parseFloat(order.total);
       
-      if (walletBalance < orderTotal) {
+      // Apply 1% Basha Cash discount for wallet payments
+      const discountRate = 0.01; // 1% خصم
+      const walletDiscount = originalTotal * discountRate;
+      const discountedTotal = originalTotal - walletDiscount;
+      
+      if (walletBalance < discountedTotal) {
         throw new Error('رصيد المحفظة غير كافي');
       }
       
-      // Create order
-      const [newOrder] = await tx.insert(orders).values(order).returning();
+      // Create order with discount applied
+      const orderWithDiscount = {
+        ...order,
+        walletDiscount: walletDiscount.toFixed(2),
+        total: discountedTotal.toFixed(2)
+      };
+      const [newOrder] = await tx.insert(orders).values(orderWithDiscount).returning();
       
       // Add items
       for (const item of items) {
@@ -910,16 +920,16 @@ export class DatabaseStorage implements IStorage {
         });
       }
       
-      // Deduct from wallet
-      const newBalance = (walletBalance - orderTotal).toFixed(2);
+      // Deduct discounted amount from wallet
+      const newBalance = (walletBalance - discountedTotal).toFixed(2);
       await tx.update(wallets).set({ balance: newBalance, updatedAt: new Date() }).where(eq(wallets.userId, order.userId));
       
       // Record wallet transaction
       await tx.insert(walletTransactions).values({
         walletId: wallet.id,
         type: 'payment',
-        amount: orderTotal.toFixed(2),
-        title: `دفع طلب #${newOrder.id}`,
+        amount: discountedTotal.toFixed(2),
+        title: `دفع طلب #${newOrder.id} (خصم Basha Cash 1%)`,
         method: 'wallet'
       });
       

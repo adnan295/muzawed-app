@@ -162,6 +162,7 @@ export const orders = pgTable("orders", {
   status: text("status").notNull().default("pending"), // pending, processing, shipped, delivered, cancelled
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
   deliveryFee: decimal("delivery_fee", { precision: 10, scale: 2 }).default("0"), // رسوم التوصيل
+  walletDiscount: decimal("wallet_discount", { precision: 10, scale: 2 }).default("0"), // خصم 1% للدفع من المحفظة (Basha Cash)
   tax: decimal("tax", { precision: 10, scale: 2 }).notNull(),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
   paymentMethod: text("payment_method").notNull(), // wallet, card, cash
