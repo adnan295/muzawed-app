@@ -1048,6 +1048,7 @@ export default function Admin() {
   });
   const [exchangeRate, setExchangeRate] = useState('15000');
   const [productInventory, setProductInventory] = useState<{ warehouseId: number; stock: number }[]>([]);
+  const [productPriceTiers, setProductPriceTiers] = useState<{ minQuantity: string; maxQuantity: string; price: string; discountPercent: string }[]>([]);
 
   // Warehouse management state
   const [isAddWarehouseOpen, setIsAddWarehouseOpen] = useState(false);
@@ -1844,7 +1845,7 @@ export default function Admin() {
     { title: 'منتجات منخفضة المخزون', value: dashboardStats?.lowStockProducts?.toString() || lowStockProductsData.length.toString(), suffix: 'منتج', icon: AlertTriangle, color: 'from-orange-500 to-orange-600', change: lowStockProductsData.length > 10 ? 'تنبيه!' : 'طبيعي', changeType: lowStockProductsData.length > 10 ? 'down' : 'up' },
   ];
 
-  const handleEditProduct = (product: Product) => {
+  const handleEditProduct = async (product: Product) => {
     setEditingProductId(product.id);
     setNewProduct({
       name: product.name,
@@ -1858,6 +1859,23 @@ export default function Admin() {
       unit: product.unit,
       stock: product.stock.toString(),
     });
+    
+    // Load existing price tiers
+    try {
+      const tiersRes = await fetch(`/api/products/${product.id}/price-tiers`);
+      if (tiersRes.ok) {
+        const tiers = await tiersRes.json();
+        setProductPriceTiers(tiers.map((t: any) => ({
+          minQuantity: t.minQuantity?.toString() || '',
+          maxQuantity: t.maxQuantity?.toString() || '',
+          price: t.price || '',
+          discountPercent: t.discountPercent || '',
+        })));
+      }
+    } catch (error) {
+      setProductPriceTiers([]);
+    }
+    
     setIsAddProductOpen(true);
   };
 
@@ -1886,11 +1904,42 @@ export default function Admin() {
       });
 
       if (response.ok) {
+        const savedProduct = await response.json();
+        const productId = isEditing ? editingProductId : savedProduct.id;
+        
+        // Save price tiers
+        if (productPriceTiers.length > 0) {
+          const validTiers = productPriceTiers
+            .filter(t => t.minQuantity && t.price)
+            .map(t => ({
+              minQuantity: parseInt(t.minQuantity),
+              maxQuantity: t.maxQuantity ? parseInt(t.maxQuantity) : null,
+              price: t.price,
+              discountPercent: t.discountPercent || null,
+            }));
+          
+          if (validTiers.length > 0) {
+            await fetch(`/api/products/${productId}/price-tiers`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ tiers: validTiers }),
+            });
+          }
+        } else if (isEditing) {
+          // Clear existing tiers if none specified during edit
+          await fetch(`/api/products/${productId}/price-tiers`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tiers: [] }),
+          });
+        }
+        
         toast({ title: isEditing ? 'تم تحديث المنتج بنجاح' : 'تم إضافة المنتج بنجاح', className: 'bg-green-600 text-white' });
         setIsAddProductOpen(false);
         setEditingProductId(null);
         setNewProduct({ name: '', categoryId: '', brandId: '', price: '', originalPrice: '', image: '', minOrder: '1', unit: 'كرتون', stock: '100', priceCurrency: 'SYP' });
         setProductInventory([]);
+        setProductPriceTiers([]);
         refetchProducts();
       }
     } catch (error) {
@@ -6875,6 +6924,7 @@ export default function Admin() {
                     if (!open) {
                       setEditingProductId(null);
                       setNewProduct({ name: '', categoryId: '', brandId: '', price: '', originalPrice: '', image: '', minOrder: '1', unit: 'كرتون', stock: '100', priceCurrency: 'SYP' });
+                      setProductPriceTiers([]);
                     }
                   }}>
                   <DialogTrigger asChild>
@@ -7009,6 +7059,100 @@ export default function Admin() {
                         {warehousesList.length === 0 && (
                           <p className="text-center text-gray-400 text-sm py-4">لا توجد مستودعات. أضف مستودعات أولاً.</p>
                         )}
+                      </div>
+                      
+                      {/* Price Tiers Section - أسعار الجملة المتدرجة */}
+                      <div className="border rounded-xl p-4 bg-gradient-to-br from-purple-50 to-blue-50">
+                        <Label className="text-base font-bold flex items-center gap-2 mb-3">
+                          <TrendingDown className="w-4 h-4 text-purple-600" />
+                          أسعار الجملة المتدرجة
+                        </Label>
+                        <p className="text-xs text-gray-500 mb-3">حدد أسعار خاصة حسب الكمية المشتراة (مثال: اشتري 10+ بسعر أقل)</p>
+                        
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {productPriceTiers.map((tier, index) => (
+                            <div key={index} className="flex items-center gap-2 p-2 bg-white rounded-lg border">
+                              <div className="flex-1 grid grid-cols-4 gap-2">
+                                <div>
+                                  <Label className="text-xs text-gray-500">من (كمية)</Label>
+                                  <Input
+                                    type="number"
+                                    className="h-8 text-sm"
+                                    placeholder="10"
+                                    value={tier.minQuantity}
+                                    onChange={(e) => {
+                                      const updated = [...productPriceTiers];
+                                      updated[index].minQuantity = e.target.value;
+                                      setProductPriceTiers(updated);
+                                    }}
+                                    data-testid={`input-tier-min-${index}`}
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-gray-500">إلى (كمية)</Label>
+                                  <Input
+                                    type="number"
+                                    className="h-8 text-sm"
+                                    placeholder="غير محدود"
+                                    value={tier.maxQuantity}
+                                    onChange={(e) => {
+                                      const updated = [...productPriceTiers];
+                                      updated[index].maxQuantity = e.target.value;
+                                      setProductPriceTiers(updated);
+                                    }}
+                                    data-testid={`input-tier-max-${index}`}
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-gray-500">السعر</Label>
+                                  <Input
+                                    type="number"
+                                    className="h-8 text-sm"
+                                    placeholder="0.00"
+                                    value={tier.price}
+                                    onChange={(e) => {
+                                      const updated = [...productPriceTiers];
+                                      updated[index].price = e.target.value;
+                                      // Calculate discount percent
+                                      if (newProduct.price && e.target.value) {
+                                        const discount = ((parseFloat(newProduct.price) - parseFloat(e.target.value)) / parseFloat(newProduct.price) * 100).toFixed(1);
+                                        updated[index].discountPercent = discount;
+                                      }
+                                      setProductPriceTiers(updated);
+                                    }}
+                                    data-testid={`input-tier-price-${index}`}
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-gray-500">الخصم %</Label>
+                                  <div className="h-8 flex items-center text-sm text-green-600 font-bold">
+                                    {tier.discountPercent ? `-${tier.discountPercent}%` : '-'}
+                                  </div>
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-500 hover:text-red-700 h-8 w-8 p-0"
+                                onClick={() => setProductPriceTiers(productPriceTiers.filter((_, i) => i !== index))}
+                                data-testid={`button-remove-tier-${index}`}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full mt-3 rounded-lg border-dashed"
+                          onClick={() => setProductPriceTiers([...productPriceTiers, { minQuantity: '', maxQuantity: '', price: '', discountPercent: '' }])}
+                          data-testid="button-add-tier"
+                        >
+                          <Plus className="w-4 h-4 ml-1" />
+                          إضافة شريحة سعر
+                        </Button>
                       </div>
                       
                       <Button className="w-full rounded-xl" onClick={handleAddProduct} disabled={!newProduct.name || !newProduct.categoryId || !newProduct.price} data-testid="button-submit-product">

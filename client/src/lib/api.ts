@@ -44,6 +44,26 @@ export const productsAPI = {
   search: (query: string) => request(`/products/search?q=${encodeURIComponent(query)}`),
 };
 
+// Price Tiers API - أسعار الجملة المتدرجة
+export const priceTiersAPI = {
+  getByProduct: (productId: number) => request(`/products/${productId}/price-tiers`),
+  create: (productId: number, tier: any) => request(`/products/${productId}/price-tiers`, {
+    method: "POST",
+    body: JSON.stringify(tier),
+  }),
+  update: (id: number, tier: any) => request(`/price-tiers/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(tier),
+  }),
+  delete: (id: number) => request(`/price-tiers/${id}`, { method: "DELETE" }),
+  bulkUpdate: (productId: number, tiers: any[]) => request(`/products/${productId}/price-tiers`, {
+    method: "PUT",
+    body: JSON.stringify({ tiers }),
+  }),
+  getEffectivePrice: (productId: number, quantity: number) => 
+    request(`/products/${productId}/effective-price?quantity=${quantity}`),
+};
+
 // Categories API
 export const categoriesAPI = {
   getAll: () => request("/categories"),
