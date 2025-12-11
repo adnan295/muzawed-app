@@ -514,6 +514,118 @@ export async function registerRoutes(
     }
   });
 
+  // Import products from Excel
+  app.post("/api/products/import/excel", async (req, res) => {
+    try {
+      const { data } = req.body;
+      
+      if (!data) {
+        return res.status(400).json({ error: 'لا توجد بيانات للاستيراد' });
+      }
+      
+      const XLSX = await import('xlsx');
+      const buffer = Buffer.from(data, 'base64');
+      const workbook = XLSX.read(buffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      
+      if (rows.length < 2) {
+        return res.status(400).json({ error: 'الملف فارغ أو لا يحتوي على بيانات' });
+      }
+      
+      const categories = await storage.getCategories();
+      const brands = await storage.getBrands();
+      
+      const results = { success: 0, errors: [] as string[] };
+      
+      // Skip header row
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || !row[0]) continue;
+        
+        try {
+          const name = String(row[0] || '').trim();
+          const categoryName = String(row[1] || '').trim();
+          const brandName = String(row[2] || '').trim();
+          const price = String(row[3] || '0');
+          const originalPrice = row[4] ? String(row[4]) : null;
+          const minOrder = parseInt(row[5]) || 1;
+          const unit = String(row[6] || 'كرتون');
+          const stock = parseInt(row[7]) || 0;
+          const image = String(row[8] || '');
+          
+          const category = categories.find(c => c.name === categoryName);
+          const brand = brands.find(b => b.name === brandName);
+          
+          if (!name) continue;
+          
+          await storage.createProduct({
+            name,
+            categoryId: category?.id || categories[0]?.id || 1,
+            brandId: brand?.id || null,
+            price,
+            originalPrice,
+            minOrder,
+            unit,
+            stock,
+            image: image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400',
+          });
+          results.success++;
+        } catch (err: any) {
+          results.errors.push(`خطأ في الصف ${i + 1}: ${err.message}`);
+        }
+      }
+      
+      res.json({ 
+        message: `تم استيراد ${results.success} منتج بنجاح`,
+        success: results.success,
+        errors: results.errors 
+      });
+    } catch (error: any) {
+      console.error('Excel import error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Export products to Excel
+  app.get("/api/products/export/excel", async (req, res) => {
+    try {
+      const products = await storage.getProducts();
+      const categories = await storage.getCategories();
+      const brands = await storage.getBrands();
+      
+      const XLSX = await import('xlsx');
+      
+      const data = [
+        ['اسم المنتج', 'القسم', 'العلامة التجارية', 'السعر', 'السعر الأصلي', 'الحد الأدنى', 'الوحدة', 'المخزون', 'الصورة'],
+        ...products.map(p => [
+          p.name,
+          categories.find(c => c.id === p.categoryId)?.name || '',
+          brands.find(b => b.id === p.brandId)?.name || '',
+          p.price,
+          p.originalPrice || '',
+          p.minOrder,
+          p.unit,
+          p.stock,
+          p.image || ''
+        ])
+      ];
+      
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'المنتجات');
+      
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+      
+      res.setHeader('Content-Disposition', `attachment; filename=products_${new Date().toISOString().split('T')[0]}.xlsx`);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ==================== Categories Routes ====================
   
   app.get("/api/categories", async (req, res) => {
