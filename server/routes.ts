@@ -1087,20 +1087,45 @@ export async function registerRoutes(
         }
       }
       
-      const orderWithWarehouse = { ...order, warehouseId };
+      // Server-side validation: Apply tiered pricing to order items
+      let validatedSubtotal = 0;
+      const validatedItems = await Promise.all(
+        items.map(async (item: any) => {
+          const effectivePrice = await storage.getEffectivePrice(item.productId, item.quantity);
+          const itemTotal = effectivePrice.price * item.quantity;
+          validatedSubtotal += itemTotal;
+          return {
+            ...item,
+            price: effectivePrice.price.toFixed(2),
+            total: itemTotal.toFixed(2),
+          };
+        })
+      );
+      
+      // Calculate validated total with delivery and discount
+      const deliveryFee = parseFloat(order.deliveryFee || '0');
+      const discount = parseFloat(order.discount || '0');
+      const validatedTotal = (validatedSubtotal + deliveryFee - discount).toFixed(2);
+      
+      const orderWithWarehouse = { 
+        ...order, 
+        warehouseId,
+        subtotal: validatedSubtotal.toFixed(2),
+        total: validatedTotal,
+      };
       const validOrder = insertOrderSchema.parse(orderWithWarehouse);
       
       // Handle wallet payment atomically with database transaction
       if (validOrder.paymentMethod === 'wallet') {
         try {
-          const newOrder = await storage.createOrderWithWalletPayment(validOrder, items);
+          const newOrder = await storage.createOrderWithWalletPayment(validOrder, validatedItems);
           return res.json(newOrder);
         } catch (error: any) {
           return res.status(400).json({ error: error.message });
         }
       }
       
-      const newOrder = await storage.createOrder(validOrder, items);
+      const newOrder = await storage.createOrder(validOrder, validatedItems);
       
       // If payment method is credit, create credit transaction with due date
       if (validOrder.paymentMethod === 'credit') {

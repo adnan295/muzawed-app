@@ -81,6 +81,8 @@ export default function Checkout() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [orderId, setOrderId] = useState<number | null>(null);
   const [priceTiers, setPriceTiers] = useState<Record<number, PriceTier[]>>({});
+  const [priceTiersLoaded, setPriceTiersLoaded] = useState(false);
+  const [priceTiersError, setPriceTiersError] = useState(false);
 
   const { data: cartItems = [] } = useQuery<CartItemWithProduct[]>({
     queryKey: ['cart', user?.id],
@@ -91,22 +93,36 @@ export default function Checkout() {
   // Fetch price tiers for all products in cart
   useEffect(() => {
     const fetchTiers = async () => {
-      if (!cartItems.length) return;
+      if (!cartItems.length) {
+        setPriceTiersLoaded(true);
+        setPriceTiersError(false);
+        return;
+      }
       
+      setPriceTiersLoaded(false);
+      setPriceTiersError(false);
       const tiersMap: Record<number, PriceTier[]> = {};
+      let hasError = false;
+      
       await Promise.all(
         cartItems.map(async (item) => {
           try {
             const res = await fetch(`/api/products/${item.productId}/price-tiers`);
             if (res.ok) {
               tiersMap[item.productId] = await res.json();
+            } else {
+              hasError = true;
+              tiersMap[item.productId] = [];
             }
           } catch (e) {
+            hasError = true;
             tiersMap[item.productId] = [];
           }
         })
       );
       setPriceTiers(tiersMap);
+      setPriceTiersLoaded(true);
+      setPriceTiersError(hasError);
     };
     fetchTiers();
   }, [cartItems]);
@@ -214,13 +230,16 @@ export default function Checkout() {
         paymentMethod: paymentMethod === 'credit' ? 'credit' : paymentMethod === 'wallet' ? 'wallet' : 'cash',
       };
 
-      const orderItems = cartItems.map(item => ({
-        productId: item.productId,
-        productName: item.product.name,
-        quantity: item.quantity,
-        price: item.product.price,
-        total: (parseFloat(item.product.price) * item.quantity).toFixed(2),
-      }));
+      const orderItems = cartItems.map(item => {
+        const { price } = getItemPrice(item);
+        return {
+          productId: item.productId,
+          productName: item.product.name,
+          quantity: item.quantity,
+          price: price.toFixed(2),
+          total: (price * item.quantity).toFixed(2),
+        };
+      });
 
       // Wallet payment is handled atomically on the backend
       return await ordersAPI.create(orderData, orderItems);
@@ -465,12 +484,24 @@ export default function Checkout() {
           <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
             <h3 className="font-bold text-sm mb-3">المنتجات ({cartItems.length})</h3>
             <div className="space-y-2">
-              {cartItems.map(item => (
-                <div key={item.id} className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">{item.product?.name} × {item.quantity}</span>
-                  <span className="font-bold">{(parseFloat(item.product?.price || '0') * item.quantity).toFixed(2)} ل.س</span>
-                </div>
-              ))}
+              {cartItems.map(item => {
+                const { price, hasTier, discountPercent } = getItemPrice(item);
+                const itemTotal = price * item.quantity;
+                return (
+                  <div key={item.id} className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-600">{item.product?.name} × {item.quantity}</span>
+                      {hasTier && discountPercent && (
+                        <span className="bg-green-100 text-green-700 text-[10px] px-1.5 py-0.5 rounded-full flex items-center">
+                          <TrendingDown className="w-3 h-3 ml-0.5" />
+                          {discountPercent}%
+                        </span>
+                      )}
+                    </div>
+                    <span className="font-bold">{itemTotal.toFixed(2)} ل.س</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -509,13 +540,23 @@ export default function Checkout() {
           <Button 
             className="w-full h-11 text-sm font-bold rounded-xl bg-primary hover:bg-primary/90"
             onClick={() => createOrderMutation.mutate()}
-            disabled={!defaultAddress || createOrderMutation.isPending}
+            disabled={!defaultAddress || createOrderMutation.isPending || !priceTiersLoaded || priceTiersError}
             data-testid="button-confirm-order"
           >
             {createOrderMutation.isPending ? (
               <span className="flex items-center gap-2">
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
                 جاري إرسال الطلب...
+              </span>
+            ) : !priceTiersLoaded ? (
+              <span className="flex items-center gap-2">
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                جاري تحميل الأسعار...
+              </span>
+            ) : priceTiersError ? (
+              <span className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                خطأ في تحميل الأسعار
               </span>
             ) : (
               <span className="flex items-center gap-2">
@@ -526,6 +567,9 @@ export default function Checkout() {
           </Button>
           {!defaultAddress && (
             <p className="text-xs text-destructive text-center mt-2">يرجى إضافة عنوان توصيل أولاً</p>
+          )}
+          {priceTiersError && (
+            <p className="text-xs text-destructive text-center mt-2">تعذر تحميل أسعار الجملة. يرجى تحديث الصفحة والمحاولة مرة أخرى.</p>
           )}
         </div>
 
