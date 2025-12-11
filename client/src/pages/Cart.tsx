@@ -1,12 +1,13 @@
 import { useLocation } from 'wouter';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
-import { Plus, Minus, CreditCard, ShoppingBag } from 'lucide-react';
+import { Plus, Minus, CreditCard, ShoppingBag, TrendingDown } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cartAPI } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import { Link } from 'wouter';
+import { useEffect, useState } from 'react';
 
 interface CartItemWithProduct {
   id: number;
@@ -23,16 +24,74 @@ interface CartItemWithProduct {
   };
 }
 
+interface PriceTier {
+  id: number;
+  productId: number;
+  minQuantity: number;
+  maxQuantity: number | null;
+  price: string;
+  discountPercent: string | null;
+}
+
+// Get tiered price based on quantity
+function getTieredPrice(basePrice: string, quantity: number, tiers: PriceTier[]): { price: number; hasTier: boolean; discountPercent: string | null } {
+  const base = parseFloat(basePrice || '0');
+  if (!tiers || tiers.length === 0) {
+    return { price: base, hasTier: false, discountPercent: null };
+  }
+  
+  // Sort tiers by minQuantity descending to find the best match
+  const sortedTiers = [...tiers].sort((a, b) => b.minQuantity - a.minQuantity);
+  
+  for (const tier of sortedTiers) {
+    const min = tier.minQuantity;
+    const max = tier.maxQuantity;
+    if (quantity >= min && (max === null || quantity <= max)) {
+      return { 
+        price: parseFloat(tier.price), 
+        hasTier: true, 
+        discountPercent: tier.discountPercent 
+      };
+    }
+  }
+  
+  return { price: base, hasTier: false, discountPercent: null };
+}
+
 export default function Cart() {
   const [, setLocation] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
+  const [priceTiers, setPriceTiers] = useState<Record<number, PriceTier[]>>({});
 
   const { data: cartItems = [], isLoading } = useQuery<CartItemWithProduct[]>({
     queryKey: ['cart', user?.id],
     queryFn: () => cartAPI.get(user!.id) as Promise<CartItemWithProduct[]>,
     enabled: !!user?.id,
   });
+
+  // Fetch price tiers for all products in cart
+  useEffect(() => {
+    const fetchTiers = async () => {
+      if (!cartItems.length) return;
+      
+      const tiersMap: Record<number, PriceTier[]> = {};
+      await Promise.all(
+        cartItems.map(async (item) => {
+          try {
+            const res = await fetch(`/api/products/${item.productId}/price-tiers`);
+            if (res.ok) {
+              tiersMap[item.productId] = await res.json();
+            }
+          } catch (e) {
+            tiersMap[item.productId] = [];
+          }
+        })
+      );
+      setPriceTiers(tiersMap);
+    };
+    fetchTiers();
+  }, [cartItems]);
 
   const updateMutation = useMutation({
     mutationFn: ({ id, quantity }: { id: number; quantity: number }) => 
@@ -58,8 +117,16 @@ export default function Cart() {
     }
   };
 
-  const subtotal = cartItems.reduce((acc, item) => 
-    acc + (parseFloat(item.product?.price || '0') * item.quantity), 0);
+  // Calculate item price with tiered pricing
+  const getItemPrice = (item: CartItemWithProduct) => {
+    const tiers = priceTiers[item.productId] || [];
+    return getTieredPrice(item.product?.price || '0', item.quantity, tiers);
+  };
+
+  const subtotal = cartItems.reduce((acc, item) => {
+    const { price } = getItemPrice(item);
+    return acc + (price * item.quantity);
+  }, 0);
   const total = subtotal; // No tax
 
   if (!isAuthenticated) {
@@ -123,7 +190,31 @@ export default function Cart() {
               <div className="flex-1 flex flex-col justify-between">
                 <div>
                   <h3 className="font-bold text-sm line-clamp-1">{item.product?.name}</h3>
-                  <p className="text-xs text-muted-foreground mt-1">{item.product?.price} ل.س / {item.product?.unit}</p>
+                  {(() => {
+                    const { price, hasTier, discountPercent } = getItemPrice(item);
+                    const originalPrice = parseFloat(item.product?.price || '0');
+                    return (
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-xs text-muted-foreground">
+                          {hasTier ? (
+                            <>
+                              <span className="text-green-600 font-bold">{price.toFixed(2)}</span>
+                              <span className="line-through text-gray-400 mr-1">{originalPrice.toFixed(2)}</span>
+                            </>
+                          ) : (
+                            <span>{item.product?.price}</span>
+                          )}
+                          {' '}ل.س / {item.product?.unit}
+                        </p>
+                        {hasTier && discountPercent && (
+                          <span className="bg-green-100 text-green-700 text-[10px] px-1.5 py-0.5 rounded-full flex items-center">
+                            <TrendingDown className="w-3 h-3 ml-0.5" />
+                            {discountPercent}%
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
                 
                 <div className="flex items-center justify-between mt-2">
@@ -145,7 +236,10 @@ export default function Cart() {
                     </button>
                   </div>
                   <span className="font-bold text-primary">
-                    {(parseFloat(item.product?.price || '0') * item.quantity).toFixed(2)} ل.س
+                    {(() => {
+                      const { price } = getItemPrice(item);
+                      return (price * item.quantity).toFixed(2);
+                    })()} ل.س
                   </span>
                 </div>
               </div>

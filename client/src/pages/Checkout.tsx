@@ -4,8 +4,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { CreditCard, Calendar, CheckCircle2, MapPin, ShoppingBag, Clock, AlertCircle, Wallet } from 'lucide-react';
-import { useState } from 'react';
+import { CreditCard, Calendar, CheckCircle2, MapPin, ShoppingBag, Clock, AlertCircle, Wallet, TrendingDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useLocation, Link } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -39,6 +39,39 @@ interface Address {
   isDefault: boolean;
 }
 
+interface PriceTier {
+  id: number;
+  productId: number;
+  minQuantity: number;
+  maxQuantity: number | null;
+  price: string;
+  discountPercent: string | null;
+}
+
+// Get tiered price based on quantity
+function getTieredPrice(basePrice: string, quantity: number, tiers: PriceTier[]): { price: number; hasTier: boolean; discountPercent: string | null } {
+  const base = parseFloat(basePrice || '0');
+  if (!tiers || tiers.length === 0) {
+    return { price: base, hasTier: false, discountPercent: null };
+  }
+  
+  const sortedTiers = [...tiers].sort((a, b) => b.minQuantity - a.minQuantity);
+  
+  for (const tier of sortedTiers) {
+    const min = tier.minQuantity;
+    const max = tier.maxQuantity;
+    if (quantity >= min && (max === null || quantity <= max)) {
+      return { 
+        price: parseFloat(tier.price), 
+        hasTier: true, 
+        discountPercent: tier.discountPercent 
+      };
+    }
+  }
+  
+  return { price: base, hasTier: false, discountPercent: null };
+}
+
 export default function Checkout() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -47,12 +80,42 @@ export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [isSuccess, setIsSuccess] = useState(false);
   const [orderId, setOrderId] = useState<number | null>(null);
+  const [priceTiers, setPriceTiers] = useState<Record<number, PriceTier[]>>({});
 
   const { data: cartItems = [] } = useQuery<CartItemWithProduct[]>({
     queryKey: ['cart', user?.id],
     queryFn: () => cartAPI.get(user!.id) as Promise<CartItemWithProduct[]>,
     enabled: !!user?.id,
   });
+
+  // Fetch price tiers for all products in cart
+  useEffect(() => {
+    const fetchTiers = async () => {
+      if (!cartItems.length) return;
+      
+      const tiersMap: Record<number, PriceTier[]> = {};
+      await Promise.all(
+        cartItems.map(async (item) => {
+          try {
+            const res = await fetch(`/api/products/${item.productId}/price-tiers`);
+            if (res.ok) {
+              tiersMap[item.productId] = await res.json();
+            }
+          } catch (e) {
+            tiersMap[item.productId] = [];
+          }
+        })
+      );
+      setPriceTiers(tiersMap);
+    };
+    fetchTiers();
+  }, [cartItems]);
+
+  // Calculate item price with tiered pricing
+  const getItemPrice = (item: CartItemWithProduct) => {
+    const tiers = priceTiers[item.productId] || [];
+    return getTieredPrice(item.product?.price || '0', item.quantity, tiers);
+  };
 
   const { data: addresses = [] } = useQuery<Address[]>({
     queryKey: ['addresses', user?.id],
@@ -70,8 +133,10 @@ export default function Checkout() {
 
   const defaultAddress = addresses.find(a => a.isDefault) || addresses[0];
 
-  const subtotal = cartItems.reduce((acc, item) => 
-    acc + (parseFloat(item.product?.price || '0') * item.quantity), 0);
+  const subtotal = cartItems.reduce((acc, item) => {
+    const { price } = getItemPrice(item);
+    return acc + (price * item.quantity);
+  }, 0);
   const totalQuantity = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
   const userWarehouse = warehouses.find((w: any) => w.cityId === user?.cityId);
