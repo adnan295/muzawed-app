@@ -170,11 +170,22 @@ export default function Login() {
       });
       setLocation('/');
     } catch (error: any) {
-      toast({
-        title: "خطأ",
-        description: error.message || "كلمة السر غير صحيحة",
-        variant: "destructive",
-      });
+      // Check if account is locked
+      if (error.message?.includes('قفل الحساب') || error.message?.includes('locked')) {
+        toast({
+          title: "تم قفل الحساب",
+          description: "بسبب محاولات تسجيل دخول فاشلة متعددة. يرجى استخدام 'نسيت كلمة المرور' لإعادة تعيين كلمة المرور",
+          variant: "destructive",
+        });
+        // Show forgot password option
+        setStep('password');
+      } else {
+        toast({
+          title: "خطأ",
+          description: error.message || "كلمة السر غير صحيحة",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }

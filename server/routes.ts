@@ -183,8 +183,24 @@ export async function registerRoutes(
     try {
       const { phone, password } = req.body;
       
+      // Check if account is locked
+      const isLocked = await storage.isAccountLocked(phone);
+      if (isLocked) {
+        const { lockedUntil } = await storage.getLoginAttempts(phone);
+        const remainingMinutes = lockedUntil 
+          ? Math.ceil((lockedUntil.getTime() - Date.now()) / 60000) 
+          : 30;
+        return res.status(423).json({ 
+          error: `تم قفل الحساب بسبب محاولات تسجيل دخول فاشلة متعددة. يرجى استخدام "نسيت كلمة المرور" أو الانتظار ${remainingMinutes} دقيقة`,
+          locked: true,
+          remainingMinutes
+        });
+      }
+      
       const user = await storage.getUserByPhone(phone);
       if (!user) {
+        // Increment attempts even for non-existent users (prevent enumeration)
+        await storage.incrementLoginAttempts(phone);
         return res.status(404).json({ error: "المستخدم غير موجود" });
       }
 
@@ -195,8 +211,25 @@ export async function registerRoutes(
 
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if (!isPasswordValid) {
-        return res.status(401).json({ error: "كلمة السر غير صحيحة" });
+        // Increment failed attempts
+        const { attempts, isLocked: nowLocked } = await storage.incrementLoginAttempts(phone);
+        const remainingAttempts = 5 - attempts;
+        
+        if (nowLocked) {
+          return res.status(423).json({ 
+            error: "تم قفل الحساب بسبب محاولات تسجيل دخول فاشلة متعددة. يرجى استخدام 'نسيت كلمة المرور' لإعادة تعيين كلمة المرور",
+            locked: true 
+          });
+        }
+        
+        return res.status(401).json({ 
+          error: `كلمة السر غير صحيحة. المحاولات المتبقية: ${remainingAttempts}`,
+          remainingAttempts
+        });
       }
+
+      // Success - reset login attempts
+      await storage.resetLoginAttempts(phone);
 
       // Don't send password in response
       const { password: _, ...userWithoutPassword } = user;

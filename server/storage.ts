@@ -129,6 +129,8 @@ import {
   type OtpVerification,
   type InsertOtpVerification,
   otpVerifications,
+  type LoginAttempt,
+  loginAttempts,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, gte, lte, count, or } from "drizzle-orm";
@@ -475,6 +477,12 @@ export interface IStorage {
   getRecentOtpCount(phone: string, minutes: number): Promise<number>;
   validateVerificationToken(phone: string, token: string): Promise<boolean>;
   invalidateVerificationToken(phone: string, token: string): Promise<void>;
+
+  // Login Attempts - محاولات تسجيل الدخول
+  getLoginAttempts(phone: string): Promise<{ attempts: number; lockedUntil: Date | null }>;
+  incrementLoginAttempts(phone: string): Promise<{ attempts: number; isLocked: boolean }>;
+  resetLoginAttempts(phone: string): Promise<void>;
+  isAccountLocked(phone: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2836,6 +2844,81 @@ export class DatabaseStorage implements IStorage {
         eq(otpVerifications.phone, phone),
         eq(otpVerifications.verificationToken, token)
       ));
+  }
+
+  // Login Attempts - محاولات تسجيل الدخول
+  async getLoginAttempts(phone: string): Promise<{ attempts: number; lockedUntil: Date | null }> {
+    const [record] = await db.select()
+      .from(loginAttempts)
+      .where(eq(loginAttempts.phone, phone));
+    
+    if (!record) {
+      return { attempts: 0, lockedUntil: null };
+    }
+    return { attempts: record.attempts, lockedUntil: record.lockedUntil };
+  }
+
+  async incrementLoginAttempts(phone: string): Promise<{ attempts: number; isLocked: boolean }> {
+    const MAX_ATTEMPTS = 5;
+    const LOCK_DURATION_MINUTES = 30; // مدة القفل 30 دقيقة
+    
+    const [existing] = await db.select()
+      .from(loginAttempts)
+      .where(eq(loginAttempts.phone, phone));
+    
+    if (existing) {
+      // Check if lock has expired
+      if (existing.lockedUntil && new Date() > existing.lockedUntil) {
+        // Reset attempts after lock expires
+        await db.update(loginAttempts)
+          .set({ attempts: 1, lockedUntil: null, lastAttempt: new Date() })
+          .where(eq(loginAttempts.phone, phone));
+        return { attempts: 1, isLocked: false };
+      }
+      
+      const newAttempts = existing.attempts + 1;
+      const isLocked = newAttempts >= MAX_ATTEMPTS;
+      const lockedUntil = isLocked ? new Date(Date.now() + LOCK_DURATION_MINUTES * 60 * 1000) : existing.lockedUntil;
+      
+      await db.update(loginAttempts)
+        .set({ 
+          attempts: newAttempts, 
+          lockedUntil,
+          lastAttempt: new Date() 
+        })
+        .where(eq(loginAttempts.phone, phone));
+      
+      return { attempts: newAttempts, isLocked };
+    } else {
+      // First attempt
+      await db.insert(loginAttempts).values({
+        phone,
+        attempts: 1,
+        lastAttempt: new Date()
+      });
+      return { attempts: 1, isLocked: false };
+    }
+  }
+
+  async resetLoginAttempts(phone: string): Promise<void> {
+    await db.delete(loginAttempts).where(eq(loginAttempts.phone, phone));
+  }
+
+  async isAccountLocked(phone: string): Promise<boolean> {
+    const [record] = await db.select()
+      .from(loginAttempts)
+      .where(eq(loginAttempts.phone, phone));
+    
+    if (!record || !record.lockedUntil) {
+      return false;
+    }
+    
+    // Check if lock has expired
+    if (new Date() > record.lockedUntil) {
+      return false;
+    }
+    
+    return record.attempts >= 5;
   }
 }
 

@@ -214,6 +214,19 @@ export const insertWalletSchema = createInsertSchema(wallets).omit({ id: true, u
 export type InsertWallet = z.infer<typeof insertWalletSchema>;
 export type Wallet = typeof wallets.$inferSelect;
 
+// Login Attempts table - محاولات تسجيل الدخول
+export const loginAttempts = pgTable("login_attempts", {
+  id: serial("id").primaryKey(),
+  phone: text("phone").notNull(),
+  attempts: integer("attempts").default(0).notNull(),
+  lockedUntil: timestamp("locked_until"),
+  lastAttempt: timestamp("last_attempt").defaultNow().notNull(),
+});
+
+export const insertLoginAttemptSchema = createInsertSchema(loginAttempts).omit({ id: true });
+export type InsertLoginAttempt = z.infer<typeof insertLoginAttemptSchema>;
+export type LoginAttempt = typeof loginAttempts.$inferSelect;
+
 // Wallet Transactions table
 export const walletTransactions = pgTable("wallet_transactions", {
   id: serial("id").primaryKey(),
