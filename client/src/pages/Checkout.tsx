@@ -218,18 +218,7 @@ export default function Checkout() {
     mutationFn: async () => {
       if (!user || !defaultAddress) throw new Error('Missing data');
       
-      const orderData = {
-        userId: user.id,
-        addressId: defaultAddress.id,
-        status: 'pending',
-        subtotal: subtotal.toFixed(2),
-        tax: tax.toFixed(2),
-        deliveryFee: deliveryFee.toFixed(2),
-        total: total.toFixed(2),
-        discount: walletDiscount.toFixed(2),
-        paymentMethod: paymentMethod === 'credit' ? 'credit' : paymentMethod === 'wallet' ? 'wallet' : 'cash',
-      };
-
+      // Compute fresh tier-adjusted prices at call time to avoid stale closures
       const orderItems = cartItems.map(item => {
         const { price } = getItemPrice(item);
         return {
@@ -240,6 +229,25 @@ export default function Checkout() {
           total: (price * item.quantity).toFixed(2),
         };
       });
+      
+      // Calculate fresh subtotal from computed order items
+      const freshSubtotal = orderItems.reduce((sum, item) => sum + parseFloat(item.total), 0);
+      const freshDeliveryFee = deliveryInfo?.fee || 0;
+      const freshBaseTotal = freshSubtotal + freshDeliveryFee;
+      const freshWalletDiscount = paymentMethod === 'wallet' ? freshBaseTotal * 0.01 : 0;
+      const freshTotal = freshBaseTotal - freshWalletDiscount;
+      
+      const orderData = {
+        userId: user.id,
+        addressId: defaultAddress.id,
+        status: 'pending',
+        subtotal: freshSubtotal.toFixed(2),
+        tax: '0.00',
+        deliveryFee: freshDeliveryFee.toFixed(2),
+        total: freshTotal.toFixed(2),
+        discount: freshWalletDiscount.toFixed(2),
+        paymentMethod: paymentMethod === 'credit' ? 'credit' : paymentMethod === 'wallet' ? 'wallet' : 'cash',
+      };
 
       // Wallet payment is handled atomically on the backend
       return await ordersAPI.create(orderData, orderItems);
