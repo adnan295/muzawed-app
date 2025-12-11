@@ -6879,7 +6879,7 @@ export default function Admin() {
                   <DialogTrigger asChild>
                     <Button className="rounded-xl gap-2" data-testid="button-add-product"><Plus className="w-4 h-4" />إضافة</Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-lg">
+                  <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
                     <DialogHeader><DialogTitle>{editingProductId ? 'تعديل المنتج' : 'إضافة منتج جديد'}</DialogTitle></DialogHeader>
                     <div className="space-y-4 mt-4">
                       <div>
