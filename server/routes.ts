@@ -972,8 +972,9 @@ export async function registerRoutes(
       
       const items = await storage.getOrderItems(order.id);
       const address = await storage.getAddress(order.addressId);
+      const warehouse = order.warehouseId ? await storage.getWarehouse(order.warehouseId) : null;
       
-      res.json({ ...order, items, address });
+      res.json({ ...order, items, address, warehouse });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -982,7 +983,33 @@ export async function registerRoutes(
   app.post("/api/orders", async (req, res) => {
     try {
       const { order, items } = req.body;
-      const validOrder = insertOrderSchema.parse(order);
+      
+      // Get address to determine warehouse
+      const address = await storage.getAddress(order.addressId);
+      if (!address) {
+        return res.status(400).json({ error: "العنوان غير موجود" });
+      }
+      
+      // Auto-assign warehouse based on address city
+      let warehouseId = order.warehouseId;
+      if (!warehouseId && address.cityId) {
+        const warehouse = await storage.getWarehouseByCity(address.cityId);
+        if (warehouse) {
+          warehouseId = warehouse.id;
+        }
+      }
+      
+      // If no warehouse found for city, try to get any active warehouse
+      if (!warehouseId) {
+        const warehouses = await storage.getWarehouses();
+        const activeWarehouse = warehouses.find(w => w.isActive);
+        if (activeWarehouse) {
+          warehouseId = activeWarehouse.id;
+        }
+      }
+      
+      const orderWithWarehouse = { ...order, warehouseId };
+      const validOrder = insertOrderSchema.parse(orderWithWarehouse);
       
       // Handle wallet payment atomically with database transaction
       if (validOrder.paymentMethod === 'wallet') {
@@ -1981,18 +2008,28 @@ export async function registerRoutes(
 
   app.get("/api/admin/orders", async (req, res) => {
     try {
-      const allOrders = await storage.getAllOrders();
-      // Enrich orders with address data for map display
-      const ordersWithAddresses = await Promise.all(
+      const { warehouseId, status } = req.query;
+      let allOrders = await storage.getAllOrders();
+      
+      // Filter by warehouse if specified
+      if (warehouseId) {
+        allOrders = allOrders.filter(o => o.warehouseId === parseInt(warehouseId as string));
+      }
+      
+      // Filter by status if specified
+      if (status) {
+        allOrders = allOrders.filter(o => o.status === status);
+      }
+      
+      // Enrich orders with address and warehouse data
+      const ordersWithDetails = await Promise.all(
         allOrders.map(async (order) => {
-          if (order.addressId) {
-            const address = await storage.getAddress(order.addressId);
-            return { ...order, address };
-          }
-          return order;
+          const address = order.addressId ? await storage.getAddress(order.addressId) : null;
+          const warehouse = order.warehouseId ? await storage.getWarehouse(order.warehouseId) : null;
+          return { ...order, address, warehouse };
         })
       );
-      res.json(ordersWithAddresses);
+      res.json(ordersWithDetails);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

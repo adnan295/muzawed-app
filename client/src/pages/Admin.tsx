@@ -1035,6 +1035,7 @@ export default function Admin() {
   const [orderFilterStatus, setOrderFilterStatus] = useState('all');
   const [orderSearch, setOrderSearch] = useState('');
   const [orderDateFilter, setOrderDateFilter] = useState('all');
+  const [orderWarehouseFilter, setOrderWarehouseFilter] = useState('all');
   const [orderNotes, setOrderNotes] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [productSort, setProductSort] = useState('name');
@@ -7667,6 +7668,15 @@ export default function Admin() {
                       <SelectItem value="month">هذا الشهر</SelectItem>
                     </SelectContent>
                   </Select>
+                  <Select value={orderWarehouseFilter} onValueChange={setOrderWarehouseFilter}>
+                    <SelectTrigger className="w-40 rounded-xl bg-gray-50 border-none"><SelectValue placeholder="المستودع" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">جميع المستودعات</SelectItem>
+                      {warehousesList.map((w: any) => (
+                        <SelectItem key={w.id} value={w.id.toString()}>{w.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Button variant="outline" className="rounded-xl gap-2" onClick={() => window.print()}>
                     <Printer className="w-4 h-4" />طباعة
                   </Button>
@@ -7682,6 +7692,7 @@ export default function Admin() {
                     <tr>
                       <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">رقم الطلب</th>
                       <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">العميل</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">المستودع</th>
                       <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">التاريخ</th>
                       <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">المبلغ</th>
                       <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">طريقة الدفع</th>
@@ -7695,6 +7706,7 @@ export default function Admin() {
                       const filteredOrders = adminOrders.filter((order: any) => {
                         const matchesStatus = orderFilterStatus === 'all' || order.status === orderFilterStatus;
                         const matchesSearch = orderSearch === '' || order.id.toString().includes(orderSearch);
+                        const matchesWarehouse = orderWarehouseFilter === 'all' || order.warehouseId?.toString() === orderWarehouseFilter;
                         let matchesDate = true;
                         if (orderDateFilter !== 'all') {
                           const orderDate = new Date(order.createdAt);
@@ -7709,7 +7721,7 @@ export default function Admin() {
                             matchesDate = orderDate >= monthAgo;
                           }
                         }
-                        return matchesStatus && matchesSearch && matchesDate;
+                        return matchesStatus && matchesSearch && matchesDate && matchesWarehouse;
                       });
                       return filteredOrders.length > 0 ? filteredOrders.map((order: any) => (
                       <tr key={order.id} className="hover:bg-gray-50" data-testid={`order-row-${order.id}`}>
@@ -7735,6 +7747,15 @@ export default function Admin() {
                             <p className="font-bold text-sm">{order.user?.facilityName || 'عميل'}</p>
                             <p className="text-xs text-gray-500">{order.user?.phone || ''}</p>
                           </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          {order.warehouse ? (
+                            <Badge className="bg-indigo-100 text-indigo-700">
+                              {order.warehouse.name}
+                            </Badge>
+                          ) : (
+                            <span className="text-gray-400 text-sm">غير محدد</span>
+                          )}
                         </td>
                         <td className="px-4 py-4">
                           <div>
