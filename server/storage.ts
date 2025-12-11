@@ -83,6 +83,9 @@ import {
   cities,
   type ProductInventory,
   type InsertProductInventory,
+  type PriceTier,
+  type InsertPriceTier,
+  priceTiers,
   productInventory,
   type BannerView,
   type InsertBannerView,
@@ -149,6 +152,14 @@ export interface IStorage {
   updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined>;
   deleteProduct(id: number): Promise<void>;
   searchProducts(query: string): Promise<Product[]>;
+
+  // Price Tiers - أسعار الجملة المتدرجة
+  getPriceTiers(productId: number): Promise<PriceTier[]>;
+  createPriceTier(tier: InsertPriceTier): Promise<PriceTier>;
+  updatePriceTier(id: number, tier: Partial<InsertPriceTier>): Promise<PriceTier | undefined>;
+  deletePriceTier(id: number): Promise<void>;
+  deleteProductPriceTiers(productId: number): Promise<void>;
+  getEffectivePrice(productId: number, quantity: number): Promise<{ price: number; discount: number; tierId?: number }>;
 
   // Categories
   getCategories(): Promise<Category[]>;
@@ -537,6 +548,61 @@ export class DatabaseStorage implements IStorage {
   async searchProducts(query: string): Promise<Product[]> {
     // Simple search implementation - could be improved with full-text search
     return await db.select().from(products);
+  }
+
+  // Price Tiers - أسعار الجملة المتدرجة
+  async getPriceTiers(productId: number): Promise<PriceTier[]> {
+    return await db.select().from(priceTiers)
+      .where(eq(priceTiers.productId, productId))
+      .orderBy(asc(priceTiers.minQuantity));
+  }
+
+  async createPriceTier(tier: InsertPriceTier): Promise<PriceTier> {
+    const [newTier] = await db.insert(priceTiers).values(tier).returning();
+    return newTier;
+  }
+
+  async updatePriceTier(id: number, tier: Partial<InsertPriceTier>): Promise<PriceTier | undefined> {
+    const [updated] = await db.update(priceTiers).set(tier).where(eq(priceTiers.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async deletePriceTier(id: number): Promise<void> {
+    await db.delete(priceTiers).where(eq(priceTiers.id, id));
+  }
+
+  async deleteProductPriceTiers(productId: number): Promise<void> {
+    await db.delete(priceTiers).where(eq(priceTiers.productId, productId));
+  }
+
+  async getEffectivePrice(productId: number, quantity: number): Promise<{ price: number; discount: number; tierId?: number }> {
+    // Get product base price
+    const product = await this.getProduct(productId);
+    if (!product) {
+      return { price: 0, discount: 0 };
+    }
+    
+    const basePrice = parseFloat(product.price);
+    
+    // Get applicable price tier
+    const tiers = await this.getPriceTiers(productId);
+    let effectiveTier: PriceTier | undefined;
+    
+    for (const tier of tiers) {
+      if (quantity >= tier.minQuantity) {
+        if (!tier.maxQuantity || quantity <= tier.maxQuantity) {
+          effectiveTier = tier;
+        }
+      }
+    }
+    
+    if (effectiveTier) {
+      const tierPrice = parseFloat(effectiveTier.price);
+      const discount = basePrice - tierPrice;
+      return { price: tierPrice, discount, tierId: effectiveTier.id };
+    }
+    
+    return { price: basePrice, discount: 0 };
   }
 
   // Categories

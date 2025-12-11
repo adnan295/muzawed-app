@@ -139,6 +139,21 @@ export const insertProductInventorySchema = createInsertSchema(productInventory)
 export type InsertProductInventory = z.infer<typeof insertProductInventorySchema>;
 export type ProductInventory = typeof productInventory.$inferSelect;
 
+// Price Tiers table - أسعار الجملة المتدرجة
+export const priceTiers = pgTable("price_tiers", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+  minQuantity: integer("min_quantity").notNull(), // الحد الأدنى للكمية
+  maxQuantity: integer("max_quantity"), // الحد الأقصى (null = غير محدود)
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(), // السعر لهذه الشريحة
+  discountPercent: decimal("discount_percent", { precision: 5, scale: 2 }), // نسبة الخصم للعرض
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertPriceTierSchema = createInsertSchema(priceTiers).omit({ id: true, createdAt: true });
+export type InsertPriceTier = z.infer<typeof insertPriceTierSchema>;
+export type PriceTier = typeof priceTiers.$inferSelect;
+
 // Cart Items table
 export const cartItems = pgTable("cart_items", {
   id: serial("id").primaryKey(),
@@ -298,6 +313,14 @@ export const productsRelations = relations(products, ({ one, many }) => ({
   }),
   cartItems: many(cartItems),
   orderItems: many(orderItems),
+  priceTiers: many(priceTiers),
+}));
+
+export const priceTiersRelations = relations(priceTiers, ({ one }) => ({
+  product: one(products, {
+    fields: [priceTiers.productId],
+    references: [products.id],
+  }),
 }));
 
 export const cartItemsRelations = relations(cartItems, ({ one }) => ({

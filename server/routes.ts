@@ -531,6 +531,85 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== Price Tiers Routes - أسعار الجملة المتدرجة ====================
+  
+  app.get("/api/products/:productId/price-tiers", async (req, res) => {
+    try {
+      const tiers = await storage.getPriceTiers(parseInt(req.params.productId));
+      res.json(tiers);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/products/:productId/price-tiers", async (req, res) => {
+    try {
+      const tier = await storage.createPriceTier({
+        ...req.body,
+        productId: parseInt(req.params.productId)
+      });
+      res.status(201).json(tier);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/price-tiers/:id", async (req, res) => {
+    try {
+      const tier = await storage.updatePriceTier(parseInt(req.params.id), req.body);
+      if (!tier) {
+        return res.status(404).json({ error: "شريحة السعر غير موجودة" });
+      }
+      res.json(tier);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/price-tiers/:id", async (req, res) => {
+    try {
+      await storage.deletePriceTier(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/products/:productId/effective-price", async (req, res) => {
+    try {
+      const quantity = parseInt(req.query.quantity as string) || 1;
+      const result = await storage.getEffectivePrice(parseInt(req.params.productId), quantity);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Bulk update price tiers for a product
+  app.put("/api/products/:productId/price-tiers", async (req, res) => {
+    try {
+      const productId = parseInt(req.params.productId);
+      const { tiers } = req.body;
+      
+      // Delete existing tiers
+      await storage.deleteProductPriceTiers(productId);
+      
+      // Create new tiers
+      const newTiers = [];
+      for (const tier of tiers) {
+        const newTier = await storage.createPriceTier({
+          ...tier,
+          productId
+        });
+        newTiers.push(newTier);
+      }
+      
+      res.json(newTiers);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Export products to CSV
   app.get("/api/products/export/csv", async (req, res) => {
     try {
