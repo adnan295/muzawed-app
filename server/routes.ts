@@ -13,11 +13,36 @@ import { fromError } from "zod-validation-error";
 import bcrypt from "bcrypt";
 import multer from "multer";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import type { Request, Response, NextFunction } from "express";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }
 });
+
+// Authorization middleware - التحقق من صلاحيات المستخدم
+const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: "يجب تسجيل الدخول" });
+  }
+  next();
+};
+
+// User authorization - التحقق من أن المستخدم يصل لبياناته فقط
+const requireUserAuth = (paramName: string = 'userId') => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "يجب تسجيل الدخول" });
+    }
+    
+    const requestedUserId = parseInt(req.params[paramName]);
+    if (requestedUserId !== req.session.userId) {
+      return res.status(403).json({ error: "غير مصرح بالوصول لهذه البيانات" });
+    }
+    
+    next();
+  };
+};
 
 export async function registerRoutes(
   httpServer: Server,
@@ -231,12 +256,47 @@ export async function registerRoutes(
       // Success - reset login attempts
       await storage.resetLoginAttempts(phone);
 
+      // Save user session
+      req.session.userId = user.id;
+      req.session.userPhone = user.phone;
+
       // Don't send password in response
       const { password: _, ...userWithoutPassword } = user;
       res.json({ user: userWithoutPassword });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
+  });
+
+  // Session check - التحقق من الجلسة الحالية
+  app.get("/api/auth/session", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.json({ authenticated: false });
+      }
+      
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        req.session.destroy(() => {});
+        return res.json({ authenticated: false });
+      }
+      
+      const { password: _, ...userWithoutPassword } = user;
+      res.json({ authenticated: true, user: userWithoutPassword });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Logout - تسجيل الخروج
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ error: "فشل تسجيل الخروج" });
+      }
+      res.clearCookie('connect.sid');
+      res.json({ success: true });
+    });
   });
 
   // Staff/Admin authentication
@@ -779,7 +839,7 @@ export async function registerRoutes(
 
   // ==================== Favorites Routes ====================
 
-  app.get("/api/favorites/:userId", async (req, res) => {
+  app.get("/api/favorites/:userId", requireUserAuth(), async (req, res) => {
     try {
       const favoriteItems = await storage.getFavorites(parseInt(req.params.userId));
       
@@ -810,7 +870,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/favorites/:userId/:productId", async (req, res) => {
+  app.delete("/api/favorites/:userId/:productId", requireUserAuth(), async (req, res) => {
     try {
       await storage.removeFavorite(parseInt(req.params.userId), parseInt(req.params.productId));
       res.json({ success: true });
@@ -830,7 +890,7 @@ export async function registerRoutes(
 
   // ==================== Cart Routes ====================
   
-  app.get("/api/cart/:userId", async (req, res) => {
+  app.get("/api/cart/:userId", requireUserAuth(), async (req, res) => {
     try {
       const cartItems = await storage.getCart(parseInt(req.params.userId));
       
@@ -883,7 +943,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/cart/user/:userId", async (req, res) => {
+  app.delete("/api/cart/user/:userId", requireUserAuth(), async (req, res) => {
     try {
       await storage.clearCart(parseInt(req.params.userId));
       res.json({ success: true });
@@ -894,7 +954,7 @@ export async function registerRoutes(
 
   // ==================== Orders Routes ====================
   
-  app.get("/api/orders/:userId", async (req, res) => {
+  app.get("/api/orders/:userId", requireUserAuth(), async (req, res) => {
     try {
       const orders = await storage.getOrders(parseInt(req.params.userId));
       res.json(orders);
@@ -966,7 +1026,7 @@ export async function registerRoutes(
 
   // ==================== Addresses Routes ====================
   
-  app.get("/api/addresses/:userId", async (req, res) => {
+  app.get("/api/addresses/:userId", requireUserAuth(), async (req, res) => {
     try {
       const addresses = await storage.getAddresses(parseInt(req.params.userId));
       res.json(addresses);
@@ -1050,7 +1110,7 @@ export async function registerRoutes(
 
   // ==================== Wallet Routes ====================
   
-  app.get("/api/wallet/:userId", async (req, res) => {
+  app.get("/api/wallet/:userId", requireUserAuth(), async (req, res) => {
     try {
       let wallet = await storage.getWallet(parseInt(req.params.userId));
       
@@ -1068,7 +1128,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/wallet/:userId/transactions", async (req, res) => {
+  app.get("/api/wallet/:userId/transactions", requireUserAuth(), async (req, res) => {
     try {
       const wallet = await storage.getWallet(parseInt(req.params.userId));
       if (!wallet) {
