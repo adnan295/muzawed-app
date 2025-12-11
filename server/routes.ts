@@ -537,34 +537,93 @@ export async function registerRoutes(
       const categories = await storage.getCategories();
       const brands = await storage.getBrands();
       
+      // Map header columns dynamically
+      const headerRow = rows[0].map((h: any) => String(h || '').trim().toLowerCase());
+      console.log('Excel headers:', headerRow);
+      
+      const columnMappings: Record<string, string[]> = {
+        name: ['اسم المنتج', 'الاسم', 'اسم', 'name', 'product', 'المنتج', 'product name'],
+        category: ['القسم', 'الفئة', 'التصنيف', 'category', 'الصنف'],
+        brand: ['العلامة التجارية', 'الماركة', 'العلامة', 'brand', 'الشركة'],
+        price: ['السعر', 'سعر', 'price', 'سعر البيع', 'سعر الجملة'],
+        originalPrice: ['السعر الأصلي', 'سعر التكلفة', 'التكلفة', 'original price', 'cost'],
+        minOrder: ['الحد الأدنى', 'أقل طلب', 'min order', 'minimum', 'الكمية'],
+        unit: ['الوحدة', 'وحدة', 'unit', 'نوع الوحدة'],
+        stock: ['المخزون', 'الكمية', 'stock', 'quantity', 'الرصيد'],
+        image: ['الصورة', 'صورة', 'image', 'رابط الصورة', 'url'],
+        currency: ['العملة', 'currency', 'عملة'],
+      };
+      
+      const findColumnIndex = (field: string): number => {
+        const aliases = columnMappings[field] || [];
+        for (let i = 0; i < headerRow.length; i++) {
+          const header = headerRow[i];
+          if (aliases.some(alias => header.includes(alias.toLowerCase()))) {
+            return i;
+          }
+        }
+        return -1;
+      };
+      
+      const colIdx = {
+        name: findColumnIndex('name'),
+        category: findColumnIndex('category'),
+        brand: findColumnIndex('brand'),
+        price: findColumnIndex('price'),
+        originalPrice: findColumnIndex('originalPrice'),
+        minOrder: findColumnIndex('minOrder'),
+        unit: findColumnIndex('unit'),
+        stock: findColumnIndex('stock'),
+        image: findColumnIndex('image'),
+        currency: findColumnIndex('currency'),
+      };
+      
+      console.log('Column indexes:', colIdx);
+      
+      // If no name column found, try first column
+      if (colIdx.name === -1) colIdx.name = 0;
+      // If no price column found, try to find any numeric column
+      if (colIdx.price === -1) {
+        for (let i = 0; i < headerRow.length; i++) {
+          if (i !== colIdx.name && rows[1] && !isNaN(parseFloat(rows[1][i]))) {
+            colIdx.price = i;
+            break;
+          }
+        }
+      }
+      
       const results = { success: 0, errors: [] as string[] };
       
       // Skip header row
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
-        if (!row || !row[0]) continue;
+        if (!row) continue;
         
         try {
-          const name = String(row[0] || '').trim();
-          const categoryName = String(row[1] || '').trim();
-          const brandName = String(row[2] || '').trim();
-          const price = String(row[3] || '0');
-          const originalPrice = row[4] ? String(row[4]) : null;
-          const minOrder = parseInt(row[5]) || 1;
-          const unit = String(row[6] || 'كرتون');
-          const stock = parseInt(row[7]) || 0;
-          const image = String(row[8] || '');
-          
-          const category = categories.find(c => c.name === categoryName);
-          const brand = brands.find(b => b.name === brandName);
-          
+          const name = colIdx.name >= 0 ? String(row[colIdx.name] || '').trim() : '';
           if (!name) continue;
+          
+          const categoryName = colIdx.category >= 0 ? String(row[colIdx.category] || '').trim() : '';
+          const brandName = colIdx.brand >= 0 ? String(row[colIdx.brand] || '').trim() : '';
+          const priceVal = colIdx.price >= 0 ? row[colIdx.price] : 0;
+          const price = String(parseFloat(priceVal) || 0);
+          const originalPriceVal = colIdx.originalPrice >= 0 ? row[colIdx.originalPrice] : null;
+          const originalPrice = originalPriceVal ? String(parseFloat(originalPriceVal) || 0) : null;
+          const minOrder = colIdx.minOrder >= 0 ? (parseInt(row[colIdx.minOrder]) || 1) : 1;
+          const unit = colIdx.unit >= 0 ? String(row[colIdx.unit] || 'كرتون') : 'كرتون';
+          const stock = colIdx.stock >= 0 ? (parseInt(row[colIdx.stock]) || 0) : 0;
+          const image = colIdx.image >= 0 ? String(row[colIdx.image] || '') : '';
+          const currency = colIdx.currency >= 0 ? String(row[colIdx.currency] || 'SYP').toUpperCase() : 'SYP';
+          
+          const category = categories.find(c => c.name.includes(categoryName) || categoryName.includes(c.name));
+          const brand = brands.find(b => b.name.includes(brandName) || brandName.includes(b.name));
           
           await storage.createProduct({
             name,
             categoryId: category?.id || categories[0]?.id || 1,
             brandId: brand?.id || null,
             price,
+            priceCurrency: currency === 'USD' || currency === '$' ? 'USD' : 'SYP',
             originalPrice,
             minOrder,
             unit,
@@ -580,7 +639,8 @@ export async function registerRoutes(
       res.json({ 
         message: `تم استيراد ${results.success} منتج بنجاح`,
         success: results.success,
-        errors: results.errors 
+        errors: results.errors,
+        columns: colIdx
       });
     } catch (error: any) {
       console.error('Excel import error:', error);
