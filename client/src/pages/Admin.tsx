@@ -885,6 +885,7 @@ function SiteSettingsSection() {
   });
 
   const settingsConfig = [
+    { key: 'exchange_rate_usd', label: 'سعر صرف الدولار (ل.س)', placeholder: '15000', description: 'سعر الصرف للمنتجات المسعرة بالدولار - سيتم عرض السعر بالليرة السورية للعملاء' },
     { key: 'terms', label: 'الشروط والأحكام', placeholder: 'أدخل نص الشروط والأحكام هنا...' },
     { key: 'support_phone', label: 'رقم الدعم الفني', placeholder: '+963 XXX XXX XXX' },
     { key: 'support_email', label: 'بريد الدعم الفني', placeholder: 'support@example.com' },
@@ -925,7 +926,10 @@ function SiteSettingsSection() {
           <Card key={config.key} className="p-4 rounded-2xl">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <Label className="text-base font-semibold mb-2 block">{config.label}</Label>
+                <Label className="text-base font-semibold mb-1 block">{config.label}</Label>
+                {'description' in config && config.description && (
+                  <p className="text-xs text-gray-500 mb-2">{config.description}</p>
+                )}
                 {editingKey === config.key ? (
                   <div className="space-y-3">
                     {config.key === 'terms' || config.key === 'about_us' ? (
@@ -1039,8 +1043,9 @@ export default function Admin() {
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
   const [newProduct, setNewProduct] = useState({
     name: '', categoryId: '', brandId: '', price: '', originalPrice: '',
-    image: '', minOrder: '1', unit: 'كرتون', stock: '100',
+    image: '', minOrder: '1', unit: 'كرتون', stock: '100', priceCurrency: 'SYP',
   });
+  const [exchangeRate, setExchangeRate] = useState('15000');
   const [productInventory, setProductInventory] = useState<{ warehouseId: number; stock: number }[]>([]);
 
   // Warehouse management state
@@ -1845,6 +1850,7 @@ export default function Admin() {
       categoryId: product.categoryId.toString(),
       brandId: product.brandId?.toString() || '',
       price: product.price,
+      priceCurrency: (product as any).priceCurrency || 'SYP',
       originalPrice: product.originalPrice || '',
       image: product.image,
       minOrder: product.minOrder.toString(),
@@ -1868,6 +1874,7 @@ export default function Admin() {
           categoryId: parseInt(newProduct.categoryId),
           brandId: newProduct.brandId ? parseInt(newProduct.brandId) : null,
           price: newProduct.price,
+          priceCurrency: newProduct.priceCurrency,
           originalPrice: newProduct.originalPrice || null,
           image: newProduct.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400',
           minOrder: parseInt(newProduct.minOrder),
@@ -1881,7 +1888,7 @@ export default function Admin() {
         toast({ title: isEditing ? 'تم تحديث المنتج بنجاح' : 'تم إضافة المنتج بنجاح', className: 'bg-green-600 text-white' });
         setIsAddProductOpen(false);
         setEditingProductId(null);
-        setNewProduct({ name: '', categoryId: '', brandId: '', price: '', originalPrice: '', image: '', minOrder: '1', unit: 'كرتون', stock: '100' });
+        setNewProduct({ name: '', categoryId: '', brandId: '', price: '', originalPrice: '', image: '', minOrder: '1', unit: 'كرتون', stock: '100', priceCurrency: 'SYP' });
         setProductInventory([]);
         refetchProducts();
       }
@@ -6866,7 +6873,7 @@ export default function Admin() {
                     setIsAddProductOpen(open);
                     if (!open) {
                       setEditingProductId(null);
-                      setNewProduct({ name: '', categoryId: '', brandId: '', price: '', originalPrice: '', image: '', minOrder: '1', unit: 'كرتون', stock: '100' });
+                      setNewProduct({ name: '', categoryId: '', brandId: '', price: '', originalPrice: '', image: '', minOrder: '1', unit: 'كرتون', stock: '100', priceCurrency: 'SYP' });
                     }
                   }}>
                   <DialogTrigger asChild>
@@ -6899,10 +6906,20 @@ export default function Admin() {
                           </Select>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-3 gap-4">
                         <div>
                           <Label>السعر *</Label>
                           <Input type="number" placeholder="0.00" value={newProduct.price} onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })} data-testid="input-price" />
+                        </div>
+                        <div>
+                          <Label>العملة *</Label>
+                          <Select value={newProduct.priceCurrency} onValueChange={(v) => setNewProduct({ ...newProduct, priceCurrency: v })}>
+                            <SelectTrigger data-testid="select-currency"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="SYP">ل.س (سوري)</SelectItem>
+                              <SelectItem value="USD">$ (دولار)</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div>
                           <Label>السعر الأصلي</Label>
