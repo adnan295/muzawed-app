@@ -111,6 +111,7 @@ export const products = pgTable("products", {
   categoryId: integer("category_id").notNull().references(() => categories.id),
   brandId: integer("brand_id").references(() => brands.id),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  priceCurrency: text("price_currency").default("SYP").notNull(), // SYP أو USD
   originalPrice: decimal("original_price", { precision: 10, scale: 2 }),
   image: text("image").notNull(),
   minOrder: integer("min_order").notNull(),
