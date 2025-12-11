@@ -1285,9 +1285,7 @@ export class DatabaseStorage implements IStorage {
           // Would need to count orders per user
           matches = matches && true; // Simplified for now
         }
-        if (criteria.isVip !== undefined) {
-          matches = matches && (user.isVip === criteria.isVip);
-        }
+        // isVip criteria removed - field doesn't exist in users table
         if (criteria.cityId !== undefined) {
           matches = matches && (user.cityId === criteria.cityId);
         }
