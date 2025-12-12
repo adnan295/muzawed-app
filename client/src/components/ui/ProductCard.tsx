@@ -1,8 +1,8 @@
-import { Plus, Minus, ShoppingBag, Heart } from 'lucide-react';
+import { Plus, Minus, ShoppingBag, Heart, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
@@ -29,6 +29,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const [quantity, setQuantity] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
@@ -74,7 +75,7 @@ export function ProductCard({ product }: ProductCardProps) {
       toast({
         title: isFavorite ? "تمت الإزالة من المفضلة" : "تمت الإضافة للمفضلة",
         description: product.name,
-        className: "bg-secondary text-white border-none",
+        className: "glass border-0",
       });
     },
   });
@@ -111,7 +112,7 @@ export function ProductCard({ product }: ProductCardProps) {
       toast({
         title: "تمت الإضافة للسلة",
         description: `تم إضافة ${product.minOrder} ${product.unit} من ${product.name}`,
-        className: "bg-secondary text-white border-none",
+        className: "gradient-secondary text-white border-none",
       });
     } else {
       setQuantity(q => q + 1);
@@ -133,119 +134,150 @@ export function ProductCard({ product }: ProductCardProps) {
 
   return (
     <motion.div
-      whileHover={{ y: -5 }}
-      whileTap={{ scale: 0.98 }}
-      transition={{ type: "spring", stiffness: 400, damping: 17 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -8 }}
+      whileTap={{ scale: 0.97 }}
+      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
     >
       <Card 
-        className="overflow-hidden border-none shadow-sm hover:shadow-xl transition-all duration-300 group bg-white rounded-[1.5rem] cursor-pointer h-full flex flex-col justify-between"
+        className="overflow-hidden border-0 shadow-premium hover:shadow-premium-hover transition-all duration-500 group bg-white rounded-[1.75rem] cursor-pointer h-full flex flex-col justify-between relative"
         onClick={() => setLocation(`/product/${product.id}`)}
         data-testid={`product-card-${product.id}`}
       >
-        <div className="relative aspect-square bg-gray-50/50 p-4">
-          <img 
+        {/* Gradient Overlay on Hover */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[1.75rem] pointer-events-none" />
+
+        <div className="relative aspect-square bg-gradient-to-br from-gray-50 to-gray-100/50 p-5 overflow-hidden">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-30">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-primary/10 rounded-full blur-2xl" />
+            <div className="absolute bottom-0 left-0 w-16 h-16 bg-secondary/10 rounded-full blur-xl" />
+          </div>
+
+          {/* Product Image */}
+          <motion.img 
             src={product.image} 
             alt={product.name}
-            className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-500"
+            className="w-full h-full object-contain relative z-10 drop-shadow-lg"
+            animate={{ scale: isHovered ? 1.1 : 1 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
           />
+
+          {/* Discount Badge */}
           {discount > 0 && (
-            <Badge className="absolute top-3 right-3 bg-red-500 hover:bg-red-600 font-bold px-2 py-1 text-xs shadow-lg shadow-red-500/20 animate-pulse">
-              {discount}% خصم
-            </Badge>
+            <motion.div
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              className="absolute top-3 right-3"
+            >
+              <Badge className="gradient-primary hover:opacity-90 font-bold px-2.5 py-1 text-xs shadow-xl shadow-primary/25 border-0 rounded-xl">
+                <Sparkles className="w-3 h-3 ml-1" />
+                {discount}% خصم
+              </Badge>
+            </motion.div>
           )}
-          <button
+
+          {/* Favorite Button */}
+          <motion.button
             onClick={handleToggleFavorite}
             className={cn(
-              "absolute top-3 left-3 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm",
+              "absolute top-3 left-3 w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300 backdrop-blur-md",
               isFavorite 
-                ? "bg-red-500 text-white" 
-                : "bg-white/80 text-gray-400 hover:text-red-500 hover:bg-white"
+                ? "bg-red-500 text-white shadow-lg shadow-red-500/30" 
+                : "bg-white/80 text-gray-400 hover:text-red-500 hover:bg-white shadow-lg"
             )}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
             data-testid={`button-favorite-${product.id}`}
           >
-            <Heart className={cn("w-4 h-4", isFavorite && "fill-current")} />
-          </button>
-          <div className="absolute bottom-2 left-2">
-             <Badge variant="secondary" className="bg-white/80 text-foreground backdrop-blur-md text-[10px] shadow-sm border border-gray-100 font-bold">
-               {product.minOrder} {product.unit}
-             </Badge>
+            <Heart className={cn("w-5 h-5", isFavorite && "fill-current")} />
+          </motion.button>
+
+          {/* Min Order Badge */}
+          <div className="absolute bottom-3 left-3">
+            <Badge variant="secondary" className="glass text-foreground text-[10px] shadow-lg border-0 font-bold px-2.5 py-1 rounded-xl">
+              {product.minOrder} {product.unit}
+            </Badge>
           </div>
         </div>
         
-        <div className="p-4 pt-2 flex flex-col flex-1">
-          <h3 className="font-bold text-sm text-foreground line-clamp-2 min-h-[2.5rem] leading-snug mb-2 group-hover:text-primary transition-colors">
+        <div className="p-4 pt-3 flex flex-col flex-1 relative z-10">
+          <h3 className="font-bold text-sm leading-snug text-foreground line-clamp-2 mb-2 group-hover:text-primary transition-colors">
             {product.name}
           </h3>
           
-          <div className="flex items-baseline gap-2 mb-4 mt-auto">
-            <span className="text-primary font-black text-lg">
-              {price} <span className="text-xs font-normal text-muted-foreground">ل.س</span>
-            </span>
-            {originalPrice && (
-              <span className="text-muted-foreground text-xs line-through decoration-red-400 opacity-60">
-                {originalPrice}
-              </span>
-            )}
-          </div>
+          <div className="mt-auto space-y-3">
+            {/* Price Section */}
+            <div className="flex items-end justify-between">
+              <div className="flex flex-col">
+                {originalPrice && (
+                  <span className="text-xs text-gray-400 line-through font-medium">
+                    {originalPrice.toLocaleString('ar-SY')} ل.س
+                  </span>
+                )}
+                <div className="flex items-baseline gap-1">
+                  <span className="text-lg font-black bg-gradient-to-l from-primary to-purple-600 bg-clip-text text-transparent">
+                    {price.toLocaleString('ar-SY')}
+                  </span>
+                  <span className="text-[10px] text-gray-500 font-bold">ل.س</span>
+                </div>
+              </div>
+            </div>
 
-          <AnimatePresence mode="wait">
-            {quantity === 0 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <Button 
-                  onClick={handleIncrement}
-                  className="w-full bg-gray-100 hover:bg-primary hover:text-white text-foreground font-bold shadow-none h-10 rounded-xl border border-gray-200 transition-all duration-300"
-                  data-testid={`button-add-${product.id}`}
+            {/* Add to Cart Section */}
+            <AnimatePresence mode="wait">
+              {quantity === 0 ? (
+                <motion.div
+                  key="add-button"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
                 >
-                  <Plus className="w-4 h-4 ml-1" />
-                  أضف للسلة
-                </Button>
-              </motion.div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="flex items-center justify-between bg-primary rounded-xl p-1 shadow-lg shadow-primary/20"
-              >
-                <Button 
-                  size="icon" 
-                  variant="ghost" 
-                  className="h-8 w-8 bg-white/20 hover:bg-white/30 text-white rounded-lg"
-                  onClick={handleIncrement}
+                  <Button
+                    onClick={handleIncrement}
+                    className="w-full h-11 rounded-xl gradient-primary text-white font-bold text-sm border-0 shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-shadow"
+                  >
+                    <ShoppingBag className="w-4 h-4 ml-2" />
+                    أضف للسلة
+                  </Button>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="quantity-controls"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex items-center justify-between bg-gradient-to-l from-primary/10 to-purple-100/50 rounded-xl p-1"
                 >
-                  <Plus className="w-4 h-4" />
-                </Button>
-                <div className="flex flex-col items-center">
+                  <Button
+                    size="icon"
+                    onClick={handleDecrement}
+                    className="h-9 w-9 rounded-lg bg-white shadow-md border-0 text-primary hover:bg-primary hover:text-white transition-colors"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </Button>
                   <motion.span 
                     key={quantity}
-                    initial={{ y: -10, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    className="font-bold text-white text-lg"
+                    initial={{ scale: 1.2 }}
+                    animate={{ scale: 1 }}
+                    className="font-black text-lg text-primary min-w-[2rem] text-center"
                   >
                     {quantity}
                   </motion.span>
-                  <span className="text-[8px] text-white/70 -mt-0.5">{product.unit}</span>
-                </div>
-                <Button 
-                  size="icon" 
-                  variant="ghost" 
-                  className={cn(
-                    "h-8 w-8 rounded-lg",
-                    quantity <= product.minOrder 
-                      ? "bg-red-500/80 hover:bg-red-500 text-white" 
-                      : "bg-white/20 hover:bg-white/30 text-white"
-                  )}
-                  onClick={handleDecrement}
-                >
-                  <Minus className="w-4 h-4" />
-                </Button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  <Button
+                    size="icon"
+                    onClick={handleIncrement}
+                    className="h-9 w-9 rounded-lg gradient-primary shadow-md border-0 text-white"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </Card>
     </motion.div>

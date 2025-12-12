@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Search, Bell, MapPin } from 'lucide-react';
+import { ChevronLeft, Search, Bell, MapPin, Sparkles, TrendingUp, Gift, ArrowLeft } from 'lucide-react';
 import { AdsCarousel } from '@/components/ui/AdsCarousel';
 import { Link, useLocation } from 'wouter';
 import { Input } from '@/components/ui/input';
 import { useQuery } from '@tanstack/react-query';
 import { productsAPI, categoriesAPI, brandsAPI, productsByCityAPI, citiesAPI } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
+import { motion } from 'framer-motion';
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -51,178 +52,328 @@ export default function Home() {
     "معلبات": "🥫",
   };
 
+  const categoryColors = [
+    "from-orange-400 to-amber-500",
+    "from-blue-400 to-cyan-500",
+    "from-pink-400 to-rose-500",
+    "from-green-400 to-emerald-500",
+    "from-purple-400 to-violet-500",
+    "from-red-400 to-orange-500",
+  ];
+
   return (
     <MobileLayout hideHeader>
-      <div className="pb-24 bg-gray-50 min-h-screen">
+      <div className="pb-8 min-h-screen">
         
-        {/* Creative Header */}
-        <div className="bg-primary text-white p-6 pb-24 rounded-b-[2.5rem] relative overflow-hidden shadow-xl">
-           {/* Abstract Shapes */}
-           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
-           <div className="absolute bottom-0 left-0 w-40 h-40 bg-secondary/20 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl"></div>
-
-           <div className="relative z-10">
-             <div className="flex justify-between items-center mb-6">
-               <div>
-                 <p className="text-purple-200 text-xs mb-1">مرحباً بك 👋</p>
-                 <h1 className="text-xl font-bold" data-testid="text-facility-name">
-                   {user?.facilityName || 'ضيف'}
-                 </h1>
-                 <Link href="/profile" className="flex items-center gap-1 text-[10px] text-purple-100 mt-1 bg-white/10 w-fit px-2 py-1 rounded-full hover:bg-white/20 transition-colors cursor-pointer">
-                    <MapPin className="w-3 h-3" />
-                    {userCity?.name || 'اختر مدينتك'}
-                 </Link>
-               </div>
-               <div className="flex gap-3">
-                 <Button size="icon" variant="ghost" className="bg-white/10 hover:bg-white/20 text-white rounded-xl relative" onClick={() => setLocation('/notifications')}>
-                   <Bell className="w-5 h-5" />
-                   <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-primary"></span>
-                 </Button>
-               </div>
-             </div>
-
-             {/* Search Bar */}
-             <form 
-               className="relative group"
-               onSubmit={(e) => {
-                 e.preventDefault();
-                 if (searchQuery.trim()) {
-                   setLocation(`/search/${encodeURIComponent(searchQuery.trim())}`);
-                 }
-               }}
-             >
-               <div className="absolute inset-0 bg-secondary blur-lg opacity-20 group-hover:opacity-30 transition-opacity rounded-xl"></div>
-               <div className="relative bg-white text-gray-800 rounded-2xl flex items-center p-1 shadow-lg shadow-black/5">
-                 <Search className="w-5 h-5 text-gray-400 mr-3 ml-2" />
-                 <Input 
-                   data-testid="input-search"
-                   className="border-none shadow-none focus-visible:ring-0 bg-transparent h-12 text-right placeholder:text-gray-400" 
-                   placeholder="ابحث عن منتج، علامة تجارية..."
-                   value={searchQuery}
-                   onChange={(e) => setSearchQuery(e.target.value)}
-                 />
-                 <Button 
-                   type="submit"
-                   className="rounded-xl h-10 w-10 p-0 bg-primary text-white hover:bg-primary/90 shadow-md"
-                   disabled={!searchQuery.trim()}
-                 >
-                   <Search className="w-5 h-5" />
-                 </Button>
-               </div>
-             </form>
-           </div>
-        </div>
-
-        {/* Ads Carousel Overlapping Header */}
-        <div className="px-4 -mt-16 relative z-10 mb-6">
-          <div className="rounded-2xl shadow-lg overflow-hidden border-4 border-white">
-             <AdsCarousel />
+        {/* Premium Header */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="gradient-primary text-white p-6 pb-28 rounded-b-[3rem] relative overflow-hidden shadow-2xl"
+        >
+          {/* Animated Background Elements */}
+          <div className="absolute inset-0 overflow-hidden">
+            <motion.div 
+              animate={{ 
+                scale: [1, 1.2, 1],
+                opacity: [0.1, 0.2, 0.1]
+              }}
+              transition={{ duration: 4, repeat: Infinity }}
+              className="absolute -top-20 -right-20 w-80 h-80 bg-white rounded-full blur-3xl"
+            />
+            <motion.div 
+              animate={{ 
+                scale: [1, 1.3, 1],
+                opacity: [0.05, 0.15, 0.05]
+              }}
+              transition={{ duration: 5, repeat: Infinity, delay: 1 }}
+              className="absolute bottom-0 -left-20 w-60 h-60 bg-cyan-300 rounded-full blur-3xl"
+            />
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
           </div>
+
+          <div className="relative z-10">
+            {/* Top Bar */}
+            <div className="flex justify-between items-start mb-8">
+              <div>
+                <motion.div 
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="flex items-center gap-2 mb-2"
+                >
+                  <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/10">
+                    <Sparkles className="w-5 h-5 text-yellow-300" />
+                  </div>
+                  <span className="text-2xl font-black tracking-tight">مزود</span>
+                </motion.div>
+                <motion.p 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="text-purple-200 text-sm"
+                >
+                  مرحباً بك 👋
+                </motion.p>
+                <motion.h1 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-xl font-bold" 
+                  data-testid="text-facility-name"
+                >
+                  {user?.facilityName || 'ضيف كريم'}
+                </motion.h1>
+                <Link href="/profile">
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                    className="flex items-center gap-1.5 text-xs text-purple-100 mt-2 bg-white/15 backdrop-blur-md w-fit px-3 py-1.5 rounded-full hover:bg-white/25 transition-all cursor-pointer border border-white/10"
+                  >
+                    <MapPin className="w-3.5 h-3.5" />
+                    {userCity?.name || 'اختر مدينتك'}
+                  </motion.div>
+                </Link>
+              </div>
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+              >
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="bg-white/15 hover:bg-white/25 text-white rounded-2xl w-12 h-12 relative backdrop-blur-md border border-white/10" 
+                  onClick={() => setLocation('/notifications')}
+                >
+                  <Bell className="w-5 h-5" />
+                  <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white animate-pulse" />
+                </Button>
+              </motion.div>
+            </div>
+
+            {/* Premium Search Bar */}
+            <motion.form 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="relative group"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (searchQuery.trim()) {
+                  setLocation(`/search/${encodeURIComponent(searchQuery.trim())}`);
+                }
+              }}
+            >
+              <div className="absolute inset-0 bg-white/30 blur-2xl rounded-3xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
+              <div className="relative bg-white/95 backdrop-blur-xl text-gray-800 rounded-2xl flex items-center p-1.5 shadow-2xl shadow-black/10 border border-white/50">
+                <Search className="w-5 h-5 text-gray-400 mr-4 ml-2" />
+                <Input 
+                  data-testid="input-search"
+                  className="border-none shadow-none focus-visible:ring-0 bg-transparent h-12 text-right placeholder:text-gray-400 font-medium" 
+                  placeholder="ابحث عن منتج، علامة تجارية..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <Button 
+                  type="submit"
+                  className="rounded-xl h-11 w-11 p-0 gradient-primary text-white border-0 shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-shadow"
+                  disabled={!searchQuery.trim()}
+                >
+                  <Search className="w-5 h-5" />
+                </Button>
+              </div>
+            </motion.form>
+          </div>
+        </motion.div>
+
+        {/* Ads Carousel - Floating */}
+        <div className="px-4 -mt-20 relative z-20 mb-8">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="rounded-3xl shadow-2xl overflow-hidden border-4 border-white/80 backdrop-blur-sm"
+          >
+            <AdsCarousel />
+          </motion.div>
         </div>
 
-        {/* Categories Horizontal Scroll */}
-        <div>
-          <div className="flex items-center justify-between px-4 mb-3">
-            <h3 className="font-bold text-lg flex items-center gap-2">
-              <span className="w-1 h-5 bg-secondary rounded-full"></span>
+        {/* Categories - Premium Cards */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+          className="mb-8"
+        >
+          <div className="flex items-center justify-between px-5 mb-4">
+            <h3 className="font-black text-lg flex items-center gap-3">
+              <div className="w-1.5 h-6 rounded-full gradient-secondary" />
               الأقسام الرئيسية
             </h3>
             <Link href="/categories">
-              <Button variant="ghost" className="text-primary text-xs h-auto p-0 font-bold hover:bg-transparent hover:text-primary/80">
-                عرض الكل <ChevronLeft className="w-3 h-3 mr-1" />
+              <Button variant="ghost" className="text-primary text-sm h-auto p-0 font-bold hover:bg-transparent group">
+                عرض الكل 
+                <ArrowLeft className="w-4 h-4 mr-1 group-hover:-translate-x-1 transition-transform" />
               </Button>
             </Link>
           </div>
-          <div className="flex overflow-x-auto px-4 gap-4 no-scrollbar pb-4 pt-1">
-            {categories.map((cat: any) => (
+          <div className="flex overflow-x-auto px-4 gap-4 no-scrollbar pb-2">
+            {categories.map((cat: any, index: number) => (
               <Link key={cat.id} href={`/category/${cat.id}`}>
-                <div className="flex flex-col items-center gap-2 min-w-[72px] cursor-pointer group" data-testid={`category-${cat.id}`}>
-                  <div className={`w-18 h-18 aspect-square rounded-[1.2rem] flex items-center justify-center shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:shadow-md bg-gradient-to-br ${cat.color} bg-opacity-10 border border-white`}>
-                     <div className="text-2xl drop-shadow-sm">
-                       {categoryIcons[cat.name] || cat.icon}
-                     </div>
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.6 + index * 0.1 }}
+                  className="flex flex-col items-center gap-2 min-w-[80px] cursor-pointer group" 
+                  data-testid={`category-${cat.id}`}
+                >
+                  <div className={`w-[72px] h-[72px] rounded-[1.5rem] flex items-center justify-center shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl bg-gradient-to-br ${categoryColors[index % categoryColors.length]} relative overflow-hidden`}>
+                    <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <span className="text-3xl relative z-10 drop-shadow-md">
+                      {categoryIcons[cat.name] || cat.icon}
+                    </span>
                   </div>
                   <span className="text-xs font-bold text-center leading-tight text-gray-700 group-hover:text-primary transition-colors">{cat.name}</span>
-                </div>
+                </motion.div>
               </Link>
             ))}
           </div>
-        </div>
+        </motion.div>
 
-        {/* Brands Section */}
-        <div className="mt-2">
-           <div className="flex items-center justify-between px-4 mb-3">
-            <h3 className="font-bold text-lg flex items-center gap-2">
-              <span className="w-1 h-5 bg-secondary rounded-full"></span>
-              أهم العلامات التجارية
+        {/* Brands Section - Modern Style */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
+          className="mb-8"
+        >
+          <div className="flex items-center justify-between px-5 mb-4">
+            <h3 className="font-black text-lg flex items-center gap-3">
+              <div className="w-1.5 h-6 rounded-full bg-gradient-to-b from-blue-500 to-cyan-500" />
+              العلامات التجارية
             </h3>
           </div>
-          <div className="flex overflow-x-auto px-4 gap-3 no-scrollbar pb-4">
-            {brands.map((brand: any) => (
-               <div key={brand.id} className="flex-shrink-0 flex flex-col items-center gap-1 cursor-pointer w-20 group" data-testid={`brand-${brand.id}`}>
-                 <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-sm border-2 border-white group-hover:border-primary transition-colors text-center overflow-hidden relative">
-                   <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
-                   <span className="text-2xl relative z-10">{brand.logo}</span>
-                 </div>
-                 <span className="text-[10px] text-gray-600 text-center font-bold">{brand.name}</span>
-               </div>
+          <div className="flex overflow-x-auto px-4 gap-4 no-scrollbar pb-2">
+            {brands.map((brand: any, index: number) => (
+              <motion.div 
+                key={brand.id} 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 + index * 0.05 }}
+                className="flex-shrink-0 flex flex-col items-center gap-2 cursor-pointer group" 
+                data-testid={`brand-${brand.id}`}
+              >
+                <div className="w-[70px] h-[70px] rounded-2xl bg-white flex items-center justify-center shadow-premium group-hover:shadow-premium-hover transition-all duration-300 border border-gray-100/50 group-hover:border-primary/30 overflow-hidden">
+                  <span className="text-3xl group-hover:scale-110 transition-transform">{brand.logo}</span>
+                </div>
+                <span className="text-[11px] text-gray-600 text-center font-bold max-w-[70px] truncate">{brand.name}</span>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
 
-        {/* Featured Products */}
-        <div className="px-4 mt-2">
-           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-lg flex items-center gap-2">
-              <span className="w-1 h-5 bg-secondary rounded-full"></span>
+        {/* Featured Products - Grid */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+          className="px-4 mb-8"
+        >
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="font-black text-lg flex items-center gap-3">
+              <div className="w-1.5 h-6 rounded-full bg-gradient-to-b from-orange-500 to-red-500" />
+              <TrendingUp className="w-5 h-5 text-orange-500" />
               الأكثر طلباً
             </h3>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            {products.slice(0, 8).map((product: any) => (
-              <ProductCard key={product.id} product={product} />
+            {products.slice(0, 8).map((product: any, index: number) => (
+              <motion.div
+                key={product.id}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 + index * 0.05 }}
+              >
+                <ProductCard product={product} />
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
 
-        {/* Second Banner */}
-        <div className="px-4 mt-8">
-          <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-3xl p-6 flex items-center justify-between relative overflow-hidden shadow-lg">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl"></div>
-            <div className="relative z-10">
-              <h4 className="font-bold text-white text-lg mb-2">أعد طلب مشترياتك 🔄</h4>
-              <p className="text-xs text-gray-300 max-w-[150px] leading-relaxed mb-4">وفر وقتك وأعد طلب منتجاتك السابقة بضغطة زر</p>
-              <Link href="/buy-again">
-                <Button size="sm" className="bg-white text-gray-900 hover:bg-gray-100 border-0 font-bold rounded-xl px-6">
-                  سجل طلباتي
+        {/* Premium CTA Banner */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1 }}
+          className="px-4 mb-8"
+        >
+          <div className="relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 shadow-2xl">
+            {/* Animated Background */}
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute top-0 right-0 w-40 h-40 bg-primary/20 rounded-full blur-3xl" />
+              <div className="absolute bottom-0 left-0 w-32 h-32 bg-cyan-500/20 rounded-full blur-2xl" />
+            </div>
+            
+            <div className="relative z-10 flex items-center justify-between">
+              <div className="flex-1">
+                <h4 className="font-black text-white text-lg mb-2 flex items-center gap-2">
+                  أعد طلب مشترياتك 
+                  <span className="text-2xl">🔄</span>
+                </h4>
+                <p className="text-sm text-gray-300 leading-relaxed mb-4 max-w-[200px]">
+                  وفر وقتك وأعد طلب منتجاتك السابقة بضغطة زر واحدة
+                </p>
+                <Link href="/buy-again">
+                  <Button className="bg-white text-gray-900 hover:bg-gray-100 font-bold rounded-xl px-6 h-11 shadow-xl hover:shadow-2xl transition-all">
+                    طلباتي السابقة
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                  </Button>
+                </Link>
+              </div>
+              <div className="w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/10">
+                <span className="text-5xl">📝</span>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Special Offers Section */}
+        {products.filter((p: any) => p.originalPrice).length > 0 && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.1 }}
+            className="px-4 mb-8"
+          >
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-black text-lg flex items-center gap-3">
+                <div className="w-1.5 h-6 rounded-full bg-gradient-to-b from-red-500 to-pink-500" />
+                <Gift className="w-5 h-5 text-red-500" />
+                عروض خاصة
+              </h3>
+              <Link href="/offers">
+                <Button variant="ghost" className="text-red-500 text-sm h-auto p-0 font-bold hover:bg-transparent group">
+                  عرض الكل 
+                  <ArrowLeft className="w-4 h-4 mr-1 group-hover:-translate-x-1 transition-transform" />
                 </Button>
               </Link>
             </div>
-            <div className="relative z-10 bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-white/10">
-               <span className="text-4xl">📝</span>
+            <div className="grid grid-cols-2 gap-4">
+              {products.filter((p: any) => p.originalPrice).slice(0, 4).map((product: any, index: number) => (
+                <motion.div
+                  key={`offer-${product.id}`}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.1 + index * 0.05 }}
+                >
+                  <ProductCard product={product} />
+                </motion.div>
+              ))}
             </div>
-          </div>
-        </div>
-
-         {/* Offers Section */}
-        <div className="px-4 mt-8">
-           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-lg flex items-center gap-2">
-              <span className="w-1 h-5 bg-red-500 rounded-full"></span>
-              عروض خاصة 🔥
-            </h3>
-            <Link href="/offers">
-              <Button variant="ghost" className="text-red-500 text-xs h-auto p-0 font-bold hover:bg-transparent hover:text-red-600">
-                عرض الكل <ChevronLeft className="w-3 h-3 mr-1" />
-              </Button>
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            {products.filter((p: any) => p.originalPrice).slice(0, 4).map((product: any) => (
-              <ProductCard key={`offer-${product.id}`} product={product} />
-            ))}
-          </div>
-        </div>
+          </motion.div>
+        )}
       </div>
     </MobileLayout>
   );
