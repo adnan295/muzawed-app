@@ -210,73 +210,93 @@ export function ProductCard({ product }: ProductCardProps) {
           </h3>
           
           <div className="mt-auto space-y-3">
-            {/* Price Section */}
+            {/* Price Section - Only show if logged in */}
             <div className="flex items-end justify-between">
               <div className="flex flex-col">
-                {originalPrice && (
-                  <span className="text-xs text-gray-400 line-through font-medium">
-                    {originalPrice.toLocaleString('ar-SY')} ل.س
-                  </span>
+                {user ? (
+                  <>
+                    {originalPrice && (
+                      <span className="text-xs text-gray-400 line-through font-medium">
+                        {originalPrice.toLocaleString('ar-SY')} ل.س
+                      </span>
+                    )}
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-lg font-black bg-gradient-to-l from-primary to-purple-600 bg-clip-text text-transparent">
+                        {price.toLocaleString('ar-SY')}
+                      </span>
+                      <span className="text-[10px] text-gray-500 font-bold">ل.س</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-1.5 bg-primary/10 px-3 py-1.5 rounded-lg">
+                    <span className="text-xs font-bold text-primary">سجل لمعرفة السعر</span>
+                  </div>
                 )}
-                <div className="flex items-baseline gap-1">
-                  <span className="text-lg font-black bg-gradient-to-l from-primary to-purple-600 bg-clip-text text-transparent">
-                    {price.toLocaleString('ar-SY')}
-                  </span>
-                  <span className="text-[10px] text-gray-500 font-bold">ل.س</span>
-                </div>
               </div>
             </div>
 
-            {/* Add to Cart Section */}
-            <AnimatePresence mode="wait">
-              {quantity === 0 ? (
-                <motion.div
-                  key="add-button"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                >
-                  <Button
-                    onClick={handleIncrement}
-                    className="w-full h-11 rounded-xl gradient-primary text-white font-bold text-sm border-0 shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-shadow"
+            {/* Add to Cart Section - Only show if logged in */}
+            {user ? (
+              <AnimatePresence mode="wait">
+                {quantity === 0 ? (
+                  <motion.div
+                    key="add-button"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
                   >
-                    <ShoppingBag className="w-4 h-4 ml-2" />
-                    أضف للسلة
-                  </Button>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="quantity-controls"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="flex items-center justify-between bg-gradient-to-l from-primary/10 to-purple-100/50 rounded-xl p-1"
-                >
-                  <Button
-                    size="icon"
-                    onClick={handleDecrement}
-                    className="h-9 w-9 rounded-lg bg-white shadow-md border-0 text-primary hover:bg-primary hover:text-white transition-colors"
+                    <Button
+                      onClick={handleIncrement}
+                      className="w-full h-11 rounded-xl gradient-primary text-white font-bold text-sm border-0 shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-shadow"
+                    >
+                      <ShoppingBag className="w-4 h-4 ml-2" />
+                      أضف للسلة
+                    </Button>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="quantity-controls"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="flex items-center justify-between bg-gradient-to-l from-primary/10 to-purple-100/50 rounded-xl p-1"
                   >
-                    <Minus className="w-4 h-4" />
-                  </Button>
-                  <motion.span 
-                    key={quantity}
-                    initial={{ scale: 1.2 }}
-                    animate={{ scale: 1 }}
-                    className="font-black text-lg text-primary min-w-[2rem] text-center"
-                  >
-                    {quantity}
-                  </motion.span>
-                  <Button
-                    size="icon"
-                    onClick={handleIncrement}
-                    className="h-9 w-9 rounded-lg gradient-primary shadow-md border-0 text-white"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                    <Button
+                      size="icon"
+                      onClick={handleDecrement}
+                      className="h-9 w-9 rounded-lg bg-white shadow-md border-0 text-primary hover:bg-primary hover:text-white transition-colors"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </Button>
+                    <motion.span 
+                      key={quantity}
+                      initial={{ scale: 1.2 }}
+                      animate={{ scale: 1 }}
+                      className="font-black text-lg text-primary min-w-[2rem] text-center"
+                    >
+                      {quantity}
+                    </motion.span>
+                    <Button
+                      size="icon"
+                      onClick={handleIncrement}
+                      className="h-9 w-9 rounded-lg gradient-primary shadow-md border-0 text-white"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            ) : (
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLocation('/login');
+                }}
+                className="w-full h-11 rounded-xl bg-gray-100 text-gray-600 font-bold text-sm border-0 hover:bg-gray-200 transition-colors"
+              >
+                سجل دخول للشراء
+              </Button>
+            )}
           </div>
         </div>
       </Card>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Search, Bell, MapPin, Sparkles, TrendingUp, Gift, ArrowLeft } from 'lucide-react';
+import { ChevronLeft, Search, Bell, MapPin, Sparkles, TrendingUp, Gift, ArrowLeft, Lock } from 'lucide-react';
 import { AdsCarousel } from '@/components/ui/AdsCarousel';
 import { Link, useLocation } from 'wouter';
 import { Input } from '@/components/ui/input';
@@ -10,11 +10,26 @@ import { useQuery } from '@tanstack/react-query';
 import { productsAPI, categoriesAPI, brandsAPI, productsByCityAPI, citiesAPI } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import { motion } from 'framer-motion';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const { user, isAuthenticated } = useAuth();
+  const { toast } = useToast();
+
+  const handleProtectedNavigation = (path: string) => {
+    if (!user) {
+      toast({
+        title: "يرجى تسجيل الدخول",
+        description: "سجل دخولك لتصفح الأقسام ومعرفة الأسعار",
+        variant: "destructive",
+      });
+      setLocation('/login');
+      return;
+    }
+    setLocation(path);
+  };
 
   const { data: categories = [] } = useQuery<any[]>({
     queryKey: ['categories'],
@@ -211,33 +226,41 @@ export default function Home() {
             <h3 className="font-black text-lg flex items-center gap-3">
               <div className="w-1.5 h-6 rounded-full gradient-secondary" />
               الأقسام الرئيسية
+              {!user && <Lock className="w-4 h-4 text-gray-400" />}
             </h3>
-            <Link href="/categories">
-              <Button variant="ghost" className="text-primary text-sm h-auto p-0 font-bold hover:bg-transparent group">
-                عرض الكل 
-                <ArrowLeft className="w-4 h-4 mr-1 group-hover:-translate-x-1 transition-transform" />
-              </Button>
-            </Link>
+            <Button 
+              variant="ghost" 
+              className="text-primary text-sm h-auto p-0 font-bold hover:bg-transparent group"
+              onClick={() => handleProtectedNavigation('/categories')}
+            >
+              عرض الكل 
+              <ArrowLeft className="w-4 h-4 mr-1 group-hover:-translate-x-1 transition-transform" />
+            </Button>
           </div>
           <div className="flex overflow-x-auto px-4 gap-4 no-scrollbar pb-2">
             {categories.map((cat: any, index: number) => (
-              <Link key={cat.id} href={`/category/${cat.id}`}>
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.6 + index * 0.1 }}
-                  className="flex flex-col items-center gap-2 min-w-[80px] cursor-pointer group" 
-                  data-testid={`category-${cat.id}`}
-                >
-                  <div className={`w-[72px] h-[72px] rounded-[1.5rem] flex items-center justify-center shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl bg-gradient-to-br ${categoryColors[index % categoryColors.length]} relative overflow-hidden`}>
-                    <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <span className="text-3xl relative z-10 drop-shadow-md">
-                      {categoryIcons[cat.name] || cat.icon}
-                    </span>
-                  </div>
-                  <span className="text-xs font-bold text-center leading-tight text-gray-700 group-hover:text-primary transition-colors">{cat.name}</span>
-                </motion.div>
-              </Link>
+              <motion.div 
+                key={cat.id}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.6 + index * 0.1 }}
+                className="flex flex-col items-center gap-2 min-w-[80px] cursor-pointer group" 
+                data-testid={`category-${cat.id}`}
+                onClick={() => handleProtectedNavigation(`/category/${cat.id}`)}
+              >
+                <div className={`w-[72px] h-[72px] rounded-[1.5rem] flex items-center justify-center shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl bg-gradient-to-br ${categoryColors[index % categoryColors.length]} relative overflow-hidden`}>
+                  <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <span className="text-3xl relative z-10 drop-shadow-md">
+                    {categoryIcons[cat.name] || cat.icon}
+                  </span>
+                  {!user && (
+                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                      <Lock className="w-5 h-5 text-white drop-shadow-lg" />
+                    </div>
+                  )}
+                </div>
+                <span className="text-xs font-bold text-center leading-tight text-gray-700 group-hover:text-primary transition-colors">{cat.name}</span>
+              </motion.div>
             ))}
           </div>
         </motion.div>
