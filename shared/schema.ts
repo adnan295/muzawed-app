@@ -763,6 +763,7 @@ export const drivers = pgTable("drivers", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   phone: text("phone").notNull().unique(),
+  password: text("password"), // hashed password for driver login
   licenseNumber: text("license_number"),
   vehiclePlate: text("vehicle_plate"),
   vehicleType: text("vehicle_type"), // شاحنة صغيرة, فان توصيل, شاحنة كبيرة, دراجة نارية
