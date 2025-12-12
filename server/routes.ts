@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import crypto from "crypto";
 import { storage } from "./storage";
 import { 
   insertUserSchema, insertCartItemSchema, insertOrderSchema, insertAddressSchema, 
@@ -53,10 +54,12 @@ export async function registerRoutes(
   try {
     const existingStaff = await storage.getStaff();
     if (existingStaff.length === 0) {
-      const hashedPassword = await bcrypt.hash('admin123', 10);
+      // Use environment variable for admin password, or generate a secure random one
+      const adminPassword = process.env.ADMIN_DEFAULT_PASSWORD || crypto.randomBytes(16).toString('hex');
+      const hashedPassword = await bcrypt.hash(adminPassword, 12);
       await storage.createStaff({
         name: 'مدير النظام',
-        email: 'admin@sary.sy',
+        email: 'admin@mazoud.sy',
         phone: '+963900000000',
         password: hashedPassword,
         role: 'admin',
@@ -65,7 +68,12 @@ export async function registerRoutes(
         status: 'active',
         avatar: null,
       });
-      console.log('✅ Default admin account initialized');
+      if (!process.env.ADMIN_DEFAULT_PASSWORD) {
+        console.log('⚠️ Admin account created with random password. Set ADMIN_DEFAULT_PASSWORD env var or reset password.');
+        console.log(`🔐 Temporary admin password: ${adminPassword}`);
+      } else {
+        console.log('✅ Admin account initialized with configured password');
+      }
     }
   } catch (error) {
     // Silently fail - staff may already exist
@@ -2169,19 +2177,28 @@ export async function registerRoutes(
     try {
       const { phone, password } = req.body;
       
-      // Check drivers table first
+      if (!phone || !password) {
+        return res.status(400).json({ error: "يرجى إدخال رقم الهاتف وكلمة المرور" });
+      }
+      
+      // Check drivers table
       const drivers = await storage.getDrivers();
       const driver = drivers.find(d => d.phone === phone);
       
       if (!driver) {
-        return res.status(401).json({ error: "رقم الهاتف غير مسجل كسائق" });
+        // Use constant-time comparison to prevent timing attacks
+        await bcrypt.compare(password, '$2b$12$dummy.hash.for.timing.attack.prevention');
+        return res.status(401).json({ error: "بيانات الدخول غير صحيحة" });
       }
       
-      // For now, use a simple password check (in production, should use bcrypt)
-      // Default password is the last 4 digits of phone number
-      const defaultPassword = phone.slice(-4);
-      if (password !== defaultPassword && password !== 'driver123') {
-        return res.status(401).json({ error: "كلمة المرور غير صحيحة" });
+      // Verify password with bcrypt (driver must have hashed password set by admin)
+      if (!driver.password) {
+        return res.status(401).json({ error: "لم يتم تعيين كلمة مرور للسائق. يرجى التواصل مع المدير" });
+      }
+      
+      const isValidPassword = await bcrypt.compare(password, driver.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ error: "بيانات الدخول غير صحيحة" });
       }
       
       res.json({ 
