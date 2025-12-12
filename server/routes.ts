@@ -21,6 +21,41 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }
 });
 
+// Password strength validation - التحقق من قوة كلمة المرور
+function validatePasswordStrength(password: string): { valid: boolean; error?: string } {
+  if (!password) {
+    return { valid: false, error: "كلمة المرور مطلوبة" };
+  }
+  if (password.length < 8) {
+    return { valid: false, error: "كلمة المرور يجب أن تكون 8 أحرف على الأقل" };
+  }
+  if (password.length > 128) {
+    return { valid: false, error: "كلمة المرور طويلة جداً" };
+  }
+  if (!/[A-Za-z]/.test(password)) {
+    return { valid: false, error: "كلمة المرور يجب أن تحتوي على حرف واحد على الأقل" };
+  }
+  if (!/[0-9]/.test(password)) {
+    return { valid: false, error: "كلمة المرور يجب أن تحتوي على رقم واحد على الأقل" };
+  }
+  // Check for common weak passwords
+  const weakPasswords = ['12345678', 'password', 'qwerty123', 'admin123', '123456789'];
+  if (weakPasswords.includes(password.toLowerCase())) {
+    return { valid: false, error: "كلمة المرور ضعيفة جداً. اختر كلمة مرور أقوى" };
+  }
+  return { valid: true };
+}
+
+// Input sanitization - تنظيف المدخلات
+function sanitizeInput(input: string): string {
+  if (typeof input !== 'string') return '';
+  return input
+    .replace(/[<>]/g, '') // Remove HTML tags
+    .replace(/javascript:/gi, '') // Remove javascript: protocol
+    .replace(/on\w+=/gi, '') // Remove event handlers
+    .trim();
+}
+
 // Authorization middleware - التحقق من صلاحيات المستخدم
 const requireAuth = (req: Request, res: Response, next: NextFunction) => {
   if (!req.session.userId) {
@@ -99,10 +134,23 @@ export async function registerRoutes(
       // Invalidate the token FIRST (single-use) - even if registration fails
       await storage.invalidateVerificationToken(otherData.phone, verificationToken);
       
-      // Hash password if provided
+      // Validate password strength
+      if (password) {
+        const passwordCheck = validatePasswordStrength(password);
+        if (!passwordCheck.valid) {
+          return res.status(400).json({ error: passwordCheck.error });
+        }
+      }
+      
+      // Hash password if provided (using cost factor 12 for better security)
       let hashedPassword = null;
       if (password) {
-        hashedPassword = await bcrypt.hash(password, 10);
+        hashedPassword = await bcrypt.hash(password, 12);
+      }
+      
+      // Sanitize text inputs
+      if (otherData.facilityName) {
+        otherData.facilityName = sanitizeInput(otherData.facilityName);
       }
       
       const validData = insertUserSchema.parse({
@@ -2540,6 +2588,12 @@ export async function registerRoutes(
       if (!currentPassword || !newPassword) {
         return res.status(400).json({ error: "كلمة السر الحالية والجديدة مطلوبتان" });
       }
+      
+      // Validate new password strength
+      const passwordCheck = validatePasswordStrength(newPassword);
+      if (!passwordCheck.valid) {
+        return res.status(400).json({ error: passwordCheck.error });
+      }
 
       const user = await storage.getUser(userId);
       if (!user) {
@@ -2555,7 +2609,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "كلمة السر الحالية غير صحيحة" });
       }
 
-      const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+      // Use cost factor 12 for better security
+      const hashedNewPassword = await bcrypt.hash(newPassword, 12);
       await storage.updateUser(userId, { password: hashedNewPassword });
 
       res.json({ success: true, message: "تم تغيير كلمة السر بنجاح" });
