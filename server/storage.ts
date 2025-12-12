@@ -1,3 +1,4 @@
+import { cache, CACHE_KEYS, CACHE_TTL } from "./cache";
 import {
   type User,
   type InsertUser,
@@ -520,10 +521,22 @@ export class DatabaseStorage implements IStorage {
 
   // Products
   async getProducts(categoryId?: number): Promise<Product[]> {
+    const cacheKey = categoryId 
+      ? `${CACHE_KEYS.PRODUCTS_BY_CATEGORY}${categoryId}` 
+      : CACHE_KEYS.PRODUCTS;
+    
+    const cached = cache.get<Product[]>(cacheKey);
+    if (cached) return cached;
+    
+    let result: Product[];
     if (categoryId) {
-      return await db.select().from(products).where(eq(products.categoryId, categoryId));
+      result = await db.select().from(products).where(eq(products.categoryId, categoryId));
+    } else {
+      result = await db.select().from(products);
     }
-    return await db.select().from(products);
+    
+    cache.set(cacheKey, result, CACHE_TTL.MEDIUM);
+    return result;
   }
 
   async getProduct(id: number): Promise<Product | undefined> {
@@ -532,16 +545,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProduct(product: InsertProduct): Promise<Product> {
+    cache.invalidatePattern(CACHE_KEYS.PRODUCTS);
     const [newProduct] = await db.insert(products).values(product).returning();
     return newProduct;
   }
 
   async updateProduct(id: number, productData: Partial<InsertProduct>): Promise<Product | undefined> {
+    cache.invalidatePattern(CACHE_KEYS.PRODUCTS);
     const [product] = await db.update(products).set(productData).where(eq(products.id, id)).returning();
     return product || undefined;
   }
 
   async deleteProduct(id: number): Promise<void> {
+    cache.invalidatePattern(CACHE_KEYS.PRODUCTS);
     await db.delete(products).where(eq(products.id, id));
   }
 
@@ -607,15 +623,22 @@ export class DatabaseStorage implements IStorage {
 
   // Categories
   async getCategories(): Promise<Category[]> {
-    return await db.select().from(categories);
+    const cached = cache.get<Category[]>(CACHE_KEYS.CATEGORIES);
+    if (cached) return cached;
+    
+    const result = await db.select().from(categories);
+    cache.set(CACHE_KEYS.CATEGORIES, result, CACHE_TTL.LONG);
+    return result;
   }
 
   async createCategory(category: Omit<Category, 'id'>): Promise<Category> {
+    cache.delete(CACHE_KEYS.CATEGORIES);
     const [newCategory] = await db.insert(categories).values(category).returning();
     return newCategory;
   }
 
   async deleteCategory(id: number): Promise<void> {
+    cache.delete(CACHE_KEYS.CATEGORIES);
     await db.delete(categories).where(eq(categories.id, id));
   }
 
