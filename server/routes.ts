@@ -1087,6 +1087,20 @@ export async function registerRoutes(
         }
       }
       
+      // Check stock availability for all items before proceeding
+      if (warehouseId) {
+        const stockErrors: string[] = [];
+        for (const item of items) {
+          const stockCheck = await storage.checkStockAvailability(item.productId, warehouseId, item.quantity);
+          if (!stockCheck.available) {
+            stockErrors.push(`المنتج "${item.productName}" غير متوفر بالكمية المطلوبة (متوفر: ${stockCheck.currentStock})`);
+          }
+        }
+        if (stockErrors.length > 0) {
+          return res.status(400).json({ error: stockErrors.join('، ') });
+        }
+      }
+      
       // Server-side validation: Apply tiered pricing to order items
       let validatedSubtotal = 0;
       const validatedItems = await Promise.all(

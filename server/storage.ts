@@ -716,17 +716,107 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createOrder(order: InsertOrder, items: InsertOrderItem[]): Promise<Order> {
-    const [newOrder] = await db.insert(orders).values(order).returning();
-    
-    // Insert order items
-    for (const item of items) {
-      await db.insert(orderItems).values({ ...item, orderId: newOrder.id });
+    return await db.transaction(async (tx) => {
+      const [newOrder] = await tx.insert(orders).values(order).returning();
       
-      // Allocate sale to supplier if stock exists
-      await this.allocateSaleToSupplier(item.productId, item.quantity, item.price, newOrder.id);
-    }
+      // Insert order items and atomically deduct inventory
+      for (const item of items) {
+        await tx.insert(orderItems).values({ ...item, orderId: newOrder.id });
+        
+        // Atomic stock deduction with WHERE clause to prevent overselling
+        if (order.warehouseId) {
+          const result = await tx.update(productInventory)
+            .set({ stock: sql`${productInventory.stock} - ${item.quantity}` })
+            .where(and(
+              eq(productInventory.productId, item.productId),
+              eq(productInventory.warehouseId, order.warehouseId),
+              sql`${productInventory.stock} >= ${item.quantity}`
+            ))
+            .returning();
+          
+          if (result.length === 0) {
+            throw new Error(`المنتج "${item.productName}" غير متوفر بالكمية المطلوبة`);
+          }
+        }
+        
+        // Allocate sale to supplier within transaction
+        await this.allocateSaleToSupplierTx(tx, item.productId, item.quantity, item.price, newOrder.id);
+      }
 
-    return newOrder;
+      return newOrder;
+    });
+  }
+
+  private async allocateSaleToSupplierTx(tx: any, productId: number, quantity: number, salePrice: string, orderId: number): Promise<void> {
+    // Use FOR UPDATE to lock supplier stock positions during allocation
+    const positions = await tx.execute(
+      sql`SELECT * FROM supplier_stock_positions 
+          WHERE product_id = ${productId} AND quantity > 0 
+          ORDER BY last_import_date 
+          FOR UPDATE`
+    );
+
+    let remainingQty = quantity;
+
+    for (const position of positions.rows || positions) {
+      if (remainingQty <= 0) break;
+
+      const positionQty = position.quantity || 0;
+      const allocateQty = Math.min(remainingQty, positionQty);
+      const costPrice = position.avg_cost || '0';
+      const totalAmount = (allocateQty * parseFloat(costPrice)).toFixed(2);
+
+      await tx.insert(supplierTransactions).values({
+        supplierId: position.supplier_id,
+        warehouseId: position.warehouse_id,
+        productId: productId,
+        type: 'sale',
+        quantity: allocateQty,
+        unitPrice: costPrice,
+        totalAmount,
+        referenceNumber: `ORD-${orderId}`,
+        notes: `مبيعات من الطلب رقم ${orderId}`,
+      });
+
+      const newQty = positionQty - allocateQty;
+      await tx.update(supplierStockPositions)
+        .set({ quantity: newQty, updatedAt: new Date() })
+        .where(eq(supplierStockPositions.id, position.id));
+
+      remainingQty -= allocateQty;
+    }
+    
+    // Note: If remainingQty > 0, it means supplier stock doesn't fully cover the order
+    // This is acceptable as supplier stock is for accounting, not inventory control
+  }
+
+  async deductProductInventory(productId: number, warehouseId: number, quantity: number): Promise<void> {
+    const [inventory] = await db.select().from(productInventory)
+      .where(and(
+        eq(productInventory.productId, productId),
+        eq(productInventory.warehouseId, warehouseId)
+      ));
+    
+    if (inventory) {
+      const newStock = Math.max(0, inventory.stock - quantity);
+      await db.update(productInventory)
+        .set({ stock: newStock })
+        .where(eq(productInventory.id, inventory.id));
+    }
+  }
+
+  async checkStockAvailability(productId: number, warehouseId: number, quantity: number): Promise<{ available: boolean; currentStock: number }> {
+    const [inventory] = await db.select().from(productInventory)
+      .where(and(
+        eq(productInventory.productId, productId),
+        eq(productInventory.warehouseId, warehouseId)
+      ));
+    
+    const currentStock = inventory?.stock || 0;
+    return {
+      available: currentStock >= quantity,
+      currentStock
+    };
   }
 
   async allocateSaleToSupplier(productId: number, quantity: number, salePrice: string, orderId: number): Promise<void> {
@@ -978,12 +1068,31 @@ export class DatabaseStorage implements IStorage {
       };
       const [newOrder] = await tx.insert(orders).values(orderWithDiscount).returning();
       
-      // Add items
+      // Add items and atomically deduct inventory
       for (const item of items) {
         await tx.insert(orderItems).values({
           ...item,
           orderId: newOrder.id
         });
+        
+        // Atomic stock deduction with WHERE clause to prevent overselling
+        if (order.warehouseId) {
+          const result = await tx.update(productInventory)
+            .set({ stock: sql`${productInventory.stock} - ${item.quantity}` })
+            .where(and(
+              eq(productInventory.productId, item.productId),
+              eq(productInventory.warehouseId, order.warehouseId),
+              sql`${productInventory.stock} >= ${item.quantity}`
+            ))
+            .returning();
+          
+          if (result.length === 0) {
+            throw new Error(`المنتج "${item.productName}" غير متوفر بالكمية المطلوبة`);
+          }
+        }
+        
+        // Allocate sale to supplier within transaction
+        await this.allocateSaleToSupplierTx(tx, item.productId, item.quantity, item.price, newOrder.id);
       }
       
       // Deduct discounted amount from wallet
