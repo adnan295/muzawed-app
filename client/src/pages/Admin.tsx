@@ -9159,12 +9159,21 @@ export default function Admin() {
                     </div>
                     <div>
                       <Label>رقم الهاتف *</Label>
-                      <Input 
-                        value={newCustomer.phone} 
-                        onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})}
-                        placeholder="مثال: 0912345678"
-                        data-testid="input-new-customer-phone"
-                      />
+                      <div className="relative" dir="ltr">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground border-r border-gray-200 pr-3">+963</span>
+                        <Input 
+                          value={newCustomer.phone.replace('+963', '')} 
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, '');
+                            setNewCustomer({...newCustomer, phone: `+963${value}`});
+                          }}
+                          placeholder="9XXXXXXXX"
+                          className="pl-16 text-left font-sans"
+                          maxLength={10}
+                          data-testid="input-new-customer-phone"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">أدخل الرقم بدون مفتاح البلد</p>
                     </div>
                     <div>
                       <Label>كلمة المرور *</Label>
@@ -9257,11 +9266,20 @@ export default function Admin() {
                       </div>
                       <div>
                         <Label>رقم الهاتف</Label>
-                        <Input 
-                          value={editingCustomer.phone} 
-                          onChange={(e) => setEditingCustomer({...editingCustomer, phone: e.target.value})}
-                          data-testid="input-edit-customer-phone"
-                        />
+                        <div className="relative" dir="ltr">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground border-r border-gray-200 pr-3">+963</span>
+                          <Input 
+                            value={editingCustomer.phone.replace('+963', '')} 
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/\D/g, '');
+                              setEditingCustomer({...editingCustomer, phone: `+963${value}`});
+                            }}
+                            placeholder="9XXXXXXXX"
+                            className="pl-16 text-left font-sans"
+                            maxLength={10}
+                            data-testid="input-edit-customer-phone"
+                          />
+                        </div>
                       </div>
                       <div>
                         <Label>السجل التجاري</Label>
