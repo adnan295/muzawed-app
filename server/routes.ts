@@ -406,9 +406,15 @@ export async function registerRoutes(
       req.session.staffRole = staffMember.role;
       req.session.staffWarehouseId = staffMember.warehouseId || null;
       
-      // Return staff info without password
-      const { password: _, ...staffData } = staffMember;
-      res.json({ staff: staffData });
+      // Save session explicitly before responding
+      req.session.save((err) => {
+        if (err) {
+          return res.status(500).json({ error: "فشل حفظ الجلسة" });
+        }
+        // Return staff info without password
+        const { password: _, ...staffData } = staffMember;
+        res.json({ staff: staffData });
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
