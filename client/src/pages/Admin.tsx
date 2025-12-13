@@ -1718,6 +1718,8 @@ export default function Admin() {
   const [showCustomerDetails, setShowCustomerDetails] = useState(false);
   const [showEditCustomerDialog, setShowEditCustomerDialog] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
+  const [customersPage, setCustomersPage] = useState(1);
+  const customersPerPage = 20;
 
   const { data: customerDetails } = useQuery({
     queryKey: ['customerDetails', selectedCustomerId],
@@ -8586,7 +8588,7 @@ export default function Admin() {
                             
                             return matchesSearch && matchesCity && matchesStatus;
                           })
-                          .slice(0, 20).map((user: any, index: number) => {
+                          .slice((customersPage - 1) * customersPerPage, customersPage * customersPerPage).map((user: any, index: number) => {
                           const topCustomer = topCustomers.find((tc: any) => tc.user?.id === user.id);
                           const isVip = topCustomer ? topCustomer.totalSpent >= 500000 : false;
                           const isActive = topCustomer ? topCustomer.orderCount > 0 : false;
@@ -8698,18 +8700,59 @@ export default function Admin() {
                 )}
 
                 {/* Pagination */}
-                {adminUsers.length > 20 && (
-                  <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100">
-                    <p className="text-sm text-gray-500">عرض 1-20 من {adminUsers.length} عميل</p>
-                    <div className="flex gap-1">
-                      <Button variant="outline" size="sm" className="rounded-lg">السابق</Button>
-                      <Button variant="outline" size="sm" className="rounded-lg bg-primary text-white">1</Button>
-                      <Button variant="outline" size="sm" className="rounded-lg">2</Button>
-                      <Button variant="outline" size="sm" className="rounded-lg">3</Button>
-                      <Button variant="outline" size="sm" className="rounded-lg">التالي</Button>
+                {adminUsers.length > customersPerPage && (() => {
+                  const totalPages = Math.ceil(adminUsers.length / customersPerPage);
+                  const startItem = (customersPage - 1) * customersPerPage + 1;
+                  const endItem = Math.min(customersPage * customersPerPage, adminUsers.length);
+                  return (
+                    <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100">
+                      <p className="text-sm text-gray-500">عرض {startItem}-{endItem} من {adminUsers.length} عميل</p>
+                      <div className="flex gap-1">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="rounded-lg"
+                          disabled={customersPage === 1}
+                          onClick={() => setCustomersPage(p => Math.max(1, p - 1))}
+                        >
+                          السابق
+                        </Button>
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                          let pageNum;
+                          if (totalPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (customersPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (customersPage >= totalPages - 2) {
+                            pageNum = totalPages - 4 + i;
+                          } else {
+                            pageNum = customersPage - 2 + i;
+                          }
+                          return (
+                            <Button 
+                              key={pageNum}
+                              variant="outline" 
+                              size="sm" 
+                              className={`rounded-lg ${customersPage === pageNum ? 'bg-primary text-white' : ''}`}
+                              onClick={() => setCustomersPage(pageNum)}
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        })}
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="rounded-lg"
+                          disabled={customersPage === totalPages}
+                          onClick={() => setCustomersPage(p => Math.min(totalPages, p + 1))}
+                        >
+                          التالي
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </Card>
 
               {/* Top Customers Section */}
