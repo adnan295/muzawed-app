@@ -2287,16 +2287,13 @@ export async function registerRoutes(
 
   app.get("/api/admin/users", async (req, res) => {
     try {
-      // Use session-based staff filter for security
+      // Get staff session if available for filtering
       const staffFilter = getStaffWarehouseFilterFromSession(req);
-      if (!staffFilter.isAuthenticated) {
-        return res.status(401).json({ error: staffFilter.error || "يجب تسجيل الدخول كموظف" });
-      }
       
       let allUsers = await storage.getAllUsers();
       
       // Non-admin staff can only see users in their city (linked via warehouse)
-      if (staffFilter.warehouseId !== null) {
+      if (staffFilter.isAuthenticated && !staffFilter.isAdmin && staffFilter.warehouseId !== null) {
         const warehouse = await storage.getWarehouse(staffFilter.warehouseId);
         if (warehouse) {
           allUsers = allUsers.filter(u => u.cityId === warehouse.cityId);
