@@ -37,6 +37,7 @@ import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAP
 import { useToast } from '@/hooks/use-toast';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart, Line, Legend, ComposedChart, RadialBarChart, RadialBar, Treemap, FunnelChart, Funnel, LabelList } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
+import * as XLSX from 'xlsx';
 
 interface Product {
   id: number;
@@ -6625,10 +6626,29 @@ export default function Admin() {
                       </div>
                     </DialogContent>
                   </Dialog>
-                  <Button variant="outline" className="rounded-xl gap-2">
+                  <Button variant="outline" className="rounded-xl gap-2" onClick={() => {
+                    const exportData = warehousesList.map(w => ({
+                      'الكود': w.code,
+                      'الاسم': w.name,
+                      'المدينة': cities.find(c => c.id === w.cityId)?.name || '-',
+                      'العنوان': w.address || '-',
+                      'الهاتف': w.phone || '-',
+                      'السعة': w.capacity || 0,
+                      'الحالة': w.isActive ? 'نشط' : 'غير نشط'
+                    }));
+                    const ws = XLSX.utils.json_to_sheet(exportData);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, 'المستودعات');
+                    XLSX.writeFile(wb, `warehouses_${new Date().toISOString().split('T')[0]}.xlsx`);
+                    toast({ title: 'تم تصدير تقرير المستودعات بنجاح', className: 'bg-green-600 text-white' });
+                  }} data-testid="button-export-warehouses">
                     <FileDown className="w-4 h-4" />تصدير التقرير
                   </Button>
-                  <Button variant="outline" className="rounded-xl gap-2">
+                  <Button variant="outline" className="rounded-xl gap-2" onClick={() => {
+                    refetchWarehouses();
+                    refetchCities();
+                    toast({ title: 'تم تحديث بيانات المستودعات', className: 'bg-green-600 text-white' });
+                  }} data-testid="button-refresh-warehouses">
                     <RefreshCw className="w-4 h-4" />تحديث البيانات
                   </Button>
                 </div>
