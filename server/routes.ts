@@ -401,20 +401,9 @@ export async function registerRoutes(
         return res.status(403).json({ error: "حسابك غير نشط، يرجى التواصل مع المدير" });
       }
 
-      // Store staff session on server
-      req.session.staffId = staffMember.id;
-      req.session.staffRole = staffMember.role;
-      req.session.staffWarehouseId = staffMember.warehouseId || null;
-      
-      // Save session explicitly before responding
-      req.session.save((err) => {
-        if (err) {
-          return res.status(500).json({ error: "فشل حفظ الجلسة" });
-        }
-        // Return staff info without password
-        const { password: _, ...staffData } = staffMember;
-        res.json({ staff: staffData });
-      });
+      // Return staff info without password (stateless auth using localStorage)
+      const { password: _, ...staffData } = staffMember;
+      res.json({ staff: staffData });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -440,16 +429,16 @@ export async function registerRoutes(
     }
   });
   
-  // Legacy verify endpoint (kept for backwards compatibility, validates session)
+  // Verify endpoint - stateless (verifies staff exists and is active)
   app.get("/api/auth/staff/verify/:id", async (req, res) => {
     try {
-      // Verify that the requested ID matches session staffId for security
-      if (!req.session.staffId || req.session.staffId !== parseInt(req.params.id)) {
-        return res.status(401).json({ error: "جلسة غير صالحة" });
+      const staffId = parseInt(req.params.id);
+      if (isNaN(staffId)) {
+        return res.status(400).json({ error: "معرف موظف غير صالح" });
       }
-      const staffMember = await storage.getStaffMember(req.session.staffId);
+      const staffMember = await storage.getStaffMember(staffId);
       if (!staffMember || staffMember.status !== 'active') {
-        return res.status(401).json({ error: "جلسة غير صالحة" });
+        return res.status(401).json({ error: "حساب غير نشط" });
       }
       const { password: _, ...staffData } = staffMember;
       res.json({ staff: staffData });
