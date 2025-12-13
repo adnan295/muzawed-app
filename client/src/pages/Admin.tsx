@@ -9164,16 +9164,16 @@ export default function Admin() {
                         <Input 
                           value={newCustomer.phone.replace('+963', '')} 
                           onChange={(e) => {
-                            const value = e.target.value.replace(/\D/g, '');
+                            const value = e.target.value.replace(/\D/g, '').slice(0, 9);
                             setNewCustomer({...newCustomer, phone: `+963${value}`});
                           }}
                           placeholder="9XXXXXXXX"
                           className="pl-16 text-left font-sans"
-                          maxLength={10}
+                          maxLength={9}
                           data-testid="input-new-customer-phone"
                         />
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">أدخل الرقم بدون مفتاح البلد</p>
+                      <p className="text-xs text-gray-500 mt-1">أدخل 9 أرقام بدون الصفر</p>
                     </div>
                     <div>
                       <Label>كلمة المرور *</Label>
@@ -9271,12 +9271,12 @@ export default function Admin() {
                           <Input 
                             value={editingCustomer.phone.replace('+963', '')} 
                             onChange={(e) => {
-                              const value = e.target.value.replace(/\D/g, '');
+                              const value = e.target.value.replace(/\D/g, '').slice(0, 9);
                               setEditingCustomer({...editingCustomer, phone: `+963${value}`});
                             }}
                             placeholder="9XXXXXXXX"
                             className="pl-16 text-left font-sans"
-                            maxLength={10}
+                            maxLength={9}
                             data-testid="input-edit-customer-phone"
                           />
                         </div>
