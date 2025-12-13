@@ -1251,7 +1251,7 @@ export default function Admin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staff'] });
       setIsAddStaffOpen(false);
-      setNewStaff({ name: '', email: '', phone: '', password: '', role: 'sales', department: 'المبيعات', permissions: [], status: 'active', avatar: '' });
+      setNewStaff({ name: '', email: '', phone: '', password: '', role: 'sales', department: 'المبيعات', warehouseId: null, permissions: [], status: 'active', avatar: '' });
       toast({ title: 'تم إضافة الموظف بنجاح' });
     },
     onError: (error: any) => {

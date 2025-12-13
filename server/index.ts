@@ -72,6 +72,7 @@ declare module "express-session" {
     userPhone?: string;
     staffId?: number;
     staffRole?: string;
+    staffWarehouseId?: number | null;
   }
 }
 
