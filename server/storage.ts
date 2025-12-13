@@ -344,7 +344,7 @@ export interface IStorage {
   getProductWithInventory(id: number): Promise<{ product: Product; inventory: ProductInventory[] } | undefined>;
 
   // Stats
-  getDashboardStats(): Promise<{
+  getDashboardStats(warehouseId?: number): Promise<{
     totalOrders: number;
     totalRevenue: number;
     totalCustomers: number;
@@ -1766,23 +1766,67 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Stats
-  async getDashboardStats() {
-    const [orderStats] = await db.select({ count: count() }).from(orders);
-    const [userStats] = await db.select({ count: count() }).from(users);
-    const [productStats] = await db.select({ count: count() }).from(products);
-    const [pendingStats] = await db.select({ count: count() }).from(orders).where(eq(orders.status, 'pending'));
-    const [lowStockStats] = await db.select({ count: count() }).from(products).where(lte(products.stock, 30));
+  async getDashboardStats(warehouseId?: number) {
+    // Build order queries with optional warehouse filter
+    const orderCondition = warehouseId ? eq(orders.warehouseId, warehouseId) : undefined;
+    const pendingCondition = warehouseId 
+      ? and(eq(orders.status, 'pending'), eq(orders.warehouseId, warehouseId))
+      : eq(orders.status, 'pending');
     
-    const allOrders = await db.select().from(orders);
+    const [orderStats] = orderCondition 
+      ? await db.select({ count: count() }).from(orders).where(orderCondition)
+      : await db.select({ count: count() }).from(orders);
+    const [pendingStats] = await db.select({ count: count() }).from(orders).where(pendingCondition);
+    
+    // Customers and Products: scope by warehouse if provided
+    let customerCount = 0;
+    let productCount = 0;
+    let lowStockCount = 0;
+    
+    if (warehouseId) {
+      // Customers: count unique customers who ordered from this warehouse
+      const warehouseOrders = await db.select({ userId: orders.userId })
+        .from(orders)
+        .where(eq(orders.warehouseId, warehouseId));
+      const uniqueCustomers = new Set(warehouseOrders.map(o => o.userId));
+      customerCount = uniqueCustomers.size;
+      
+      // Products: count products with inventory in this warehouse
+      const [productStats] = await db.select({ count: count() })
+        .from(productInventory)
+        .where(eq(productInventory.warehouseId, warehouseId));
+      productCount = productStats.count;
+      
+      // Low stock: products with low inventory in this warehouse
+      const [lowStockStats] = await db.select({ count: count() })
+        .from(productInventory)
+        .where(and(eq(productInventory.warehouseId, warehouseId), lte(productInventory.stock, 30)));
+      lowStockCount = lowStockStats.count;
+    } else {
+      // Global stats for admin
+      const [userStats] = await db.select({ count: count() }).from(users);
+      customerCount = userStats.count;
+      
+      const [productStats] = await db.select({ count: count() }).from(products);
+      productCount = productStats.count;
+      
+      const [lowStockStats] = await db.select({ count: count() }).from(products).where(lte(products.stock, 30));
+      lowStockCount = lowStockStats.count;
+    }
+    
+    // Revenue calculation with warehouse filter
+    const allOrders = orderCondition 
+      ? await db.select().from(orders).where(orderCondition)
+      : await db.select().from(orders);
     const totalRevenue = allOrders.reduce((sum, o) => sum + parseFloat(o.total), 0);
 
     return {
       totalOrders: orderStats.count,
       totalRevenue,
-      totalCustomers: userStats.count,
-      totalProducts: productStats.count,
+      totalCustomers: customerCount,
+      totalProducts: productCount,
       pendingOrders: pendingStats.count,
-      lowStockProducts: lowStockStats.count,
+      lowStockProducts: lowStockCount,
     };
   }
 

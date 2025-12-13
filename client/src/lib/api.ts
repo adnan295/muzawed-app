@@ -149,10 +149,14 @@ export const walletAPI = {
   }),
 };
 
-// Admin Stats API
+// Admin Stats API - warehouse filtering is handled server-side via session
 export const adminAPI = {
   getStats: () => request("/admin/stats"),
-  getOrders: () => request("/admin/orders"),
+  getOrders: (warehouseId?: number) => {
+    const params = new URLSearchParams();
+    if (warehouseId) params.append('warehouseId', warehouseId.toString());
+    return request(`/admin/orders${params.toString() ? `?${params.toString()}` : ''}`);
+  },
   getUsers: () => request("/admin/users"),
   updateUser: (id: number, data: any) => request(`/users/${id}`, {
     method: "PUT",

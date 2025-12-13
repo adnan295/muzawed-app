@@ -1005,6 +1005,7 @@ export default function Admin() {
   const [, setLocation] = useLocation();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentStaff, setCurrentStaff] = useState<{ id: number; role: string; warehouseId?: number | null } | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
@@ -1756,6 +1757,13 @@ export default function Admin() {
           return;
         }
         
+        // Store current staff data for warehouse-based filtering
+        const data = await response.json();
+        setCurrentStaff({
+          id: data.staff.id,
+          role: data.staff.role,
+          warehouseId: data.staff.warehouseId || null
+        });
         setIsAuthenticated(true);
       } catch {
         localStorage.removeItem('adminAuth');

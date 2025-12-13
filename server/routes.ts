@@ -64,6 +64,27 @@ const requireAuth = (req: Request, res: Response, next: NextFunction) => {
   next();
 };
 
+// Staff warehouse filter helper - تصفية البيانات حسب مستودع الموظف (session-based)
+function getStaffWarehouseFilterFromSession(req: Request): { warehouseId: number | null; isAdmin: boolean; isAuthenticated: boolean; error?: string } {
+  // Use server session - not client-supplied data
+  if (!req.session.staffId) {
+    return { warehouseId: null, isAdmin: false, isAuthenticated: false, error: "يجب تسجيل الدخول كموظف" };
+  }
+  
+  // Admin role has full access to all warehouses
+  if (req.session.staffRole === 'admin') {
+    return { warehouseId: null, isAdmin: true, isAuthenticated: true };
+  }
+  
+  // Non-admin staff MUST have a warehouse assigned - reject if missing
+  if (!req.session.staffWarehouseId) {
+    return { warehouseId: null, isAdmin: false, isAuthenticated: false, error: "لم يتم تعيين فرع لهذا الحساب. تواصل مع المدير" };
+  }
+  
+  // Non-admin staff are restricted to their warehouse
+  return { warehouseId: req.session.staffWarehouseId, isAdmin: false, isAuthenticated: true };
+}
+
 // User authorization - التحقق من أن المستخدم يصل لبياناته فقط
 const requireUserAuth = (paramName: string = 'userId') => {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -380,6 +401,11 @@ export async function registerRoutes(
         return res.status(403).json({ error: "حسابك غير نشط، يرجى التواصل مع المدير" });
       }
 
+      // Store staff session on server
+      req.session.staffId = staffMember.id;
+      req.session.staffRole = staffMember.role;
+      req.session.staffWarehouseId = staffMember.warehouseId || null;
+      
       // Return staff info without password
       const { password: _, ...staffData } = staffMember;
       res.json({ staff: staffData });
@@ -388,10 +414,34 @@ export async function registerRoutes(
     }
   });
 
-  // Verify staff session
+  // Verify staff session - session-based (secure)
+  app.get("/api/auth/staff/session", async (req, res) => {
+    try {
+      if (!req.session.staffId) {
+        return res.status(401).json({ error: "جلسة غير صالحة" });
+      }
+      const staffMember = await storage.getStaffMember(req.session.staffId);
+      if (!staffMember || staffMember.status !== 'active') {
+        req.session.staffId = undefined;
+        req.session.staffRole = undefined;
+        req.session.staffWarehouseId = undefined;
+        return res.status(401).json({ error: "جلسة غير صالحة" });
+      }
+      const { password: _, ...staffData } = staffMember;
+      res.json({ staff: staffData });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Legacy verify endpoint (kept for backwards compatibility, validates session)
   app.get("/api/auth/staff/verify/:id", async (req, res) => {
     try {
-      const staffMember = await storage.getStaffMember(parseInt(req.params.id));
+      // Verify that the requested ID matches session staffId for security
+      if (!req.session.staffId || req.session.staffId !== parseInt(req.params.id)) {
+        return res.status(401).json({ error: "جلسة غير صالحة" });
+      }
+      const staffMember = await storage.getStaffMember(req.session.staffId);
       if (!staffMember || staffMember.status !== 'active') {
         return res.status(401).json({ error: "جلسة غير صالحة" });
       }
@@ -2173,7 +2223,15 @@ export async function registerRoutes(
   
   app.get("/api/admin/stats", async (req, res) => {
     try {
-      const stats = await storage.getDashboardStats();
+      // Use session-based staff filter for security
+      const staffFilter = getStaffWarehouseFilterFromSession(req);
+      if (!staffFilter.isAuthenticated) {
+        return res.status(401).json({ error: staffFilter.error || "يجب تسجيل الدخول كموظف" });
+      }
+      
+      // For non-admin staff, pass their warehouse restriction
+      const warehouseId = staffFilter.isAdmin ? undefined : staffFilter.warehouseId;
+      const stats = await storage.getDashboardStats(warehouseId || undefined);
       res.json(stats);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -2183,10 +2241,22 @@ export async function registerRoutes(
   app.get("/api/admin/orders", async (req, res) => {
     try {
       const { warehouseId, status } = req.query;
+      
+      // Use session-based staff filter for security
+      const staffFilter = getStaffWarehouseFilterFromSession(req);
+      if (!staffFilter.isAuthenticated) {
+        return res.status(401).json({ error: staffFilter.error || "يجب تسجيل الدخول كموظف" });
+      }
+      
       let allOrders = await storage.getAllOrders();
       
-      // Filter by warehouse if specified
-      if (warehouseId) {
+      // Non-admin staff: always use their assigned warehouse (ignore query params)
+      // Admin staff: can filter by any warehouse via query param
+      if (!staffFilter.isAdmin && staffFilter.warehouseId !== null) {
+        // Non-admin - enforce their assigned warehouse only
+        allOrders = allOrders.filter(o => o.warehouseId === staffFilter.warehouseId);
+      } else if (staffFilter.isAdmin && warehouseId) {
+        // Admin can filter by any warehouse
         allOrders = allOrders.filter(o => o.warehouseId === parseInt(warehouseId as string));
       }
       
@@ -2211,7 +2281,22 @@ export async function registerRoutes(
 
   app.get("/api/admin/users", async (req, res) => {
     try {
-      const allUsers = await storage.getAllUsers();
+      // Use session-based staff filter for security
+      const staffFilter = getStaffWarehouseFilterFromSession(req);
+      if (!staffFilter.isAuthenticated) {
+        return res.status(401).json({ error: staffFilter.error || "يجب تسجيل الدخول كموظف" });
+      }
+      
+      let allUsers = await storage.getAllUsers();
+      
+      // Non-admin staff can only see users in their city (linked via warehouse)
+      if (staffFilter.warehouseId !== null) {
+        const warehouse = await storage.getWarehouse(staffFilter.warehouseId);
+        if (warehouse) {
+          allUsers = allUsers.filter(u => u.cityId === warehouse.cityId);
+        }
+      }
+      
       res.json(allUsers);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
