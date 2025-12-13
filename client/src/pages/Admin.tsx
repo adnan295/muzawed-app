@@ -1749,7 +1749,9 @@ export default function Admin() {
         }
         
         // Verify with server
-        const response = await fetch(`/api/auth/staff/verify/${auth.staffId}`);
+        const response = await fetch(`/api/auth/staff/verify/${auth.staffId}`, {
+          credentials: 'include',
+        });
         if (!response.ok) {
           localStorage.removeItem('adminAuth');
           setLocation('/admin/login');
