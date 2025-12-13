@@ -2043,12 +2043,17 @@ export default function Admin() {
   const handleDeleteCity = async (id: number) => {
     if (!confirm('هل أنت متأكد من حذف هذه المدينة؟ سيتم حذف المستودع المرتبط بها.')) return;
     try {
-      await fetch(`/api/cities/${id}`, { method: 'DELETE' });
-      toast({ title: 'تم حذف المدينة', className: 'bg-green-600 text-white' });
-      refetchCities();
-      refetchWarehouses();
+      const response = await fetch(`/api/cities/${id}`, { method: 'DELETE' });
+      if (response.ok) {
+        toast({ title: 'تم حذف المدينة', className: 'bg-green-600 text-white' });
+        refetchCities();
+        refetchWarehouses();
+      } else {
+        const data = await response.json();
+        toast({ title: data.error || 'فشل في حذف المدينة', variant: 'destructive' });
+      }
     } catch (error) {
-      toast({ title: 'حدث خطأ', variant: 'destructive' });
+      toast({ title: 'حدث خطأ في الاتصال', variant: 'destructive' });
     }
   };
 

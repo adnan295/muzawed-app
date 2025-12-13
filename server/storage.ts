@@ -1672,6 +1672,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteCity(id: number): Promise<void> {
+    // First delete any warehouses linked to this city
+    await db.delete(warehouses).where(eq(warehouses.cityId, id));
+    // Then delete the city
     await db.delete(cities).where(eq(cities.id, id));
   }
 
