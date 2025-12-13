@@ -33,7 +33,7 @@ import {
   GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight, LogOut, MousePointer, EyeOff, Check, X
 } from 'lucide-react';
 import { Link } from 'wouter';
-import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI, bannersAPI, segmentsAPI, suppliersAPI, reportsAPI, expensesAPI, expenseCategoriesAPI, deliverySettingsAPI, staffAPI, promotionsAPI, creditsAPI } from '@/lib/api';
+import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI, bannersAPI, segmentsAPI, suppliersAPI, reportsAPI, expensesAPI, expenseCategoriesAPI, deliverySettingsAPI, staffAPI, promotionsAPI, creditsAPI, couponsAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart, Line, Legend, ComposedChart, RadialBarChart, RadialBar, Treemap, FunnelChart, Funnel, LabelList } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -1013,6 +1013,10 @@ export default function Admin() {
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [isAddStaffOpen, setIsAddStaffOpen] = useState(false);
   const [isAddCouponOpen, setIsAddCouponOpen] = useState(false);
+  const [editingCouponId, setEditingCouponId] = useState<number | null>(null);
+  const [newCoupon, setNewCoupon] = useState({
+    code: '', type: 'percentage', value: '', minOrder: '', maxDiscount: '', usageLimit: '', endDate: ''
+  });
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
   const [newCategory, setNewCategory] = useState({ name: '', icon: '📦', color: 'from-blue-400 to-blue-500' });
   const [isAddBrandOpen, setIsAddBrandOpen] = useState(false);
@@ -1194,6 +1198,12 @@ export default function Admin() {
   const { data: promotionsList = [], refetch: refetchPromotions } = useQuery<any[]>({
     queryKey: ['promotions'],
     queryFn: () => promotionsAPI.getAll() as Promise<any[]>,
+  });
+
+  // Coupons Query
+  const { data: couponsList = [], refetch: refetchCoupons } = useQuery<any[]>({
+    queryKey: ['coupons'],
+    queryFn: () => couponsAPI.getAll() as Promise<any[]>,
   });
 
   // Credits/Receivables Query
@@ -2054,6 +2064,86 @@ export default function Admin() {
       }
     } catch (error) {
       toast({ title: 'حدث خطأ في الاتصال', variant: 'destructive' });
+    }
+  };
+
+  // Coupon handlers
+  const handleAddCoupon = async () => {
+    try {
+      const response = await couponsAPI.create({
+        code: newCoupon.code,
+        type: newCoupon.type,
+        value: parseFloat(newCoupon.value),
+        minOrder: parseFloat(newCoupon.minOrder) || 0,
+        maxDiscount: newCoupon.maxDiscount ? parseFloat(newCoupon.maxDiscount) : null,
+        usageLimit: parseInt(newCoupon.usageLimit) || 100,
+        endDate: newCoupon.endDate || null,
+        isActive: true,
+        usageCount: 0
+      });
+      toast({ title: 'تم إنشاء الكوبون بنجاح', className: 'bg-green-600 text-white' });
+      setIsAddCouponOpen(false);
+      setNewCoupon({ code: '', type: 'percentage', value: '', minOrder: '', maxDiscount: '', usageLimit: '', endDate: '' });
+      refetchCoupons();
+    } catch (error) {
+      toast({ title: 'حدث خطأ في إنشاء الكوبون', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteCoupon = async (id: number) => {
+    if (!confirm('هل أنت متأكد من حذف هذا الكوبون؟')) return;
+    try {
+      await couponsAPI.delete(id);
+      toast({ title: 'تم حذف الكوبون', className: 'bg-green-600 text-white' });
+      refetchCoupons();
+    } catch (error) {
+      toast({ title: 'حدث خطأ في حذف الكوبون', variant: 'destructive' });
+    }
+  };
+
+  const handleToggleCoupon = async (id: number, isActive: boolean) => {
+    try {
+      await couponsAPI.update(id, { isActive: !isActive });
+      toast({ title: isActive ? 'تم إيقاف الكوبون' : 'تم تنشيط الكوبون', className: 'bg-green-600 text-white' });
+      refetchCoupons();
+    } catch (error) {
+      toast({ title: 'حدث خطأ', variant: 'destructive' });
+    }
+  };
+
+  const handleEditCoupon = (coupon: any) => {
+    setEditingCouponId(coupon.id);
+    setNewCoupon({
+      code: coupon.code,
+      type: coupon.type,
+      value: coupon.value?.toString() || '',
+      minOrder: coupon.minOrder?.toString() || '',
+      maxDiscount: coupon.maxDiscount?.toString() || '',
+      usageLimit: coupon.usageLimit?.toString() || '',
+      endDate: coupon.endDate || ''
+    });
+    setIsAddCouponOpen(true);
+  };
+
+  const handleUpdateCoupon = async () => {
+    if (!editingCouponId) return;
+    try {
+      await couponsAPI.update(editingCouponId, {
+        code: newCoupon.code,
+        type: newCoupon.type,
+        value: parseFloat(newCoupon.value),
+        minOrder: parseFloat(newCoupon.minOrder) || 0,
+        maxDiscount: newCoupon.maxDiscount ? parseFloat(newCoupon.maxDiscount) : null,
+        usageLimit: parseInt(newCoupon.usageLimit) || 100,
+        endDate: newCoupon.endDate || null
+      });
+      toast({ title: 'تم تحديث الكوبون بنجاح', className: 'bg-green-600 text-white' });
+      setIsAddCouponOpen(false);
+      setEditingCouponId(null);
+      setNewCoupon({ code: '', type: 'percentage', value: '', minOrder: '', maxDiscount: '', usageLimit: '', endDate: '' });
+      refetchCoupons();
+    } catch (error) {
+      toast({ title: 'حدث خطأ في تحديث الكوبون', variant: 'destructive' });
     }
   };
 
@@ -6401,65 +6491,102 @@ export default function Admin() {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h3 className="font-bold text-xl">إدارة الكوبونات والأكواد الترويجية</h3>
-                  <p className="text-gray-500 text-sm mt-1">{mockCoupons.length} كوبون</p>
+                  <p className="text-gray-500 text-sm mt-1">{couponsList.length} كوبون</p>
                 </div>
-                <Dialog open={isAddCouponOpen} onOpenChange={setIsAddCouponOpen}>
+                <Dialog open={isAddCouponOpen} onOpenChange={(open) => {
+                  setIsAddCouponOpen(open);
+                  if (!open) {
+                    setEditingCouponId(null);
+                    setNewCoupon({ code: '', type: 'percentage', value: '', minOrder: '', maxDiscount: '', usageLimit: '', endDate: '' });
+                  }
+                }}>
                   <DialogTrigger asChild>
-                    <Button className="rounded-xl gap-2"><Plus className="w-4 h-4" />إنشاء كوبون</Button>
+                    <Button className="rounded-xl gap-2" data-testid="button-add-coupon"><Plus className="w-4 h-4" />إنشاء كوبون</Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-lg">
-                    <DialogHeader><DialogTitle>إنشاء كوبون جديد</DialogTitle></DialogHeader>
+                    <DialogHeader><DialogTitle>{editingCouponId ? 'تعديل الكوبون' : 'إنشاء كوبون جديد'}</DialogTitle></DialogHeader>
                     <div className="space-y-4 mt-4">
                       <div className="grid grid-cols-2 gap-4">
-                        <div><Label>كود الكوبون</Label><Input className="rounded-xl mt-1" placeholder="SUMMER2024" /></div>
+                        <div>
+                          <Label>كود الكوبون</Label>
+                          <Input className="rounded-xl mt-1" placeholder="SUMMER2024" value={newCoupon.code} onChange={(e) => setNewCoupon({ ...newCoupon, code: e.target.value })} data-testid="input-coupon-code" />
+                        </div>
                         <div>
                           <Label>نوع الخصم</Label>
-                          <Select>
-                            <SelectTrigger className="rounded-xl mt-1"><SelectValue placeholder="اختر" /></SelectTrigger>
+                          <Select value={newCoupon.type} onValueChange={(v) => setNewCoupon({ ...newCoupon, type: v })}>
+                            <SelectTrigger className="rounded-xl mt-1" data-testid="select-coupon-type"><SelectValue placeholder="اختر" /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="percentage">نسبة مئوية %</SelectItem>
                               <SelectItem value="fixed">مبلغ ثابت</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
-                        <div><Label>قيمة الخصم</Label><Input className="rounded-xl mt-1" type="number" placeholder="15" /></div>
-                        <div><Label>الحد الأدنى للطلب</Label><Input className="rounded-xl mt-1" type="number" placeholder="200" /></div>
+                        <div>
+                          <Label>قيمة الخصم</Label>
+                          <Input className="rounded-xl mt-1" type="number" placeholder="15" value={newCoupon.value} onChange={(e) => setNewCoupon({ ...newCoupon, value: e.target.value })} data-testid="input-coupon-value" />
+                        </div>
+                        <div>
+                          <Label>الحد الأدنى للطلب</Label>
+                          <Input className="rounded-xl mt-1" type="number" placeholder="200" value={newCoupon.minOrder} onChange={(e) => setNewCoupon({ ...newCoupon, minOrder: e.target.value })} data-testid="input-coupon-min-order" />
+                        </div>
+                        <div>
+                          <Label>الحد الأقصى للخصم</Label>
+                          <Input className="rounded-xl mt-1" type="number" placeholder="100" value={newCoupon.maxDiscount} onChange={(e) => setNewCoupon({ ...newCoupon, maxDiscount: e.target.value })} data-testid="input-coupon-max-discount" />
+                        </div>
+                        <div>
+                          <Label>عدد الاستخدامات</Label>
+                          <Input className="rounded-xl mt-1" type="number" placeholder="100" value={newCoupon.usageLimit} onChange={(e) => setNewCoupon({ ...newCoupon, usageLimit: e.target.value })} data-testid="input-coupon-usage-limit" />
+                        </div>
+                        <div className="col-span-2">
+                          <Label>تاريخ الانتهاء</Label>
+                          <Input className="rounded-xl mt-1" type="date" value={newCoupon.endDate} onChange={(e) => setNewCoupon({ ...newCoupon, endDate: e.target.value })} data-testid="input-coupon-end-date" />
+                        </div>
                       </div>
-                      <Button className="w-full rounded-xl">إنشاء الكوبون</Button>
+                      <Button className="w-full rounded-xl" onClick={editingCouponId ? handleUpdateCoupon : handleAddCoupon} disabled={!newCoupon.code || !newCoupon.value} data-testid="button-submit-coupon">
+                        {editingCouponId ? 'تحديث الكوبون' : 'إنشاء الكوبون'}
+                      </Button>
                     </div>
                   </DialogContent>
                 </Dialog>
               </div>
 
               <div className="space-y-4">
-                {mockCoupons.map((coupon) => (
-                  <div key={coupon.id} className="p-5 bg-gray-50 rounded-2xl border border-gray-100 hover:border-primary/20 transition-all">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center font-bold text-lg ${coupon.isActive ? 'bg-gradient-to-br from-primary to-purple-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
-                          <Percent className="w-6 h-6" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-bold text-lg font-mono">{coupon.code}</p>
-                            <Button size="icon" variant="ghost" className="h-6 w-6"><Copy className="w-3 h-3" /></Button>
-                            <Badge className={coupon.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>{coupon.isActive ? 'نشط' : 'منتهي'}</Badge>
+                {couponsList.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <Percent className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p>لا توجد كوبونات حالياً</p>
+                    <p className="text-sm">أنشئ كوبون جديد للبدء</p>
+                  </div>
+                ) : (
+                  couponsList.map((coupon: any) => (
+                    <div key={coupon.id} className="p-5 bg-gray-50 rounded-2xl border border-gray-100 hover:border-primary/20 transition-all" data-testid={`coupon-row-${coupon.id}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-14 h-14 rounded-xl flex items-center justify-center font-bold text-lg ${coupon.isActive ? 'bg-gradient-to-br from-primary to-purple-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                            <Percent className="w-6 h-6" />
                           </div>
-                          <p className="text-sm text-gray-600 mt-1">{coupon.type === 'percentage' ? `خصم ${coupon.value}%` : `خصم ${coupon.value} ل.س`} • الحد الأدنى {coupon.minOrder} ل.س</p>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold text-lg font-mono">{coupon.code}</p>
+                              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { navigator.clipboard.writeText(coupon.code); toast({ title: 'تم نسخ الكود' }); }} data-testid={`copy-coupon-${coupon.id}`}><Copy className="w-3 h-3" /></Button>
+                              <Badge className={coupon.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>{coupon.isActive ? 'نشط' : 'منتهي'}</Badge>
+                            </div>
+                            <p className="text-sm text-gray-600 mt-1">{coupon.type === 'percentage' ? `خصم ${coupon.value}%` : `خصم ${coupon.value} ل.س`} • الحد الأدنى {coupon.minOrder || 0} ل.س</p>
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-left">
-                        <div className="text-sm text-gray-600 mb-2">{coupon.usageCount} / {coupon.usageLimit} استخدام</div>
-                        <Progress value={(coupon.usageCount / coupon.usageLimit) * 100} className="h-2 w-32" />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Switch checked={coupon.isActive} />
-                        <Button size="icon" variant="ghost" className="rounded-lg"><Edit className="w-4 h-4" /></Button>
-                        <Button size="icon" variant="ghost" className="rounded-lg hover:bg-red-50 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button>
+                        <div className="text-left">
+                          <div className="text-sm text-gray-600 mb-2">{coupon.usageCount || 0} / {coupon.usageLimit || 100} استخدام</div>
+                          <Progress value={((coupon.usageCount || 0) / (coupon.usageLimit || 100)) * 100} className="h-2 w-32" />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Switch checked={coupon.isActive} onCheckedChange={() => handleToggleCoupon(coupon.id, coupon.isActive)} data-testid={`toggle-coupon-${coupon.id}`} />
+                          <Button size="icon" variant="ghost" className="rounded-lg" onClick={() => handleEditCoupon(coupon)} data-testid={`edit-coupon-${coupon.id}`}><Edit className="w-4 h-4" /></Button>
+                          <Button size="icon" variant="ghost" className="rounded-lg hover:bg-red-50 hover:text-red-600" onClick={() => handleDeleteCoupon(coupon.id)} data-testid={`delete-coupon-${coupon.id}`}><Trash2 className="w-4 h-4" /></Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </Card>
           </TabsContent>
