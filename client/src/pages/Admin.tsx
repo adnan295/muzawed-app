@@ -8920,6 +8920,20 @@ export default function Admin() {
                           </SelectContent>
                         </Select>
                       </div>
+                      <div>
+                        <Label className="flex items-center gap-2">
+                          <Key className="w-4 h-4 text-orange-500" />
+                          كلمة السر الجديدة (اختياري)
+                        </Label>
+                        <Input 
+                          type="password"
+                          placeholder="اترك فارغاً إذا لم ترد التغيير"
+                          value={editingCustomer.newPassword || ''} 
+                          onChange={(e) => setEditingCustomer({...editingCustomer, newPassword: e.target.value})}
+                          data-testid="input-edit-customer-password"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">يجب أن تكون 6 أحرف على الأقل</p>
+                      </div>
                       <div className="flex gap-2 pt-4">
                         <Button 
                           className="flex-1 rounded-xl bg-orange-500 hover:bg-orange-600"
@@ -8932,6 +8946,20 @@ export default function Admin() {
                                 taxNumber: editingCustomer.taxNumber,
                                 cityId: editingCustomer.cityId || null,
                               });
+                              
+                              // Reset password if provided
+                              if (editingCustomer.newPassword && editingCustomer.newPassword.length >= 6) {
+                                const pwRes = await fetch(`/api/admin/users/${editingCustomer.id}/reset-password`, {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ newPassword: editingCustomer.newPassword })
+                                });
+                                if (!pwRes.ok) {
+                                  const err = await pwRes.json();
+                                  throw new Error(err.error || 'فشل في تغيير كلمة السر');
+                                }
+                              }
+                              
                               toast({ title: 'تم تحديث بيانات العميل بنجاح', className: 'bg-green-600 text-white' });
                               setShowEditCustomerDialog(false);
                               setEditingCustomer(null);

@@ -2619,6 +2619,37 @@ export async function registerRoutes(
     }
   });
 
+  // Admin reset user password (without needing current password)
+  app.put("/api/admin/users/:id/reset-password", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { newPassword } = req.body;
+
+      if (!newPassword) {
+        return res.status(400).json({ error: "كلمة السر الجديدة مطلوبة" });
+      }
+      
+      // Validate new password strength
+      const passwordCheck = validatePasswordStrength(newPassword);
+      if (!passwordCheck.valid) {
+        return res.status(400).json({ error: passwordCheck.error });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "المستخدم غير موجود" });
+      }
+
+      // Use cost factor 12 for better security
+      const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+      await storage.updateUser(userId, { password: hashedNewPassword });
+
+      res.json({ success: true, message: "تم تعيين كلمة السر الجديدة بنجاح" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ==================== Notifications Routes ====================
   
   app.get("/api/notifications", async (req, res) => {
