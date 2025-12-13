@@ -388,6 +388,7 @@ export const staff = pgTable("staff", {
   password: text("password").notNull(),
   role: text("role").notNull(), // admin, manager, sales, support, warehouse
   department: text("department"), // sales, support, warehouse, accounting
+  warehouseId: integer("warehouse_id").references(() => warehouses.id), // المستودع/الفرع التابع له الموظف
   permissions: text("permissions").array(), // ['orders', 'products', 'customers', 'reports']
   status: text("status").default("active").notNull(), // active, inactive
   avatar: text("avatar"),

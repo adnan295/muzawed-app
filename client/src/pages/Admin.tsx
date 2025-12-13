@@ -144,6 +144,7 @@ interface Staff {
   password: string;
   role: string;
   department?: string | null;
+  warehouseId?: number | null;
   permissions?: string[] | null;
   status: string;
   avatar?: string | null;
@@ -1087,6 +1088,7 @@ export default function Admin() {
   const [permissionsStaff, setPermissionsStaff] = useState<Staff | null>(null);
   const [newStaff, setNewStaff] = useState({
     name: '', email: '', phone: '', password: '', role: 'sales', department: 'المبيعات',
+    warehouseId: null as number | null,
     permissions: [] as string[], status: 'active', avatar: ''
   });
 
@@ -5805,6 +5807,39 @@ export default function Admin() {
                             </Select>
                           </div>
                         </div>
+                        {/* Warehouse selector - required for non-admin roles */}
+                        {newStaff.role !== 'admin' && (
+                          <div>
+                            <Label className="flex items-center gap-2">
+                              <Warehouse className="w-4 h-4 text-purple-600" />
+                              الفرع/المستودع التابع *
+                            </Label>
+                            <Select 
+                              value={newStaff.warehouseId?.toString() || ''} 
+                              onValueChange={(v) => setNewStaff({ ...newStaff, warehouseId: v ? parseInt(v) : null })}
+                            >
+                              <SelectTrigger className="rounded-xl mt-1" data-testid="new-staff-warehouse">
+                                <SelectValue placeholder="اختر الفرع" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {warehousesList.filter((w: any) => w.isActive).map((warehouse: any) => (
+                                  <SelectItem key={warehouse.id} value={warehouse.id.toString()}>
+                                    {warehouse.name} - {cities.find((c: any) => c.id === warehouse.cityId)?.name || ''}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <p className="text-xs text-gray-500 mt-1">صلاحيات الموظف ستكون محدودة بهذا الفرع فقط</p>
+                          </div>
+                        )}
+                        {newStaff.role === 'admin' && (
+                          <div className="p-3 bg-purple-50 rounded-xl border border-purple-200">
+                            <div className="flex items-center gap-2 text-purple-700">
+                              <Shield className="w-4 h-4" />
+                              <span className="text-sm font-medium">مدير النظام لديه صلاحيات كاملة على جميع الفروع</span>
+                            </div>
+                          </div>
+                        )}
                         <div>
                           <Label className="mb-2 block">الصلاحيات</Label>
                           <div className="grid grid-cols-3 gap-2">
@@ -5831,7 +5866,7 @@ export default function Admin() {
                         <Button 
                           className="w-full rounded-xl bg-gradient-to-r from-primary to-purple-600"
                           onClick={() => createStaffMutation.mutate(newStaff)}
-                          disabled={createStaffMutation.isPending || !newStaff.name || !newStaff.email || !newStaff.phone || !newStaff.password}
+                          disabled={createStaffMutation.isPending || !newStaff.name || !newStaff.email || !newStaff.phone || !newStaff.password || (newStaff.role !== 'admin' && !newStaff.warehouseId)}
                           data-testid="submit-new-staff"
                         >
                           {createStaffMutation.isPending ? 'جاري الإضافة...' : 'إضافة الموظف'}
