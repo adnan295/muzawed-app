@@ -1100,6 +1100,16 @@ export default function Admin() {
     permissions: [] as string[], status: 'active', avatar: ''
   });
 
+  // Loyalty program state
+  const [isLoyaltySettingsOpen, setIsLoyaltySettingsOpen] = useState(false);
+  const [loyaltySettings, setLoyaltySettings] = useState({
+    earnRate: '1',
+    earnPerAmount: '10',
+    redeemPoints: '100',
+    redeemValue: '10',
+    validityMonths: '12'
+  });
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -6440,7 +6450,98 @@ export default function Admin() {
                     <h3 className="font-bold text-xl flex items-center gap-2"><Crown className="w-5 h-5 text-yellow-500" />برنامج نقاط الولاء</h3>
                     <p className="text-gray-500 text-sm mt-1">إدارة مستويات العملاء والمكافآت</p>
                   </div>
-                  <Button className="rounded-xl gap-2"><Settings className="w-4 h-4" />إعدادات البرنامج</Button>
+                  <Dialog open={isLoyaltySettingsOpen} onOpenChange={setIsLoyaltySettingsOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="rounded-xl gap-2" data-testid="button-loyalty-settings"><Settings className="w-4 h-4" />إعدادات البرنامج</Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2"><Crown className="w-5 h-5 text-yellow-500" />إعدادات برنامج الولاء</DialogTitle>
+                        <DialogDescription>تحديد قواعد كسب واستبدال النقاط</DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 mt-4">
+                        <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-200">
+                          <h4 className="font-bold text-sm mb-3 flex items-center gap-2"><Coins className="w-4 h-4 text-yellow-600" />معدل كسب النقاط</h4>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <Label className="text-xs">النقاط المكتسبة</Label>
+                              <Input 
+                                type="number" 
+                                className="rounded-lg mt-1" 
+                                value={loyaltySettings.earnRate} 
+                                onChange={(e) => setLoyaltySettings({...loyaltySettings, earnRate: e.target.value})}
+                                data-testid="input-loyalty-earn-rate"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs">لكل مبلغ (ل.س)</Label>
+                              <Input 
+                                type="number" 
+                                className="rounded-lg mt-1" 
+                                value={loyaltySettings.earnPerAmount} 
+                                onChange={(e) => setLoyaltySettings({...loyaltySettings, earnPerAmount: e.target.value})}
+                                data-testid="input-loyalty-earn-per-amount"
+                              />
+                            </div>
+                          </div>
+                          <p className="text-xs text-yellow-700 mt-2">العميل يكسب {loyaltySettings.earnRate} نقطة لكل {loyaltySettings.earnPerAmount} ل.س مشتريات</p>
+                        </div>
+                        
+                        <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+                          <h4 className="font-bold text-sm mb-3 flex items-center gap-2"><Gift className="w-4 h-4 text-green-600" />قيمة الاستبدال</h4>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <Label className="text-xs">عدد النقاط</Label>
+                              <Input 
+                                type="number" 
+                                className="rounded-lg mt-1" 
+                                value={loyaltySettings.redeemPoints} 
+                                onChange={(e) => setLoyaltySettings({...loyaltySettings, redeemPoints: e.target.value})}
+                                data-testid="input-loyalty-redeem-points"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs">تساوي خصم (ل.س)</Label>
+                              <Input 
+                                type="number" 
+                                className="rounded-lg mt-1" 
+                                value={loyaltySettings.redeemValue} 
+                                onChange={(e) => setLoyaltySettings({...loyaltySettings, redeemValue: e.target.value})}
+                                data-testid="input-loyalty-redeem-value"
+                              />
+                            </div>
+                          </div>
+                          <p className="text-xs text-green-700 mt-2">{loyaltySettings.redeemPoints} نقطة = {loyaltySettings.redeemValue} ل.س خصم</p>
+                        </div>
+                        
+                        <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
+                          <h4 className="font-bold text-sm mb-3 flex items-center gap-2"><Calendar className="w-4 h-4 text-blue-600" />صلاحية النقاط</h4>
+                          <div>
+                            <Label className="text-xs">مدة الصلاحية (شهر)</Label>
+                            <Input 
+                              type="number" 
+                              className="rounded-lg mt-1" 
+                              value={loyaltySettings.validityMonths} 
+                              onChange={(e) => setLoyaltySettings({...loyaltySettings, validityMonths: e.target.value})}
+                              data-testid="input-loyalty-validity"
+                            />
+                          </div>
+                          <p className="text-xs text-blue-700 mt-2">النقاط تنتهي صلاحيتها بعد {loyaltySettings.validityMonths} شهر من تاريخ الكسب</p>
+                        </div>
+                        
+                        <Button 
+                          className="w-full rounded-xl" 
+                          onClick={() => {
+                            toast({ title: 'تم حفظ إعدادات برنامج الولاء', className: 'bg-green-600 text-white' });
+                            setIsLoyaltySettingsOpen(false);
+                          }}
+                          data-testid="button-save-loyalty-settings"
+                        >
+                          <CheckCircle className="w-4 h-4 ml-2" />حفظ الإعدادات
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
 
                 <div className="grid md:grid-cols-4 gap-4 mb-6">
