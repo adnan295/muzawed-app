@@ -35,6 +35,7 @@ import {
 import { Link } from 'wouter';
 import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI, bannersAPI, segmentsAPI, suppliersAPI, reportsAPI, expensesAPI, expenseCategoriesAPI, deliverySettingsAPI, staffAPI, promotionsAPI, creditsAPI, couponsAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { toast as sonnerToast } from 'sonner';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart, Line, Legend, ComposedChart, RadialBarChart, RadialBar, Treemap, FunnelChart, Funnel, LabelList } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
@@ -1064,6 +1065,7 @@ export default function Admin() {
     name: '', code: '', cityId: '', address: '', phone: '', capacity: '1000',
   });
   const [newCity, setNewCity] = useState({ name: '', region: '' });
+  const [pendingWarehouseDelete, setPendingWarehouseDelete] = useState<{ id: number; name: string; timer: NodeJS.Timeout } | null>(null);
 
   // Driver management state
   const [isAddDriverOpen, setIsAddDriverOpen] = useState(false);
@@ -2174,14 +2176,41 @@ export default function Admin() {
   };
 
   const handleDeleteWarehouse = async (id: number) => {
-    if (!confirm('هل أنت متأكد من حذف هذا المستودع؟')) return;
-    try {
-      await fetch(`/api/warehouses/${id}`, { method: 'DELETE' });
-      toast({ title: 'تم حذف المستودع', className: 'bg-green-600 text-white' });
-      refetchWarehouses();
-    } catch (error) {
-      toast({ title: 'حدث خطأ', variant: 'destructive' });
+    const warehouse = warehouses.find((w: WarehouseData) => w.id === id);
+    const warehouseName = warehouse?.name || `المستودع #${id}`;
+    
+    // If there's already a pending delete, cancel it first
+    if (pendingWarehouseDelete) {
+      clearTimeout(pendingWarehouseDelete.timer);
+      setPendingWarehouseDelete(null);
     }
+    
+    // Start a 15-second timer
+    const timer = setTimeout(async () => {
+      try {
+        await fetch(`/api/warehouses/${id}`, { method: 'DELETE' });
+        toast({ title: 'تم حذف المستودع بنجاح', className: 'bg-green-600 text-white' });
+        refetchWarehouses();
+      } catch (error) {
+        toast({ title: 'حدث خطأ في حذف المستودع', variant: 'destructive' });
+      }
+      setPendingWarehouseDelete(null);
+    }, 15000);
+    
+    setPendingWarehouseDelete({ id, name: warehouseName, timer });
+    
+    // Show sonner toast with undo button
+    sonnerToast(`سيتم حذف "${warehouseName}" خلال 15 ثانية`, {
+      duration: 15000,
+      action: {
+        label: 'تراجع',
+        onClick: () => {
+          clearTimeout(timer);
+          setPendingWarehouseDelete(null);
+          toast({ title: 'تم إلغاء حذف المستودع', className: 'bg-blue-600 text-white' });
+        },
+      },
+    });
   };
 
   // Driver handlers
