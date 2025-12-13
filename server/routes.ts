@@ -2214,6 +2214,17 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/warehouses/:id", async (req, res) => {
+    try {
+      const warehouse = await storage.getWarehouse(parseInt(req.params.id));
+      if (!warehouse) return res.status(404).json({ error: "المستودع غير موجود" });
+      await storage.deleteWarehouse(parseInt(req.params.id));
+      res.json({ success: true, message: "تم حذف المستودع بنجاح" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ==================== Dashboard Stats Routes ====================
   
   app.get("/api/admin/stats", async (req, res) => {
