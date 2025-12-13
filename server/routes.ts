@@ -283,7 +283,18 @@ export async function registerRoutes(
 
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { phone, password } = req.body;
+      const { phone: rawPhone, password } = req.body;
+      
+      // Normalize phone number - ensure it starts with +963
+      let phone = rawPhone;
+      if (phone) {
+        phone = phone.replace(/\D/g, ''); // Remove non-digits
+        phone = phone.replace(/^0+/, ''); // Remove leading zeros
+        if (!phone.startsWith('963')) {
+          phone = '963' + phone;
+        }
+        phone = '+' + phone;
+      }
       
       // Check if account is locked
       const isLocked = await storage.isAccountLocked(phone);
