@@ -9159,21 +9159,22 @@ export default function Admin() {
                     </div>
                     <div>
                       <Label>رقم الهاتف *</Label>
-                      <div className="relative" dir="ltr">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground border-r border-gray-200 pr-3">+963</span>
+                      <div className="flex items-center gap-2" dir="ltr">
+                        <span className="bg-gray-100 px-3 py-2 rounded-lg text-sm font-bold text-gray-600 whitespace-nowrap">+963</span>
                         <Input 
-                          value={newCustomer.phone.replace('+963', '')} 
+                          value={newCustomer.phone.replace('+963', '').replace(/^0+/, '')} 
                           onChange={(e) => {
-                            const value = e.target.value.replace(/\D/g, '').slice(0, 9);
-                            setNewCustomer({...newCustomer, phone: `+963${value}`});
+                            let value = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                            if (value.length > 9) value = value.slice(0, 9);
+                            setNewCustomer({...newCustomer, phone: value ? `+963${value}` : ''});
                           }}
                           placeholder="9XXXXXXXX"
-                          className="pl-16 text-left font-sans"
+                          className="text-left font-sans flex-1"
                           maxLength={9}
                           data-testid="input-new-customer-phone"
                         />
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">أدخل 9 أرقام بدون الصفر</p>
+                      <p className="text-xs text-gray-500 mt-1">أدخل 9 أرقام بدون الصفر (مثال: 912345678)</p>
                     </div>
                     <div>
                       <Label>كلمة المرور *</Label>
@@ -9266,16 +9267,17 @@ export default function Admin() {
                       </div>
                       <div>
                         <Label>رقم الهاتف</Label>
-                        <div className="relative" dir="ltr">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground border-r border-gray-200 pr-3">+963</span>
+                        <div className="flex items-center gap-2" dir="ltr">
+                          <span className="bg-gray-100 px-3 py-2 rounded-lg text-sm font-bold text-gray-600 whitespace-nowrap">+963</span>
                           <Input 
-                            value={editingCustomer.phone.replace('+963', '')} 
+                            value={editingCustomer.phone.replace('+963', '').replace(/^0+/, '')} 
                             onChange={(e) => {
-                              const value = e.target.value.replace(/\D/g, '').slice(0, 9);
-                              setEditingCustomer({...editingCustomer, phone: `+963${value}`});
+                              let value = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                              if (value.length > 9) value = value.slice(0, 9);
+                              setEditingCustomer({...editingCustomer, phone: value ? `+963${value}` : ''});
                             }}
                             placeholder="9XXXXXXXX"
-                            className="pl-16 text-left font-sans"
+                            className="text-left font-sans flex-1"
                             maxLength={9}
                             data-testid="input-edit-customer-phone"
                           />
