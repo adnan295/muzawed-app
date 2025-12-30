@@ -807,12 +807,16 @@ export async function registerRoutes(
         return res.status(400).json({ error: 'لا توجد بيانات للاستيراد' });
       }
       
-      const XLSX = await import('xlsx');
+      const ExcelJS = await import('exceljs');
       const buffer = Buffer.from(data, 'base64');
-      const workbook = XLSX.read(buffer, { type: 'buffer' });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer as any);
+      const worksheet = workbook.worksheets[0];
+      const rows: any[] = [];
+      worksheet.eachRow((row, rowNumber) => {
+        const values = row.values as any[];
+        rows.push(values.slice(1)); // slice(1) to remove the first empty element
+      });
       
       if (rows.length < 2) {
         return res.status(400).json({ error: 'الملف فارغ أو لا يحتوي على بيانات' });
@@ -939,11 +943,16 @@ export async function registerRoutes(
       const categories = await storage.getCategories();
       const brands = await storage.getBrands();
       
-      const XLSX = await import('xlsx');
+      const ExcelJS = await import('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('المنتجات');
       
-      const data = [
-        ['اسم المنتج', 'القسم', 'العلامة التجارية', 'السعر', 'السعر الأصلي', 'الحد الأدنى', 'الوحدة', 'المخزون', 'الصورة'],
-        ...products.map(p => [
+      // Add header row
+      worksheet.addRow(['اسم المنتج', 'القسم', 'العلامة التجارية', 'السعر', 'السعر الأصلي', 'الحد الأدنى', 'الوحدة', 'المخزون', 'الصورة']);
+      
+      // Add product rows
+      products.forEach(p => {
+        worksheet.addRow([
           p.name,
           categories.find(c => c.id === p.categoryId)?.name || '',
           brands.find(b => b.id === p.brandId)?.name || '',
@@ -953,14 +962,10 @@ export async function registerRoutes(
           p.unit,
           p.stock,
           p.image || ''
-        ])
-      ];
+        ]);
+      });
       
-      const ws = XLSX.utils.aoa_to_sheet(data);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'المنتجات');
-      
-      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+      const buffer = await workbook.xlsx.writeBuffer();
       
       res.setHeader('Content-Disposition', `attachment; filename=products_${new Date().toISOString().split('T')[0]}.xlsx`);
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -2523,12 +2528,16 @@ export async function registerRoutes(
         return res.status(400).json({ error: 'لا توجد بيانات للاستيراد' });
       }
       
-      const XLSX = await import('xlsx');
+      const ExcelJS = await import('exceljs');
       const buffer = Buffer.from(data, 'base64');
-      const workbook = XLSX.read(buffer, { type: 'buffer' });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer as any);
+      const worksheet = workbook.worksheets[0];
+      const rows: any[] = [];
+      worksheet.eachRow((row, rowNumber) => {
+        const values = row.values as any[];
+        rows.push(values.slice(1)); // slice(1) to remove the first empty element
+      });
       
       if (rows.length < 2) {
         return res.status(400).json({ error: 'الملف فارغ أو لا يحتوي على بيانات' });

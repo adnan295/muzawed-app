@@ -38,7 +38,7 @@ import { useToast } from '@/hooks/use-toast';
 import { toast as sonnerToast } from 'sonner';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart, Line, Legend, ComposedChart, RadialBarChart, RadialBar, Treemap, FunnelChart, Funnel, LabelList } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
-import * as XLSX from 'xlsx';
+import * as ExcelJS from 'exceljs';
 
 interface Product {
   id: number;
@@ -6888,20 +6888,35 @@ export default function Admin() {
                       </div>
                     </DialogContent>
                   </Dialog>
-                  <Button variant="outline" className="rounded-xl gap-2" onClick={() => {
-                    const exportData = warehousesList.map(w => ({
-                      'الكود': w.code,
-                      'الاسم': w.name,
-                      'المدينة': cities.find(c => c.id === w.cityId)?.name || '-',
-                      'العنوان': w.address || '-',
-                      'الهاتف': w.phone || '-',
-                      'السعة': w.capacity || 0,
-                      'الحالة': w.isActive ? 'نشط' : 'غير نشط'
-                    }));
-                    const ws = XLSX.utils.json_to_sheet(exportData);
-                    const wb = XLSX.utils.book_new();
-                    XLSX.utils.book_append_sheet(wb, ws, 'المستودعات');
-                    XLSX.writeFile(wb, `warehouses_${new Date().toISOString().split('T')[0]}.xlsx`);
+                  <Button variant="outline" className="rounded-xl gap-2" onClick={async () => {
+                    const workbook = new ExcelJS.Workbook();
+                    const worksheet = workbook.addWorksheet('المستودعات');
+                    
+                    // Add header row
+                    worksheet.addRow(['الكود', 'الاسم', 'المدينة', 'العنوان', 'الهاتف', 'السعة', 'الحالة']);
+                    
+                    // Add data rows
+                    warehousesList.forEach(w => {
+                      worksheet.addRow([
+                        w.code,
+                        w.name,
+                        cities.find(c => c.id === w.cityId)?.name || '-',
+                        w.address || '-',
+                        w.phone || '-',
+                        w.capacity || 0,
+                        w.isActive ? 'نشط' : 'غير نشط'
+                      ]);
+                    });
+                    
+                    const buffer = await workbook.xlsx.writeBuffer();
+                    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `warehouses_${new Date().toISOString().split('T')[0]}.xlsx`;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    
                     toast({ title: 'تم تصدير تقرير المستودعات بنجاح', className: 'bg-green-600 text-white' });
                   }} data-testid="button-export-warehouses">
                     <FileDown className="w-4 h-4" />تصدير التقرير
