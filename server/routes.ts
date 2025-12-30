@@ -807,7 +807,8 @@ export async function registerRoutes(
         return res.status(400).json({ error: 'لا توجد بيانات للاستيراد' });
       }
       
-      const ExcelJS = await import('exceljs');
+      const ExcelJSModule = await import('exceljs');
+      const ExcelJS = ExcelJSModule.default || ExcelJSModule;
       const buffer = Buffer.from(data, 'base64');
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(buffer as any);
@@ -943,7 +944,8 @@ export async function registerRoutes(
       const categories = await storage.getCategories();
       const brands = await storage.getBrands();
       
-      const ExcelJS = await import('exceljs');
+      const ExcelJSModule = await import('exceljs');
+      const ExcelJS = ExcelJSModule.default || ExcelJSModule;
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet('المنتجات');
       
@@ -2528,7 +2530,8 @@ export async function registerRoutes(
         return res.status(400).json({ error: 'لا توجد بيانات للاستيراد' });
       }
       
-      const ExcelJS = await import('exceljs');
+      const ExcelJSModule = await import('exceljs');
+      const ExcelJS = ExcelJSModule.default || ExcelJSModule;
       const buffer = Buffer.from(data, 'base64');
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(buffer as any);

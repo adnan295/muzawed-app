@@ -38,7 +38,6 @@ import { useToast } from '@/hooks/use-toast';
 import { toast as sonnerToast } from 'sonner';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart, Line, Legend, ComposedChart, RadialBarChart, RadialBar, Treemap, FunnelChart, Funnel, LabelList } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
-import * as ExcelJS from 'exceljs';
 
 interface Product {
   id: number;
@@ -6889,6 +6888,10 @@ export default function Admin() {
                     </DialogContent>
                   </Dialog>
                   <Button variant="outline" className="rounded-xl gap-2" onClick={async () => {
+                    // Dynamic import to reduce initial bundle size
+                    const ExcelJSModule = await import('exceljs');
+                    const ExcelJS = ExcelJSModule.default || ExcelJSModule;
+                    
                     const workbook = new ExcelJS.Workbook();
                     const worksheet = workbook.addWorksheet('المستودعات');
                     
