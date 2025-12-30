@@ -11,6 +11,9 @@ import { pool } from "./db";
 const app = express();
 const httpServer = createServer(app);
 
+// Trust proxy for rate limiting behind reverse proxy
+app.set('trust proxy', 1);
+
 // Security headers - رؤوس الأمان
 app.use(helmet({
   contentSecurityPolicy: {
