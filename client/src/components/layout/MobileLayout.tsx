@@ -24,12 +24,14 @@ export function MobileLayout({ children, hideHeader = false }: MobileLayoutProps
     queryFn: async () => {
       if (!user?.id) return [];
       const res = await fetch(`/api/cart/${user.id}`);
-      return res.json();
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!user?.id,
   });
 
-  const cartCount = cartItems.reduce((sum: number, item: any) => sum + item.quantity, 0);
+  const cartCount = Array.isArray(cartItems) ? cartItems.reduce((sum: number, item: any) => sum + item.quantity, 0) : 0;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
