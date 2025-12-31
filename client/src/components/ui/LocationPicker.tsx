@@ -40,44 +40,62 @@ export default function LocationPicker({
 
   useEffect(() => {
     let L: any;
+    let isMounted = true;
     
     const initMap = async () => {
-      if (!mapContainerRef.current || mapInstanceRef.current) return;
+      // Wait a bit to ensure DOM is ready
+      await new Promise(resolve => setTimeout(resolve, 100));
       
-      L = (await import('leaflet')).default;
-      await import('leaflet/dist/leaflet.css');
+      if (!isMounted || !mapContainerRef.current || mapInstanceRef.current) return;
       
-      delete (L.Icon.Default.prototype as any)._getIconUrl;
-      L.Icon.Default.mergeOptions({
-        iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-        iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-      });
+      // Double-check container exists and has dimensions
+      const container = mapContainerRef.current;
+      if (!container || container.offsetHeight === 0) return;
+      
+      try {
+        L = (await import('leaflet')).default;
+        await import('leaflet/dist/leaflet.css');
+        
+        delete (L.Icon.Default.prototype as any)._getIconUrl;
+        L.Icon.Default.mergeOptions({
+          iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+          iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+        });
 
-      const center = position || defaultCenter;
-      const map = L.map(mapContainerRef.current).setView(center, 13);
-      
-      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-      }).addTo(map);
+        // Check again before creating map
+        if (!isMounted || !mapContainerRef.current) return;
 
-      if (position) {
-        markerRef.current = L.marker(position).addTo(map);
+        const center = position || defaultCenter;
+        const map = L.map(mapContainerRef.current).setView(center, 13);
+        
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+
+        if (position) {
+          markerRef.current = L.marker(position).addTo(map);
+        }
+
+        map.on('click', (e: any) => {
+          updateMarker(e.latlng.lat, e.latlng.lng, L);
+        });
+
+        mapInstanceRef.current = map;
+        setMapLoaded(true);
+      } catch (error) {
+        console.error('Map initialization error:', error);
       }
-
-      map.on('click', (e: any) => {
-        updateMarker(e.latlng.lat, e.latlng.lng, L);
-      });
-
-      mapInstanceRef.current = map;
-      setMapLoaded(true);
     };
 
     initMap();
 
     return () => {
+      isMounted = false;
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
+        try {
+          mapInstanceRef.current.remove();
+        } catch (e) {}
         mapInstanceRef.current = null;
         markerRef.current = null;
       }

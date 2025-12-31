@@ -21,18 +21,7 @@ export default function Register() {
   const urlParams = new URLSearchParams(window.location.search);
   const phoneFromUrl = urlParams.get('phone') || '';
   const verificationToken = urlParams.get('token') || '';
-
-  // Redirect if phone not verified (no token)
-  useEffect(() => {
-    if (!phoneFromUrl || !verificationToken) {
-      toast({
-        title: "تنبيه",
-        description: "يجب التحقق من رقم الهاتف أولاً",
-        variant: "destructive",
-      });
-      setLocation('/login');
-    }
-  }, [phoneFromUrl, verificationToken, setLocation, toast]);
+  const isValid = !!(phoneFromUrl && verificationToken);
   
   const [formData, setFormData] = useState({
     phone: phoneFromUrl,
@@ -43,6 +32,18 @@ export default function Register() {
     longitude: null as number | null,
     locationAddress: '',
   });
+
+  // Redirect if phone not verified (no token)
+  useEffect(() => {
+    if (!isValid) {
+      toast({
+        title: "تنبيه",
+        description: "يجب التحقق من رقم الهاتف أولاً",
+        variant: "destructive",
+      });
+      setLocation('/login');
+    }
+  }, [isValid, setLocation, toast]);
 
   const handleLocationSelect = (lat: number, lng: number) => {
     setFormData(prev => ({
@@ -120,6 +121,11 @@ export default function Register() {
       setLoading(false);
     }
   };
+
+  // Don't render if not valid - redirect will happen via useEffect
+  if (!isValid) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary/5 to-white flex items-center justify-center p-4">
