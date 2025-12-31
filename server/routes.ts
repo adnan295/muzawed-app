@@ -141,15 +141,19 @@ export async function registerRoutes(
     try {
       const { password, verificationToken, ...otherData } = req.body;
       
-      // Phone verification is optional for now (future enhancement)
-      let phoneVerified = false;
-      if (verificationToken) {
-        const isTokenValid = await storage.validateVerificationToken(otherData.phone, verificationToken);
-        if (isTokenValid) {
-          await storage.invalidateVerificationToken(otherData.phone, verificationToken);
-          phoneVerified = true;
-        }
+      // Require verification token
+      if (!verificationToken) {
+        return res.status(403).json({ error: "يجب التحقق من رقم الهاتف قبل التسجيل" });
       }
+      
+      // Validate the verification token
+      const isTokenValid = await storage.validateVerificationToken(otherData.phone, verificationToken);
+      if (!isTokenValid) {
+        return res.status(403).json({ error: "رمز التحقق غير صالح أو منتهي الصلاحية" });
+      }
+      
+      // Invalidate the token FIRST (single-use) - even if registration fails
+      await storage.invalidateVerificationToken(otherData.phone, verificationToken);
       
       // Validate password strength
       if (password) {
@@ -173,7 +177,7 @@ export async function registerRoutes(
       const validData = insertUserSchema.parse({
         ...otherData,
         password: hashedPassword,
-        phoneVerified: phoneVerified,
+        phoneVerified: true,
       });
       
       // Check if user already exists
