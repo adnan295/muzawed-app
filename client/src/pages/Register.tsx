@@ -2,9 +2,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { Store, Lock, MapPin, ArrowLeft, Eye, EyeOff, Smartphone } from 'lucide-react';
+import { Store, Lock, MapPin, ArrowLeft, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { authAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
@@ -17,8 +17,25 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
+  // Get phone and verification token from URL params
+  const urlParams = new URLSearchParams(window.location.search);
+  const phoneFromUrl = urlParams.get('phone') || '';
+  const verificationToken = urlParams.get('token') || '';
+
+  // Redirect if phone not verified (no token)
+  useEffect(() => {
+    if (!phoneFromUrl || !verificationToken) {
+      toast({
+        title: "تنبيه",
+        description: "يجب التحقق من رقم الهاتف أولاً",
+        variant: "destructive",
+      });
+      setLocation('/login');
+    }
+  }, [phoneFromUrl, verificationToken, setLocation, toast]);
+  
   const [formData, setFormData] = useState({
-    phone: '',
+    phone: phoneFromUrl,
     facilityName: '',
     password: '',
     confirmPassword: '',
@@ -39,15 +56,6 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.phone || formData.phone.length < 9) {
-      toast({
-        title: "خطأ",
-        description: "يرجى إدخال رقم هاتف صحيح",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!formData.facilityName.trim()) {
       toast({
         title: "خطأ",
@@ -87,13 +95,13 @@ export default function Register() {
     setLoading(true);
 
     try {
-      const fullPhone = `+963${formData.phone}`;
       const response: any = await authAPI.register({
-        phone: fullPhone,
+        phone: formData.phone,
         facilityName: formData.facilityName,
         password: formData.password,
         latitude: formData.latitude,
         longitude: formData.longitude,
+        verificationToken: verificationToken,
       });
       
       login(response.user);
@@ -126,22 +134,22 @@ export default function Register() {
 
         <Card className="p-6 border-none shadow-xl bg-white rounded-3xl">
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Phone Number */}
+            {/* Phone Number (readonly) */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">رقم الهاتف *</Label>
+              <Label className="text-sm font-medium">رقم الهاتف</Label>
               <div className="relative" dir="ltr">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground border-r border-gray-200 pr-3">+963</span>
                 <Input 
-                  data-testid="input-phone"
-                  className="pl-16 text-left bg-gray-50/50 font-sans h-12 rounded-xl border-gray-200 focus:border-primary"
-                  placeholder="9XXXXXXXX"
+                  className="text-left bg-gray-100 font-sans h-12 rounded-xl border-gray-200"
                   value={formData.phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value.replace(/\D/g, '') }))}
-                  maxLength={10}
-                  required
+                  disabled
+                  data-testid="input-phone-display"
                 />
-                <Smartphone className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <ShieldCheck className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />
               </div>
+              <p className="text-xs text-green-600 flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3" />
+                تم التحقق من رقم الهاتف
+              </p>
             </div>
 
             {/* Facility Name */}
@@ -216,7 +224,7 @@ export default function Register() {
             <Button 
               data-testid="button-register"
               className="w-full h-12 text-lg font-bold rounded-xl shadow-lg shadow-primary/20 bg-gradient-to-r from-primary to-purple-600 hover:opacity-90 transition-opacity"
-              disabled={loading || formData.phone.length < 9}
+              disabled={loading}
             >
               {loading ? (
                 <span className="flex items-center gap-2">
@@ -231,18 +239,6 @@ export default function Register() {
               )}
             </Button>
           </form>
-
-          <div className="mt-4 pt-4 border-t border-gray-100 text-center">
-            <p className="text-sm text-muted-foreground mb-2">لديك حساب بالفعل؟</p>
-            <Button 
-              variant="outline" 
-              className="w-full h-10 rounded-xl border-primary/30 text-primary hover:bg-primary/5"
-              onClick={() => setLocation('/login')}
-              data-testid="button-back-to-login"
-            >
-              تسجيل الدخول
-            </Button>
-          </div>
         </Card>
 
         <p className="text-center text-xs text-gray-400 mt-6">
