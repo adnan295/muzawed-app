@@ -33,7 +33,7 @@ import {
   GitBranch, Network, Boxes, Container, Handshake, Building2, Store, Home, ArrowLeftRight, LogOut, MousePointer, EyeOff, Check, X
 } from 'lucide-react';
 import { Link } from 'wouter';
-import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI, bannersAPI, segmentsAPI, suppliersAPI, reportsAPI, expensesAPI, expenseCategoriesAPI, deliverySettingsAPI, staffAPI, promotionsAPI, creditsAPI, couponsAPI } from '@/lib/api';
+import { productsAPI, categoriesAPI, brandsAPI, notificationsAPI, activityLogsAPI, inventoryAPI, adminAPI, citiesAPI, warehousesAPI, productInventoryAPI, driversAPI, vehiclesAPI, returnsAPI, customersAPI, bannersAPI, segmentsAPI, suppliersAPI, reportsAPI, expensesAPI, expenseCategoriesAPI, deliverySettingsAPI, staffAPI, promotionsAPI, creditsAPI, couponsAPI, erpSettingsAPI, erpProductsAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { toast as sonnerToast } from 'sonner';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart, Line, Legend, ComposedChart, RadialBarChart, RadialBar, Treemap, FunnelChart, Funnel, LabelList } from 'recharts';
@@ -998,6 +998,364 @@ function SiteSettingsSection() {
           </Card>
         ))}
       </div>
+    </div>
+  );
+}
+
+interface ErpSettingsSectionProps {
+  warehouses: WarehouseData[];
+}
+
+function ErpSettingsSection({ warehouses }: ErpSettingsSectionProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<number | null>(null);
+  const [isAddSettingOpen, setIsAddSettingOpen] = useState(false);
+  const [editingSetting, setEditingSetting] = useState<any>(null);
+  const [newSetting, setNewSetting] = useState({
+    warehouseId: '',
+    erpUrl: '',
+    apiKey: '',
+    isActive: true,
+  });
+  const [syncingWarehouse, setSyncingWarehouse] = useState<number | null>(null);
+
+  const { data: erpSettings = [], refetch: refetchSettings } = useQuery<any[]>({
+    queryKey: ['erp-settings'],
+    queryFn: () => erpSettingsAPI.getAll(),
+  });
+
+  const { data: erpProducts = [], refetch: refetchProducts } = useQuery<any[]>({
+    queryKey: ['erp-products', selectedWarehouseId],
+    queryFn: () => selectedWarehouseId ? erpProductsAPI.getByWarehouse(selectedWarehouseId) : Promise.resolve([]),
+    enabled: !!selectedWarehouseId,
+  });
+
+  const handleSaveSetting = async () => {
+    try {
+      const data = {
+        warehouseId: parseInt(newSetting.warehouseId),
+        erpUrl: newSetting.erpUrl,
+        apiKey: newSetting.apiKey || undefined,
+        isActive: newSetting.isActive,
+      };
+      
+      if (editingSetting) {
+        await erpSettingsAPI.update(editingSetting.id, data);
+        toast({ title: 'تم تحديث إعدادات ERP بنجاح' });
+      } else {
+        await erpSettingsAPI.create(data);
+        toast({ title: 'تم إضافة إعدادات ERP بنجاح' });
+      }
+      
+      setIsAddSettingOpen(false);
+      setEditingSetting(null);
+      setNewSetting({ warehouseId: '', erpUrl: '', apiKey: '', isActive: true });
+      refetchSettings();
+    } catch (error: any) {
+      toast({ title: 'خطأ', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteSetting = async (id: number) => {
+    try {
+      await erpSettingsAPI.delete(id);
+      toast({ title: 'تم حذف إعدادات ERP بنجاح' });
+      refetchSettings();
+    } catch (error: any) {
+      toast({ title: 'خطأ', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handleSync = async (warehouseId: number) => {
+    setSyncingWarehouse(warehouseId);
+    try {
+      const result = await erpProductsAPI.sync(warehouseId);
+      toast({ title: 'تمت المزامنة بنجاح', description: result.message });
+      if (selectedWarehouseId === warehouseId) {
+        refetchProducts();
+      }
+      refetchSettings();
+    } catch (error: any) {
+      toast({ title: 'فشل في المزامنة', description: error.message, variant: 'destructive' });
+    } finally {
+      setSyncingWarehouse(null);
+    }
+  };
+
+  const getWarehouseName = (warehouseId: number) => {
+    return warehouses.find(w => w.id === warehouseId)?.name || 'غير معروف';
+  };
+
+  const warehousesWithoutSettings = warehouses.filter(
+    w => !erpSettings.find((s: any) => s.warehouseId === w.id)
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Network className="w-6 h-6 text-primary" />
+          <h3 className="text-xl font-bold">إدارة اتصالات ERP</h3>
+        </div>
+        <Button
+          onClick={() => {
+            setNewSetting({ warehouseId: '', erpUrl: '', apiKey: '', isActive: true });
+            setEditingSetting(null);
+            setIsAddSettingOpen(true);
+          }}
+          className="rounded-xl bg-primary hover:bg-primary/90"
+          disabled={warehousesWithoutSettings.length === 0}
+          data-testid="button-add-erp-setting"
+        >
+          <Plus className="w-4 h-4 ml-2" />
+          إضافة اتصال ERP
+        </Button>
+      </div>
+
+      <Card className="p-4 rounded-2xl">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-right">المستودع</TableHead>
+              <TableHead className="text-right">رابط ERP</TableHead>
+              <TableHead className="text-right">الحالة</TableHead>
+              <TableHead className="text-right">آخر مزامنة</TableHead>
+              <TableHead className="text-right">الإجراءات</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {erpSettings.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-gray-500 py-8">
+                  لا توجد إعدادات ERP. أضف اتصال جديد للبدء.
+                </TableCell>
+              </TableRow>
+            ) : (
+              erpSettings.map((setting: any) => (
+                <TableRow key={setting.id}>
+                  <TableCell className="font-medium">{getWarehouseName(setting.warehouseId)}</TableCell>
+                  <TableCell className="text-sm text-gray-600 max-w-[200px] truncate" title={setting.erpUrl}>
+                    {setting.erpUrl}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={setting.isActive ? "default" : "secondary"} className={setting.isActive ? "bg-green-100 text-green-700" : ""}>
+                      {setting.isActive ? 'نشط' : 'معطل'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-gray-600">
+                    {setting.lastSyncAt ? (
+                      <div className="flex flex-col">
+                        <span>{new Date(setting.lastSyncAt).toLocaleDateString('ar-SY')}</span>
+                        <Badge variant={setting.lastSyncStatus === 'success' ? "default" : "destructive"} className={`text-xs mt-1 ${setting.lastSyncStatus === 'success' ? 'bg-green-100 text-green-700' : ''}`}>
+                          {setting.lastSyncStatus === 'success' ? 'ناجح' : 'فشل'}
+                        </Badge>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400">لم تتم المزامنة</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-lg"
+                        onClick={() => handleSync(setting.warehouseId)}
+                        disabled={syncingWarehouse === setting.warehouseId || !setting.isActive}
+                        data-testid={`sync-erp-${setting.id}`}
+                      >
+                        <RefreshCw className={`w-3 h-3 ml-1 ${syncingWarehouse === setting.warehouseId ? 'animate-spin' : ''}`} />
+                        مزامنة
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-lg"
+                        onClick={() => setSelectedWarehouseId(setting.warehouseId)}
+                        data-testid={`view-products-${setting.id}`}
+                      >
+                        <Eye className="w-3 h-3 ml-1" />
+                        المنتجات
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-lg"
+                        onClick={() => {
+                          setEditingSetting(setting);
+                          setNewSetting({
+                            warehouseId: setting.warehouseId.toString(),
+                            erpUrl: setting.erpUrl,
+                            apiKey: setting.apiKey || '',
+                            isActive: setting.isActive,
+                          });
+                          setIsAddSettingOpen(true);
+                        }}
+                        data-testid={`edit-erp-${setting.id}`}
+                      >
+                        <Edit className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-lg text-red-600 hover:bg-red-50"
+                        onClick={() => handleDeleteSetting(setting.id)}
+                        data-testid={`delete-erp-${setting.id}`}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+
+      {selectedWarehouseId && (
+        <Card className="p-6 rounded-2xl">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Box className="w-5 h-5 text-primary" />
+              <h4 className="font-bold">منتجات ERP - {getWarehouseName(selectedWarehouseId)}</h4>
+              <Badge variant="secondary">{erpProducts.length} منتج</Badge>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl"
+              onClick={() => setSelectedWarehouseId(null)}
+              data-testid="button-close-products"
+            >
+              <X className="w-4 h-4 ml-2" />
+              إغلاق
+            </Button>
+          </div>
+          
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-right">الاسم</TableHead>
+                <TableHead className="text-right">الباركود</TableHead>
+                <TableHead className="text-right">الفئة</TableHead>
+                <TableHead className="text-right">السعر (ل.س)</TableHead>
+                <TableHead className="text-right">السعر الجديد</TableHead>
+                <TableHead className="text-right">الكمية</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {erpProducts.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-gray-500 py-8">
+                    لا توجد منتجات. قم بالمزامنة لجلب المنتجات.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                erpProducts.map((product: any) => (
+                  <TableRow key={product.id}>
+                    <TableCell className="font-medium">{product.name}</TableCell>
+                    <TableCell className="text-sm text-gray-600">{product.barcode || '-'}</TableCell>
+                    <TableCell className="text-sm text-gray-600">{product.category || '-'}</TableCell>
+                    <TableCell className="font-bold text-primary">{parseFloat(product.price).toLocaleString('ar-SY')} ل.س</TableCell>
+                    <TableCell className="text-sm text-green-600">
+                      {product.priceNew ? `${parseFloat(product.priceNew).toLocaleString('ar-SY')} ل.س` : '-'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={product.availableQuantity > 0 ? "default" : "destructive"} className={product.availableQuantity > 0 ? "bg-green-100 text-green-700" : ""}>
+                        {product.availableQuantity}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
+
+      <Dialog open={isAddSettingOpen} onOpenChange={setIsAddSettingOpen}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingSetting ? 'تعديل إعدادات ERP' : 'إضافة اتصال ERP'}</DialogTitle>
+            <DialogDescription>قم بإعداد رابط API الخارجي لجلب المنتجات</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>المستودع</Label>
+              <Select
+                value={newSetting.warehouseId}
+                onValueChange={(value) => setNewSetting({ ...newSetting, warehouseId: value })}
+                disabled={!!editingSetting}
+              >
+                <SelectTrigger className="rounded-xl" data-testid="select-warehouse-erp">
+                  <SelectValue placeholder="اختر المستودع" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(editingSetting ? warehouses : warehousesWithoutSettings).map((w) => (
+                    <SelectItem key={w.id} value={w.id.toString()}>{w.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>رابط ERP API</Label>
+              <Input
+                value={newSetting.erpUrl}
+                onChange={(e) => setNewSetting({ ...newSetting, erpUrl: e.target.value })}
+                placeholder="https://api.example.com"
+                className="rounded-xl"
+                dir="ltr"
+                data-testid="input-erp-url"
+              />
+              <p className="text-xs text-gray-500 mt-1">سيتم الجلب من /api/public/products</p>
+            </div>
+            <div>
+              <Label>مفتاح API (اختياري)</Label>
+              <Input
+                value={newSetting.apiKey}
+                onChange={(e) => setNewSetting({ ...newSetting, apiKey: e.target.value })}
+                placeholder="API Key"
+                className="rounded-xl"
+                dir="ltr"
+                type="password"
+                data-testid="input-erp-api-key"
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch
+                checked={newSetting.isActive}
+                onCheckedChange={(checked) => setNewSetting({ ...newSetting, isActive: checked })}
+                data-testid="switch-erp-active"
+              />
+              <Label>تفعيل الاتصال</Label>
+            </div>
+            <div className="flex gap-2 pt-4">
+              <Button
+                onClick={handleSaveSetting}
+                className="flex-1 rounded-xl bg-primary hover:bg-primary/90"
+                disabled={!newSetting.warehouseId || !newSetting.erpUrl}
+                data-testid="button-save-erp-setting"
+              >
+                <Check className="w-4 h-4 ml-2" />
+                {editingSetting ? 'تحديث' : 'إضافة'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsAddSettingOpen(false);
+                  setEditingSetting(null);
+                }}
+                className="rounded-xl"
+                data-testid="button-cancel-erp-setting"
+              >
+                إلغاء
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -2656,6 +3014,9 @@ export default function Admin() {
               </TabsTrigger>
               <TabsTrigger value="settings" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
                 <Settings className="w-4 h-4 ml-2" />الإعدادات
+              </TabsTrigger>
+              <TabsTrigger value="erp" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white px-4 py-2.5">
+                <Network className="w-4 h-4 ml-2" />ERP
               </TabsTrigger>
             </TabsList>
           </div>
@@ -10357,6 +10718,11 @@ export default function Admin() {
           <TabsContent value="settings">
             <DeliverySettingsSection warehouses={warehousesList} />
             <SiteSettingsSection />
+          </TabsContent>
+
+          {/* ERP Tab */}
+          <TabsContent value="erp">
+            <ErpSettingsSection warehouses={warehousesList} />
           </TabsContent>
         </Tabs>
       </div>
