@@ -988,3 +988,42 @@ export const otpVerifications = pgTable("otp_verifications", {
 export const insertOtpVerificationSchema = createInsertSchema(otpVerifications).omit({ id: true, createdAt: true });
 export type InsertOtpVerification = z.infer<typeof insertOtpVerificationSchema>;
 export type OtpVerification = typeof otpVerifications.$inferSelect;
+
+// ERP Settings table - إعدادات نظام ERP الخارجي لكل مستودع
+export const erpSettings = pgTable("erp_settings", {
+  id: serial("id").primaryKey(),
+  warehouseId: integer("warehouse_id").notNull().references(() => warehouses.id, { onDelete: "cascade" }),
+  erpUrl: text("erp_url").notNull(), // رابط API الخارجي
+  apiKey: text("api_key"), // مفتاح API (اختياري)
+  isActive: boolean("is_active").default(true).notNull(),
+  lastSyncAt: timestamp("last_sync_at"),
+  lastSyncStatus: text("last_sync_status"), // success, error
+  lastSyncError: text("last_sync_error"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertErpSettingSchema = createInsertSchema(erpSettings).omit({ id: true, createdAt: true, updatedAt: true, lastSyncAt: true, lastSyncStatus: true, lastSyncError: true });
+export type InsertErpSetting = z.infer<typeof insertErpSettingSchema>;
+export type ErpSetting = typeof erpSettings.$inferSelect;
+
+// ERP Products cache table - جدول تخزين منتجات ERP المؤقت
+export const erpProducts = pgTable("erp_products", {
+  id: serial("id").primaryKey(),
+  warehouseId: integer("warehouse_id").notNull().references(() => warehouses.id, { onDelete: "cascade" }),
+  externalId: text("external_id").notNull(), // UUID من نظام ERP
+  barcode: text("barcode"),
+  name: text("name").notNull(),
+  category: text("category"),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(), // السعر القديم
+  priceNew: decimal("price_new", { precision: 10, scale: 2 }), // السعر الجديد
+  priceUsd: decimal("price_usd", { precision: 10, scale: 4 }), // السعر بالدولار
+  resellerDiscount: decimal("reseller_discount", { precision: 5, scale: 2 }), // خصم الموزعين
+  availableQuantity: integer("available_quantity").default(0).notNull(),
+  lastUpdatedAt: timestamp("last_updated_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertErpProductSchema = createInsertSchema(erpProducts).omit({ id: true, createdAt: true, lastUpdatedAt: true });
+export type InsertErpProduct = z.infer<typeof insertErpProductSchema>;
+export type ErpProduct = typeof erpProducts.$inferSelect;

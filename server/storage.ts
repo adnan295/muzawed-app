@@ -135,6 +135,12 @@ import {
   otpVerifications,
   type LoginAttempt,
   loginAttempts,
+  type ErpSetting,
+  type InsertErpSetting,
+  erpSettings,
+  type ErpProduct,
+  type InsertErpProduct,
+  erpProducts,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, gte, lte, count, or } from "drizzle-orm";
@@ -3172,6 +3178,73 @@ export class DatabaseStorage implements IStorage {
     }
     
     return record.attempts >= 5;
+  }
+
+  // ERP Settings - إعدادات نظام ERP الخارجي
+  async getErpSettings(): Promise<ErpSetting[]> {
+    return await db.select().from(erpSettings).orderBy(desc(erpSettings.createdAt));
+  }
+
+  async getErpSetting(id: number): Promise<ErpSetting | undefined> {
+    const [setting] = await db.select().from(erpSettings).where(eq(erpSettings.id, id));
+    return setting || undefined;
+  }
+
+  async getErpSettingByWarehouse(warehouseId: number): Promise<ErpSetting | undefined> {
+    const [setting] = await db.select().from(erpSettings).where(eq(erpSettings.warehouseId, warehouseId));
+    return setting || undefined;
+  }
+
+  async createErpSetting(data: InsertErpSetting): Promise<ErpSetting> {
+    const [setting] = await db.insert(erpSettings).values(data).returning();
+    return setting;
+  }
+
+  async updateErpSetting(id: number, data: Partial<InsertErpSetting>): Promise<ErpSetting | undefined> {
+    const [setting] = await db.update(erpSettings)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(erpSettings.id, id))
+      .returning();
+    return setting || undefined;
+  }
+
+  async deleteErpSetting(id: number): Promise<void> {
+    await db.delete(erpSettings).where(eq(erpSettings.id, id));
+  }
+
+  async updateErpSettingSync(id: number, status: string, error?: string): Promise<void> {
+    await db.update(erpSettings)
+      .set({ 
+        lastSyncAt: new Date(),
+        lastSyncStatus: status,
+        lastSyncError: error || null,
+        updatedAt: new Date()
+      })
+      .where(eq(erpSettings.id, id));
+  }
+
+  // ERP Products - منتجات ERP المخزنة
+  async getErpProducts(warehouseId: number): Promise<ErpProduct[]> {
+    return await db.select().from(erpProducts)
+      .where(eq(erpProducts.warehouseId, warehouseId))
+      .orderBy(erpProducts.name);
+  }
+
+  async getErpProduct(id: number): Promise<ErpProduct | undefined> {
+    const [product] = await db.select().from(erpProducts).where(eq(erpProducts.id, id));
+    return product || undefined;
+  }
+
+  async createErpProduct(data: InsertErpProduct): Promise<ErpProduct> {
+    const [product] = await db.insert(erpProducts).values({
+      ...data,
+      lastUpdatedAt: new Date(),
+    }).returning();
+    return product;
+  }
+
+  async deleteErpProductsByWarehouse(warehouseId: number): Promise<void> {
+    await db.delete(erpProducts).where(eq(erpProducts.warehouseId, warehouseId));
   }
 }
 

@@ -642,3 +642,29 @@ export const creditsAPI = {
   getAllPending: () => request("/credits/pending/all"),
   getNextDue: (userId: number) => request(`/credits/${userId}/next-due`),
 };
+
+// ERP Settings API - إعدادات نظام ERP الخارجي
+export const erpSettingsAPI = {
+  getAll: () => request("/erp-settings"),
+  getById: (id: number) => request(`/erp-settings/${id}`),
+  getByWarehouse: (warehouseId: number) => request(`/erp-settings/warehouse/${warehouseId}`),
+  create: (data: { warehouseId: number; erpUrl: string; apiKey?: string; isActive?: boolean }) => request("/erp-settings", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+  update: (id: number, data: Partial<{ warehouseId: number; erpUrl: string; apiKey: string; isActive: boolean }>) => request(`/erp-settings/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }),
+  delete: (id: number) => request(`/erp-settings/${id}`, {
+    method: "DELETE",
+  }),
+};
+
+// ERP Products API - منتجات نظام ERP
+export const erpProductsAPI = {
+  getByWarehouse: (warehouseId: number) => request(`/erp-products/${warehouseId}`),
+  sync: (warehouseId: number) => request(`/erp-products/${warehouseId}/sync`, {
+    method: "POST",
+  }),
+};

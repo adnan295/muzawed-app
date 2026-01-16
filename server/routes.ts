@@ -3774,5 +3774,123 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== ERP Settings Routes ====================
+  
+  // Get all ERP settings
+  app.get("/api/erp-settings", async (req, res) => {
+    try {
+      const settings = await storage.getErpSettings();
+      res.json(settings);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get ERP setting by ID
+  app.get("/api/erp-settings/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const setting = await storage.getErpSetting(id);
+      if (!setting) {
+        return res.status(404).json({ error: "إعداد ERP غير موجود" });
+      }
+      res.json(setting);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get ERP setting by warehouse
+  app.get("/api/erp-settings/warehouse/:warehouseId", async (req, res) => {
+    try {
+      const warehouseId = parseInt(req.params.warehouseId);
+      const setting = await storage.getErpSettingByWarehouse(warehouseId);
+      res.json(setting || null);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create ERP setting
+  app.post("/api/erp-settings", async (req, res) => {
+    try {
+      const { warehouseId, erpUrl, apiKey, isActive } = req.body;
+      if (!warehouseId || !erpUrl) {
+        return res.status(400).json({ error: "المستودع ورابط ERP مطلوبان" });
+      }
+      
+      // Check if setting already exists for this warehouse
+      const existing = await storage.getErpSettingByWarehouse(warehouseId);
+      if (existing) {
+        return res.status(400).json({ error: "يوجد إعداد ERP مسبق لهذا المستودع" });
+      }
+      
+      const setting = await storage.createErpSetting({
+        warehouseId,
+        erpUrl,
+        apiKey: apiKey || null,
+        isActive: isActive !== false,
+      });
+      res.status(201).json(setting);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update ERP setting
+  app.put("/api/erp-settings/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const setting = await storage.updateErpSetting(id, req.body);
+      if (!setting) {
+        return res.status(404).json({ error: "إعداد ERP غير موجود" });
+      }
+      res.json(setting);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Delete ERP setting
+  app.delete("/api/erp-settings/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteErpSetting(id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== ERP Products Routes ====================
+  
+  // Get ERP products by warehouse
+  app.get("/api/erp-products/:warehouseId", async (req, res) => {
+    try {
+      const warehouseId = parseInt(req.params.warehouseId);
+      const products = await storage.getErpProducts(warehouseId);
+      res.json(products);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Sync ERP products for a warehouse
+  app.post("/api/erp-products/:warehouseId/sync", async (req, res) => {
+    try {
+      const warehouseId = parseInt(req.params.warehouseId);
+      const { syncErpProducts } = await import("./erpService");
+      const result = await syncErpProducts(warehouseId);
+      
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+      
+      res.json({ success: true, count: result.count, message: `تم مزامنة ${result.count} منتج بنجاح` });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }
