@@ -1,4 +1,5 @@
 import type { CapacitorConfig } from '@capacitor/cli';
+import { KeyboardResize } from '@capacitor/keyboard';
 
 const config: CapacitorConfig = {
   appId: 'com.muzawed.app',
@@ -23,7 +24,7 @@ const config: CapacitorConfig = {
       backgroundColor: '#7c3aed',
     },
     Keyboard: {
-      resize: 'body',
+      resize: KeyboardResize.Native,
       resizeOnFullScreen: true,
     },
   },
@@ -31,11 +32,14 @@ const config: CapacitorConfig = {
     allowMixedContent: false,
     captureInput: true,
     webContentsDebuggingEnabled: false,
+    backgroundColor: '#7c3aed',
   },
   ios: {
     contentInset: 'always',
     allowsLinkPreview: false,
     scrollEnabled: true,
+    backgroundColor: '#7c3aed',
+    preferredContentMode: 'mobile',
   },
 };
 
