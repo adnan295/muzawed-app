@@ -61,7 +61,7 @@ export function MobileLayout({ children, hideHeader = false }: MobileLayoutProps
         <motion.header 
           initial={{ y: -50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="gradient-primary text-white p-5 pb-8 rounded-b-[2rem] shadow-xl relative z-10 overflow-hidden"
+          className="gradient-primary text-white p-5 pb-8 rounded-b-[2rem] shadow-xl relative z-10 overflow-hidden safe-area-top"
         >
           {/* Animated Background Pattern */}
           <div className="absolute inset-0 overflow-hidden">
@@ -114,7 +114,7 @@ export function MobileLayout({ children, hideHeader = false }: MobileLayoutProps
       </main>
 
       {/* Premium Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 max-w-md mx-auto px-4 pb-2 pt-1">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 max-w-md mx-auto px-4 pb-2 pt-1 safe-area-bottom">
         <div className="glass rounded-[1.75rem] px-2 py-2 shadow-xl shadow-black/10">
           <div className="flex justify-around items-center">
             {navItems.map((item) => {

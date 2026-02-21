@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/lib/AuthContext";
+import { NavigationProvider } from "@/lib/NavigationContext";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import Categories from "@/pages/Categories";
@@ -80,11 +81,13 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <SonnerToaster position="top-center" richColors />
-          <Router />
-        </TooltipProvider>
+        <NavigationProvider>
+          <TooltipProvider>
+            <Toaster />
+            <SonnerToaster position="top-center" richColors />
+            <Router />
+          </TooltipProvider>
+        </NavigationProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
