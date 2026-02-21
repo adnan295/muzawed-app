@@ -69,4 +69,17 @@ Preferred communication style: Simple, everyday language.
 - **Authentication & Session:** connect-pg-simple (for PostgreSQL session store).
 - **Utilities:** zod, date-fns, nanoid, class-variance-authority, clsx.
 - **Notably Absent Integrations (by design/current scope):** Payment gateway integration, dedicated email service, WebSocket implementation (despite infrastructure), advanced file upload handling.
+- **Mobile (Capacitor):** @capacitor/core, @capacitor/cli, @capacitor/android, @capacitor/ios, @capacitor/status-bar, @capacitor/splash-screen, @capacitor/keyboard, @capacitor/app.
+
+## Capacitor (Native Mobile Apps)
+- **Config:** `capacitor.config.ts` — appId: `com.muzawed.app`, webDir: `dist/public`.
+- **Android:** Project in `android/` folder, ready for Android Studio. Theme color: #7c3aed. RTL support enabled.
+- **iOS:** Project structure in `ios/` folder. Requires `pod install` on a Mac with Xcode.
+- **Native Features:** StatusBar (purple), SplashScreen (auto-hide), Keyboard (hides bottom nav), App back button (double-tap to exit on root pages).
+- **Build Flow:**
+  1. `npx vite build` — builds web assets to `dist/public`
+  2. `npx cap sync` — copies web assets to native projects
+  3. Open in Android Studio (`npx cap open android`) or Xcode (`npx cap open ios`)
+  4. Build APK/IPA from the native IDE
+- **Key Files:** `capacitor.config.ts`, `client/src/lib/capacitor.ts`, `client/src/lib/NavigationContext.tsx`.
 ```

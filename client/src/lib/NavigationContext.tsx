@@ -1,6 +1,8 @@
 import { createContext, useContext, useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
 import { toast } from 'sonner';
+import { isNative, setupBackButton } from './capacitor';
+import { App as CapApp } from '@capacitor/app';
 
 const ROOT_PATHS = ['/', '/categories', '/cart', '/profile'];
 
@@ -21,7 +23,6 @@ export function useNavigation() {
 export function NavigationProvider({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const lastBackPress = useRef<number>(0);
-  const [historyLength, setHistoryLength] = useState(0);
   const initialPath = useRef(location);
   const hasNavigated = useRef(false);
 
@@ -31,7 +32,6 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     if (location !== initialPath.current) {
       hasNavigated.current = true;
     }
-    setHistoryLength(window.history.length);
   }, [location]);
 
   const canGoBack = !isRootPage && hasNavigated.current;
@@ -44,45 +44,53 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     }
   }, [canGoBack, setLocation]);
 
-  useEffect(() => {
-    const handlePopState = (e: PopStateEvent) => {
-      const currentPath = window.location.pathname;
-      const isRoot = ROOT_PATHS.includes(currentPath);
+  const handleBackAction = useCallback(() => {
+    const currentPath = window.location.pathname;
+    const isRoot = ROOT_PATHS.includes(currentPath);
 
-      if (isRoot) {
-        const now = Date.now();
-        if (now - lastBackPress.current < 2000) {
-          window.close();
-          if ((navigator as any).app?.exitApp) {
-            (navigator as any).app.exitApp();
-          }
-        } else {
-          lastBackPress.current = now;
-          window.history.pushState(null, '', currentPath);
-          toast('اضغط مرة أخرى للخروج من التطبيق', {
-            duration: 2000,
-            position: 'bottom-center',
-            style: {
-              background: 'rgba(0,0,0,0.85)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '24px',
-              fontSize: '14px',
-              textAlign: 'center',
-              direction: 'rtl',
-            },
-          });
-        }
+    if (!isRoot) {
+      window.history.back();
+      return;
+    }
+
+    const now = Date.now();
+    if (now - lastBackPress.current < 2000) {
+      if (isNative) {
+        CapApp.exitApp();
+      } else {
+        window.close();
       }
-    };
+    } else {
+      lastBackPress.current = now;
+      if (!isNative) {
+        window.history.pushState(null, '', currentPath);
+      }
+      toast('اضغط مرة أخرى للخروج من التطبيق', {
+        duration: 2000,
+        position: 'bottom-center',
+        style: {
+          background: 'rgba(0,0,0,0.85)',
+          color: 'white',
+          border: 'none',
+          borderRadius: '24px',
+          fontSize: '14px',
+          textAlign: 'center',
+          direction: 'rtl',
+        },
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isNative) {
+      return setupBackButton(handleBackAction);
+    }
 
     window.history.pushState(null, '', window.location.pathname);
+    const handlePopState = () => handleBackAction();
     window.addEventListener('popstate', handlePopState);
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, []);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [handleBackAction]);
 
   return (
     <NavigationContext.Provider value={{ canGoBack, goBack }}>

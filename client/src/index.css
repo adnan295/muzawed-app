@@ -90,6 +90,14 @@ body {
   }
 }
 
+body.keyboard-open .safe-area-bottom {
+  padding-bottom: 0;
+}
+
+body.keyboard-open nav.safe-area-bottom {
+  display: none;
+}
+
 /* Premium Glass Effect */
 .glass {
   background: rgba(255, 255, 255, 0.7);
