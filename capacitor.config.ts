@@ -6,8 +6,8 @@ const config: CapacitorConfig = {
   appName: 'مزود',
   webDir: 'dist/public',
   server: {
-    androidScheme: 'https',
-    iosScheme: 'https',
+    url: 'https://muzwd.site',
+    cleartext: false,
   },
   plugins: {
     SplashScreen: {
