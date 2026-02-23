@@ -280,7 +280,7 @@ export default function Checkout() {
 
   if (!isAuthenticated) {
     return (
-      <MobileLayout hideHeader>
+      <MobileLayout hideHeader hideNav>
         <div className="flex flex-col items-center justify-center h-[80vh] p-4">
           <ShoppingBag className="w-16 h-16 text-gray-300 mb-4" />
           <h2 className="text-xl font-bold mb-2">سجل دخولك أولاً</h2>
@@ -295,7 +295,7 @@ export default function Checkout() {
 
   if (cartItems.length === 0) {
     return (
-      <MobileLayout hideHeader>
+      <MobileLayout hideHeader hideNav>
         <div className="flex flex-col items-center justify-center h-[80vh] p-4">
           <ShoppingBag className="w-16 h-16 text-gray-300 mb-4" />
           <h2 className="text-xl font-bold mb-2">السلة فارغة</h2>
@@ -309,7 +309,7 @@ export default function Checkout() {
   }
 
   return (
-    <MobileLayout hideHeader>
+    <MobileLayout hideHeader hideNav>
       <div className="min-h-screen bg-gray-50 pb-24">
         {/* Header */}
         <div className="bg-white p-4 shadow-sm sticky top-0 z-10">

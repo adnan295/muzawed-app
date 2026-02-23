@@ -10,7 +10,7 @@ export default function BuyAgain() {
   const frequentProducts = [PRODUCTS[1], PRODUCTS[0], PRODUCTS[5], PRODUCTS[3]];
 
   return (
-    <MobileLayout hideHeader>
+    <MobileLayout hideHeader hideNav>
       <div className="min-h-screen bg-gray-50 pb-24">
         {/* Header */}
         <div className="bg-white p-4 shadow-sm sticky top-0 z-10 flex items-center justify-between">

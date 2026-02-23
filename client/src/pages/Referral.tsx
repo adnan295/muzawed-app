@@ -57,7 +57,7 @@ export default function Referral() {
 
   if (!isAuthenticated) {
     return (
-      <MobileLayout hideHeader>
+      <MobileLayout hideHeader hideNav>
         <div className="flex flex-col items-center justify-center h-[80vh] p-6 text-center">
           <Gift className="w-16 h-16 text-primary mb-4" />
           <h2 className="text-xl font-bold mb-2">سجل دخولك أولاً</h2>
@@ -68,7 +68,7 @@ export default function Referral() {
   }
 
   return (
-    <MobileLayout hideHeader>
+    <MobileLayout hideHeader hideNav>
       <div className="min-h-screen bg-gray-50 pb-24">
         <div className="bg-primary p-6 pb-20 rounded-b-[3rem] text-white shadow-lg relative overflow-hidden text-center">
            <div className="absolute top-0 left-0 w-full h-full opacity-10" 

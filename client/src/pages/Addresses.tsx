@@ -155,7 +155,7 @@ export default function Addresses() {
 
   if (!isAuthenticated) {
     return (
-      <MobileLayout hideHeader>
+      <MobileLayout hideHeader hideNav>
         <div className="flex flex-col items-center justify-center h-[80vh] p-4">
           <MapPin className="w-16 h-16 text-gray-300 mb-4" />
           <h2 className="text-xl font-bold mb-2">سجل دخولك أولاً</h2>
@@ -169,7 +169,7 @@ export default function Addresses() {
   }
 
   return (
-    <MobileLayout hideHeader>
+    <MobileLayout hideHeader hideNav>
       <div className="min-h-screen bg-gray-50 pb-24">
         <div className="bg-white p-4 shadow-sm sticky top-0 z-10 flex items-center justify-between">
           <h1 className="text-xl font-bold">عناويني</h1>

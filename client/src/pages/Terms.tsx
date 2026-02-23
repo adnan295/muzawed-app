@@ -80,7 +80,7 @@ export default function Terms() {
   const isLoading = loadingPrivacy || loadingTerms;
 
   return (
-    <MobileLayout hideHeader>
+    <MobileLayout hideHeader hideNav>
       <div className="min-h-screen bg-gray-50 pb-24">
         <div className="bg-white p-4 shadow-sm sticky top-0 z-10 flex items-center gap-3">
           <button onClick={() => setLocation('/profile')} className="p-1" data-testid="button-back-terms">

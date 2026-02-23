@@ -132,7 +132,7 @@ export default function Support() {
   };
 
   return (
-    <MobileLayout hideHeader>
+    <MobileLayout hideHeader hideNav>
       <div className="min-h-screen bg-gray-50 pb-24">
         <div className="bg-primary p-6 pb-12 rounded-b-[2rem] text-white shadow-lg text-center">
           <h1 className="text-xl font-bold mb-2" data-testid="text-support-title">مركز المساعدة</h1>

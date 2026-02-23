@@ -50,7 +50,7 @@ export default function Orders() {
 
   if (!isAuthenticated) {
     return (
-      <MobileLayout hideHeader>
+      <MobileLayout hideHeader hideNav>
         <div className="flex flex-col items-center justify-center h-[80vh] p-4">
           <ShoppingBag className="w-16 h-16 text-gray-300 mb-4" />
           <h2 className="text-xl font-bold mb-2">سجل دخولك أولاً</h2>
@@ -65,7 +65,7 @@ export default function Orders() {
 
   if (isLoading) {
     return (
-      <MobileLayout hideHeader>
+      <MobileLayout hideHeader hideNav>
         <div className="min-h-screen bg-gray-50 p-4">
           <div className="h-12 bg-gray-100 rounded animate-pulse mb-4" />
           {[1, 2, 3].map(i => (
@@ -80,7 +80,7 @@ export default function Orders() {
   const previousOrders = orders.filter(o => ['delivered', 'cancelled'].includes(o.status));
 
   return (
-    <MobileLayout hideHeader>
+    <MobileLayout hideHeader hideNav>
       <div className="min-h-screen bg-gray-50 pb-24">
         <div className="bg-white p-4 shadow-sm sticky top-0 z-10">
           <h1 className="text-xl font-bold">طلباتي</h1>

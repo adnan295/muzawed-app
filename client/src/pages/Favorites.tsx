@@ -36,7 +36,7 @@ export default function Favorites() {
 
   if (!user) {
     return (
-      <MobileLayout hideHeader>
+      <MobileLayout hideHeader hideNav>
         <div className="min-h-screen bg-gray-50 pb-24">
           <div className="bg-white p-4 shadow-sm sticky top-0 z-10">
             <h1 className="text-xl font-bold">المفضلة</h1>
@@ -59,7 +59,7 @@ export default function Favorites() {
   }
 
   return (
-    <MobileLayout hideHeader>
+    <MobileLayout hideHeader hideNav>
       <div className="min-h-screen bg-gray-50 pb-24">
         <div className="bg-white p-4 shadow-sm sticky top-0 z-10 flex items-center justify-between">
           <h1 className="text-xl font-bold" data-testid="text-favorites-title">المفضلة</h1>
