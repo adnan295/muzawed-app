@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
 
@@ -50,24 +50,12 @@ export function MobileLayout({ children, hideHeader = false, hideNav = false }: 
 
   return (
     <div className="min-h-screen gradient-mesh pb-24 font-sans max-w-md mx-auto overflow-hidden relative">
-      {/* Decorative Background Elements */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden max-w-md mx-auto">
-        <div className="absolute -top-20 -right-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute top-1/3 -left-20 w-48 h-48 bg-secondary/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-32 h-32 bg-purple-400/10 rounded-full blur-2xl" />
-      </div>
 
       {/* Header */}
       {!hideHeader && (
-        <motion.header 
-          initial={{ y: -50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="gradient-primary text-white p-5 pb-8 rounded-b-[2rem] shadow-xl relative z-10 overflow-hidden"
-        >
-          {/* Animated Background Pattern */}
+        <header className="gradient-primary text-white p-5 pb-8 rounded-b-[2rem] shadow-xl relative z-10 overflow-hidden">
           <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl animate-pulse" />
-            <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full blur-xl" />
+            <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
           </div>
 
           <div className="relative z-10">
@@ -106,7 +94,7 @@ export function MobileLayout({ children, hideHeader = false, hideNav = false }: 
               </div>
             </form>
           </div>
-        </motion.header>
+        </header>
       )}
 
       {/* Content */}
