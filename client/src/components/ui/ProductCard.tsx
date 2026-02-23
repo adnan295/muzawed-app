@@ -150,18 +150,12 @@ export function ProductCard({ product }: ProductCardProps) {
         {/* Gradient Overlay on Hover */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[1.75rem] pointer-events-none" />
 
-        <div className="relative aspect-square bg-gradient-to-br from-gray-50 to-gray-100/50 p-5 overflow-hidden">
-          {/* Background Pattern */}
-          <div className="absolute inset-0 opacity-30">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-primary/10 rounded-full blur-2xl" />
-            <div className="absolute bottom-0 left-0 w-16 h-16 bg-secondary/10 rounded-full blur-xl" />
-          </div>
-
+        <div className="relative aspect-square bg-gradient-to-br from-gray-50 to-gray-100/50 overflow-hidden">
           {/* Product Image */}
           <motion.img 
             src={product.image} 
             alt={product.name}
-            className="w-full h-full object-contain relative z-10 drop-shadow-lg"
+            className="w-full h-full object-cover relative z-10"
             animate={{ scale: isHovered ? 1.1 : 1 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
           />
