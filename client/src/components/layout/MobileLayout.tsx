@@ -115,7 +115,7 @@ export function MobileLayout({ children, hideHeader = false }: MobileLayoutProps
 
       {/* Premium Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 max-w-md mx-auto px-4 pb-2 pt-1 safe-area-bottom">
-        <div className="glass rounded-[1.75rem] px-2 py-2 shadow-xl shadow-black/10">
+        <div className="bg-white rounded-[1.75rem] px-2 py-2 shadow-xl shadow-black/10">
           <div className="flex justify-around items-center">
             {navItems.map((item) => {
               const isActive = location === item.href;
