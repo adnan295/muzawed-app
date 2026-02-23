@@ -156,7 +156,7 @@ export interface IStorage {
   updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
 
   // Products
-  getProducts(categoryId?: number, limit?: number, offset?: number): Promise<Product[]>;
+  getProducts(categoryId?: number, limit?: number, offset?: number, filters?: { sort?: string; brandId?: number; minPrice?: number; maxPrice?: number }): Promise<Product[]>;
   getProduct(id: number): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined>;
@@ -534,13 +534,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Products
-  async getProducts(categoryId?: number, limit?: number, offset?: number): Promise<Product[]> {
-    if (offset !== undefined && offset >= 0) {
-      let query = categoryId
-        ? db.select().from(products).where(eq(products.categoryId, categoryId)).orderBy(products.id)
-        : db.select().from(products).orderBy(products.id);
+  async getProducts(categoryId?: number, limit?: number, offset?: number, filters?: { sort?: string; brandId?: number; minPrice?: number; maxPrice?: number }): Promise<Product[]> {
+    const hasFilters = filters && (filters.sort || filters.brandId || filters.minPrice !== undefined || filters.maxPrice !== undefined);
+    
+    if (offset !== undefined && offset >= 0 || hasFilters) {
+      const conditions = [];
+      if (categoryId) conditions.push(eq(products.categoryId, categoryId));
+      if (filters?.brandId) conditions.push(eq(products.brandId, filters.brandId));
+      if (filters?.minPrice !== undefined) conditions.push(gte(sql`CAST(${products.price} AS NUMERIC)`, filters.minPrice));
+      if (filters?.maxPrice !== undefined) conditions.push(lte(sql`CAST(${products.price} AS NUMERIC)`, filters.maxPrice));
+
+      let orderBy;
+      switch (filters?.sort) {
+        case 'price-low': orderBy = asc(sql`CAST(${products.price} AS NUMERIC)`); break;
+        case 'price-high': orderBy = desc(sql`CAST(${products.price} AS NUMERIC)`); break;
+        case 'newest': orderBy = desc(products.createdAt); break;
+        default: orderBy = products.id; break;
+      }
+
+      let query = conditions.length > 0
+        ? db.select().from(products).where(and(...conditions)).orderBy(orderBy)
+        : db.select().from(products).orderBy(orderBy);
       if (limit && limit > 0) query = query.limit(limit) as any;
-      query = query.offset(offset) as any;
+      if (offset !== undefined && offset >= 0) query = query.offset(offset) as any;
       return await query;
     }
     

@@ -585,7 +585,13 @@ export async function registerRoutes(
   app.get("/api/products/count", async (req, res) => {
     try {
       const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : undefined;
-      const allProducts = await storage.getProducts(categoryId);
+      const sort = req.query.sort as string | undefined;
+      const brandId = req.query.brandId ? parseInt(req.query.brandId as string) : undefined;
+      const minPrice = req.query.minPrice ? parseFloat(req.query.minPrice as string) : undefined;
+      const maxPrice = req.query.maxPrice ? parseFloat(req.query.maxPrice as string) : undefined;
+      const filters = (sort || brandId || minPrice !== undefined || maxPrice !== undefined)
+        ? { sort, brandId, minPrice, maxPrice } : undefined;
+      const allProducts = await storage.getProducts(categoryId, undefined, undefined, filters);
       res.json({ count: allProducts.length });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -597,7 +603,13 @@ export async function registerRoutes(
       const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : undefined;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
       const offset = req.query.offset ? parseInt(req.query.offset as string) : undefined;
-      const products = await storage.getProducts(categoryId, limit, offset);
+      const sort = req.query.sort as string | undefined;
+      const brandId = req.query.brandId ? parseInt(req.query.brandId as string) : undefined;
+      const minPrice = req.query.minPrice ? parseFloat(req.query.minPrice as string) : undefined;
+      const maxPrice = req.query.maxPrice ? parseFloat(req.query.maxPrice as string) : undefined;
+      const filters = (sort || brandId || minPrice !== undefined || maxPrice !== undefined)
+        ? { sort, brandId, minPrice, maxPrice } : undefined;
+      const products = await storage.getProducts(categoryId, limit, offset, filters);
       res.json(products);
     } catch (error: any) {
       res.status(500).json({ error: error.message });

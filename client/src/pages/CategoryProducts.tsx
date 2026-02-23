@@ -1,12 +1,12 @@
-import { useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { useRoute } from 'wouter';
 import { Search, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { FilterSheet } from '@/components/ui/FilterSheet';
+import { FilterSheet, type FilterValues } from '@/components/ui/FilterSheet';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
-import { categoriesAPI } from '@/lib/api';
+import { categoriesAPI, brandsAPI } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 
 interface Product {
@@ -30,11 +30,28 @@ interface Category {
 
 const PAGE_SIZE = 20;
 
+const DEFAULT_FILTERS: FilterValues = {
+  sort: 'featured',
+  brandId: null,
+  minPrice: 0,
+  maxPrice: 999999,
+};
+
+function buildFilterParams(filters: FilterValues): URLSearchParams {
+  const params = new URLSearchParams();
+  if (filters.sort && filters.sort !== 'featured') params.append('sort', filters.sort);
+  if (filters.brandId) params.append('brandId', filters.brandId.toString());
+  if (filters.minPrice > 0) params.append('minPrice', filters.minPrice.toString());
+  if (filters.maxPrice < 999999) params.append('maxPrice', filters.maxPrice.toString());
+  return params;
+}
+
 export default function CategoryProducts() {
   const [, params] = useRoute('/category/:id');
   const categoryId = params?.id ? parseInt(params.id) : undefined;
   const { user } = useAuth();
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const [filters, setFilters] = useState<FilterValues>(DEFAULT_FILTERS);
 
   const { data: favoriteIds = [] } = useQuery<number[]>({
     queryKey: ['favoriteIds', user?.id],
@@ -53,13 +70,15 @@ export default function CategoryProducts() {
     isFetchingNextPage,
     isLoading,
   } = useInfiniteQuery<Product[]>({
-    queryKey: ['products', 'infinite', categoryId],
+    queryKey: ['products', 'infinite', categoryId, filters],
     queryFn: async ({ pageParam }) => {
-      const params = new URLSearchParams();
-      if (categoryId) params.append('categoryId', categoryId.toString());
-      params.append('limit', PAGE_SIZE.toString());
-      params.append('offset', (pageParam as number).toString());
-      const res = await fetch(`/api/products?${params.toString()}`);
+      const qp = new URLSearchParams();
+      if (categoryId) qp.append('categoryId', categoryId.toString());
+      qp.append('limit', PAGE_SIZE.toString());
+      qp.append('offset', (pageParam as number).toString());
+      const filterParams = buildFilterParams(filters);
+      filterParams.forEach((v, k) => qp.append(k, v));
+      const res = await fetch(`/api/products?${qp.toString()}`);
       return res.json();
     },
     initialPageParam: 0,
@@ -76,12 +95,19 @@ export default function CategoryProducts() {
     queryFn: () => categoriesAPI.getAll() as Promise<Category[]>,
   });
 
+  const { data: brands = [] } = useQuery<any[]>({
+    queryKey: ['brands'],
+    queryFn: () => brandsAPI.getAll() as Promise<any[]>,
+  });
+
   const { data: countData } = useQuery<{ count: number }>({
-    queryKey: ['productsCount', categoryId],
+    queryKey: ['productsCount', categoryId, filters],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (categoryId) params.append('categoryId', categoryId.toString());
-      const res = await fetch(`/api/products/count?${params.toString()}`);
+      const qp = new URLSearchParams();
+      if (categoryId) qp.append('categoryId', categoryId.toString());
+      const filterParams = buildFilterParams(filters);
+      filterParams.forEach((v, k) => qp.append(k, v));
+      const res = await fetch(`/api/products/count?${qp.toString()}`);
       return res.json();
     },
   });
@@ -112,6 +138,12 @@ export default function CategoryProducts() {
     };
   }, []);
 
+  const handleApplyFilters = (newFilters: FilterValues) => {
+    setFilters(newFilters);
+  };
+
+  const isFiltered = filters.sort !== 'featured' || filters.brandId !== null || filters.maxPrice < 999999;
+
   return (
     <MobileLayout hideHeader hideNav>
       <div className="min-h-screen bg-gray-50 pb-24">
@@ -130,11 +162,36 @@ export default function CategoryProducts() {
         
         <div className="bg-white px-4 pb-4 mb-2 border-b border-gray-100 flex items-center justify-between gap-3">
            <div className="flex-1 flex items-center gap-2 overflow-x-auto no-scrollbar">
-            <Button size="sm" className="rounded-full text-xs h-8 bg-primary text-white hover:bg-primary/90 min-w-fit px-4">الكل</Button>
-            <Button size="sm" variant="outline" className="rounded-full text-xs h-8 border-gray-200 min-w-fit px-4">الأكثر مبيعاً</Button>
-            <Button size="sm" variant="outline" className="rounded-full text-xs h-8 border-gray-200 min-w-fit px-4">عروض خاصة</Button>
+            <Button
+              size="sm"
+              className={`rounded-full text-xs h-8 min-w-fit px-4 ${!isFiltered ? 'bg-primary text-white hover:bg-primary/90' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}
+              onClick={() => setFilters(DEFAULT_FILTERS)}
+            >
+              الكل
+            </Button>
+            <Button
+              size="sm"
+              className={`rounded-full text-xs h-8 min-w-fit px-4 ${filters.sort === 'price-low' ? 'bg-primary text-white hover:bg-primary/90' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}
+              onClick={() => setFilters({ ...filters, sort: filters.sort === 'price-low' ? 'featured' : 'price-low' })}
+            >
+              الأقل سعراً
+            </Button>
+            <Button
+              size="sm"
+              className={`rounded-full text-xs h-8 min-w-fit px-4 ${filters.sort === 'price-high' ? 'bg-primary text-white hover:bg-primary/90' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}
+              onClick={() => setFilters({ ...filters, sort: filters.sort === 'price-high' ? 'featured' : 'price-high' })}
+            >
+              الأعلى سعراً
+            </Button>
+            <Button
+              size="sm"
+              className={`rounded-full text-xs h-8 min-w-fit px-4 ${filters.sort === 'newest' ? 'bg-primary text-white hover:bg-primary/90' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}
+              onClick={() => setFilters({ ...filters, sort: filters.sort === 'newest' ? 'featured' : 'newest' })}
+            >
+              الأحدث
+            </Button>
           </div>
-          <FilterSheet />
+          <FilterSheet filters={filters} onApply={handleApplyFilters} brands={brands} />
         </div>
 
         <div className="p-4 pt-2">
@@ -146,7 +203,12 @@ export default function CategoryProducts() {
             </div>
           ) : products.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-500">لا توجد منتجات في هذا القسم</p>
+              <p className="text-gray-500">لا توجد منتجات {isFiltered ? 'تطابق التصفية' : 'في هذا القسم'}</p>
+              {isFiltered && (
+                <Button variant="link" className="text-primary mt-2" onClick={() => setFilters(DEFAULT_FILTERS)}>
+                  إزالة التصفية
+                </Button>
+              )}
             </div>
           ) : (
             <>
