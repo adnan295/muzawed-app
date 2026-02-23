@@ -8,6 +8,24 @@ window.addEventListener('popstate', () => {
   isBackNavigation = true;
 });
 
+function restoreScrollWithRetry(targetY: number, maxAttempts = 20) {
+  let attempts = 0;
+  const tryScroll = () => {
+    if (attempts >= maxAttempts) return;
+    attempts++;
+    const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+    if (targetY <= maxScroll || attempts >= maxAttempts) {
+      window.scrollTo(0, Math.min(targetY, maxScroll));
+      if (Math.abs(window.scrollY - targetY) > 5 && attempts < maxAttempts) {
+        setTimeout(tryScroll, 100);
+      }
+    } else {
+      setTimeout(tryScroll, 100);
+    }
+  };
+  requestAnimationFrame(tryScroll);
+}
+
 export function useScrollRestoration() {
   const [location] = useLocation();
   const prevLocationRef = useRef<string | null>(null);
@@ -21,11 +39,9 @@ export function useScrollRestoration() {
 
     if (isBackNavigation && prev !== null) {
       const saved = scrollPositions.get(location);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          window.scrollTo(0, saved ?? 0);
-        });
-      });
+      if (saved !== undefined && saved > 0) {
+        restoreScrollWithRetry(saved);
+      }
       isBackNavigation = false;
     } else if (prev !== null && prev !== location) {
       window.scrollTo(0, 0);
