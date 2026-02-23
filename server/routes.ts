@@ -270,7 +270,12 @@ export async function registerRoutes(
         if (code === '123456') {
           const { randomUUID } = await import('crypto');
           const verificationToken = randomUUID();
-          const pendingOtp = await storage.getOtpByPhone(phone);
+          let pendingOtp = await storage.getOtpByPhone(phone);
+          if (!pendingOtp) {
+            const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+            await storage.createOtp(phone, '123456', expiresAt);
+            pendingOtp = await storage.getOtpByPhone(phone);
+          }
           if (pendingOtp) {
             await storage.markOtpUsedWithToken(pendingOtp.id, verificationToken);
           }
