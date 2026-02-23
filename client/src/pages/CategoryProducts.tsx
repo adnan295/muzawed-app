@@ -1,11 +1,12 @@
+import { useCallback, useRef, useEffect } from 'react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { useRoute } from 'wouter';
-import { Search, ChevronRight } from 'lucide-react';
+import { Search, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FilterSheet } from '@/components/ui/FilterSheet';
-import { useQuery } from '@tanstack/react-query';
-import { productsAPI, categoriesAPI } from '@/lib/api';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
+import { categoriesAPI } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 
 interface Product {
@@ -27,10 +28,13 @@ interface Category {
   color: string;
 }
 
+const PAGE_SIZE = 20;
+
 export default function CategoryProducts() {
   const [, params] = useRoute('/category/:id');
   const categoryId = params?.id ? parseInt(params.id) : undefined;
   const { user } = useAuth();
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   const { data: favoriteIds = [] } = useQuery<number[]>({
     queryKey: ['favoriteIds', user?.id],
@@ -42,10 +46,30 @@ export default function CategoryProducts() {
     enabled: !!user?.id,
   });
 
-  const { data: products = [], isLoading } = useQuery<Product[]>({
-    queryKey: ['products', categoryId],
-    queryFn: () => productsAPI.getAll(categoryId) as Promise<Product[]>,
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+  } = useInfiniteQuery<Product[]>({
+    queryKey: ['products', 'infinite', categoryId],
+    queryFn: async ({ pageParam }) => {
+      const params = new URLSearchParams();
+      if (categoryId) params.append('categoryId', categoryId.toString());
+      params.append('limit', PAGE_SIZE.toString());
+      params.append('offset', (pageParam as number).toString());
+      const res = await fetch(`/api/products?${params.toString()}`);
+      return res.json();
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.length < PAGE_SIZE) return undefined;
+      return allPages.length * PAGE_SIZE;
+    },
   });
+
+  const products = data?.pages.flat() ?? [];
 
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ['categories'],
@@ -54,10 +78,32 @@ export default function CategoryProducts() {
 
   const category = categories.find(c => c.id === categoryId);
 
+  const lastProductRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (isFetchingNextPage) return;
+      if (observerRef.current) observerRef.current.disconnect();
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting && hasNextPage) {
+            fetchNextPage();
+          }
+        },
+        { rootMargin: '200px' }
+      );
+      if (node) observerRef.current.observe(node);
+    },
+    [isFetchingNextPage, hasNextPage, fetchNextPage]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (observerRef.current) observerRef.current.disconnect();
+    };
+  }, []);
+
   return (
     <MobileLayout hideHeader hideNav>
       <div className="min-h-screen bg-gray-50 pb-24">
-        {/* Header */}
         <div className="bg-white p-4 sticky top-0 z-10 shadow-sm flex items-center gap-3">
           <Button size="icon" variant="ghost" className="h-10 w-10 -mr-2" onClick={() => history.back()}>
             <ChevronRight className="w-6 h-6" />
@@ -71,7 +117,6 @@ export default function CategoryProducts() {
           </Button>
         </div>
         
-        {/* Subcategories / Filters */}
         <div className="bg-white px-4 pb-4 mb-2 border-b border-gray-100 flex items-center justify-between gap-3">
            <div className="flex-1 flex items-center gap-2 overflow-x-auto no-scrollbar">
             <Button size="sm" className="rounded-full text-xs h-8 bg-primary text-white hover:bg-primary/90 min-w-fit px-4">الكل</Button>
@@ -93,11 +138,23 @@ export default function CategoryProducts() {
               <p className="text-gray-500">لا توجد منتجات في هذا القسم</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {products.map(product => (
-                <ProductCard key={product.id} product={product} isFavorite={favoriteIds.includes(product.id)} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                {products.map((product, index) => (
+                  <div
+                    key={product.id}
+                    ref={index === products.length - 1 ? lastProductRef : undefined}
+                  >
+                    <ProductCard product={product} isFavorite={favoriteIds.includes(product.id)} />
+                  </div>
+                ))}
+              </div>
+              {isFetchingNextPage && (
+                <div className="flex justify-center py-6">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -586,7 +586,8 @@ export async function registerRoutes(
     try {
       const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : undefined;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
-      const products = await storage.getProducts(categoryId, limit);
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : undefined;
+      const products = await storage.getProducts(categoryId, limit, offset);
       res.json(products);
     } catch (error: any) {
       res.status(500).json({ error: error.message });

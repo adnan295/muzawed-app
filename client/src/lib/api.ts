@@ -46,10 +46,11 @@ export const authAPI = {
 
 // Products API
 export const productsAPI = {
-  getAll: (categoryId?: number, limit?: number) => {
+  getAll: (categoryId?: number, limit?: number, offset?: number) => {
     const params = new URLSearchParams();
     if (categoryId) params.append('categoryId', categoryId.toString());
     if (limit) params.append('limit', limit.toString());
+    if (offset) params.append('offset', offset.toString());
     const qs = params.toString();
     return request(`/products${qs ? `?${qs}` : ""}`);
   },

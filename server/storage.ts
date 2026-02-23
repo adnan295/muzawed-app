@@ -156,7 +156,7 @@ export interface IStorage {
   updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
 
   // Products
-  getProducts(categoryId?: number, limit?: number): Promise<Product[]>;
+  getProducts(categoryId?: number, limit?: number, offset?: number): Promise<Product[]>;
   getProduct(id: number): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined>;
@@ -534,7 +534,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Products
-  async getProducts(categoryId?: number, limit?: number): Promise<Product[]> {
+  async getProducts(categoryId?: number, limit?: number, offset?: number): Promise<Product[]> {
+    if (offset !== undefined && offset >= 0) {
+      let query = categoryId
+        ? db.select().from(products).where(eq(products.categoryId, categoryId)).orderBy(products.id)
+        : db.select().from(products).orderBy(products.id);
+      if (limit && limit > 0) query = query.limit(limit) as any;
+      query = query.offset(offset) as any;
+      return await query;
+    }
+    
     const cacheKey = categoryId 
       ? `${CACHE_KEYS.PRODUCTS_BY_CATEGORY}${categoryId}` 
       : limit ? `${CACHE_KEYS.PRODUCTS}_limit_${limit}` : CACHE_KEYS.PRODUCTS;
