@@ -1027,3 +1027,19 @@ export const erpProducts = pgTable("erp_products", {
 export const insertErpProductSchema = createInsertSchema(erpProducts).omit({ id: true, createdAt: true, lastUpdatedAt: true });
 export type InsertErpProduct = z.infer<typeof insertErpProductSchema>;
 export type ErpProduct = typeof erpProducts.$inferSelect;
+
+// Account Deletion Requests - طلبات حذف الحساب
+export const accountDeletionRequests = pgTable("account_deletion_requests", {
+  id: serial("id").primaryKey(),
+  phone: text("phone").notNull(),
+  reason: text("reason"),
+  status: text("status").default("pending").notNull(), // pending, approved, rejected
+  reviewedBy: integer("reviewed_by"),
+  reviewNotes: text("review_notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  reviewedAt: timestamp("reviewed_at"),
+});
+
+export const insertAccountDeletionRequestSchema = createInsertSchema(accountDeletionRequests).omit({ id: true, createdAt: true, reviewedBy: true, reviewNotes: true, reviewedAt: true, status: true });
+export type InsertAccountDeletionRequest = z.infer<typeof insertAccountDeletionRequestSchema>;
+export type AccountDeletionRequest = typeof accountDeletionRequests.$inferSelect;

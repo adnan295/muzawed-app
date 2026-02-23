@@ -141,6 +141,9 @@ import {
   type ErpProduct,
   type InsertErpProduct,
   erpProducts,
+  type AccountDeletionRequest,
+  type InsertAccountDeletionRequest,
+  accountDeletionRequests,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, gte, lte, count, or } from "drizzle-orm";
@@ -501,6 +504,11 @@ export interface IStorage {
   incrementLoginAttempts(phone: string): Promise<{ attempts: number; isLocked: boolean }>;
   resetLoginAttempts(phone: string): Promise<void>;
   isAccountLocked(phone: string): Promise<boolean>;
+
+  // Account Deletion Requests - طلبات حذف الحساب
+  createAccountDeletionRequest(request: InsertAccountDeletionRequest): Promise<AccountDeletionRequest>;
+  getAccountDeletionRequests(status?: string): Promise<AccountDeletionRequest[]>;
+  updateAccountDeletionRequest(id: number, data: { status: string; reviewedBy: number; reviewNotes?: string }): Promise<AccountDeletionRequest | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3245,6 +3253,29 @@ export class DatabaseStorage implements IStorage {
 
   async deleteErpProductsByWarehouse(warehouseId: number): Promise<void> {
     await db.delete(erpProducts).where(eq(erpProducts.warehouseId, warehouseId));
+  }
+
+  // Account Deletion Requests
+  async createAccountDeletionRequest(request: InsertAccountDeletionRequest): Promise<AccountDeletionRequest> {
+    const [result] = await db.insert(accountDeletionRequests).values(request).returning();
+    return result;
+  }
+
+  async getAccountDeletionRequests(status?: string): Promise<AccountDeletionRequest[]> {
+    if (status) {
+      return db.select().from(accountDeletionRequests).where(eq(accountDeletionRequests.status, status)).orderBy(desc(accountDeletionRequests.createdAt));
+    }
+    return db.select().from(accountDeletionRequests).orderBy(desc(accountDeletionRequests.createdAt));
+  }
+
+  async updateAccountDeletionRequest(id: number, data: { status: string; reviewedBy: number; reviewNotes?: string }): Promise<AccountDeletionRequest | undefined> {
+    const [result] = await db.update(accountDeletionRequests).set({
+      status: data.status,
+      reviewedBy: data.reviewedBy,
+      reviewNotes: data.reviewNotes,
+      reviewedAt: new Date(),
+    }).where(eq(accountDeletionRequests.id, id)).returning();
+    return result || undefined;
   }
 }
 

@@ -3892,5 +3892,46 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== Account Deletion Requests Routes ====================
+
+  // Account Deletion Requests - Public
+  app.post('/api/account-deletion-requests', async (req, res) => {
+    try {
+      const { phone, reason } = req.body;
+      if (!phone) {
+        return res.status(400).json({ message: 'رقم الهاتف مطلوب' });
+      }
+      const request = await storage.createAccountDeletionRequest({ phone, reason: reason || null });
+      res.json(request);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Account Deletion Requests - Admin
+  app.get('/api/admin/account-deletion-requests', async (req, res) => {
+    try {
+      const status = req.query.status as string | undefined;
+      const requests = await storage.getAccountDeletionRequests(status);
+      res.json(requests);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch('/api/admin/account-deletion-requests/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { status, reviewedBy, reviewNotes } = req.body;
+      const result = await storage.updateAccountDeletionRequest(id, { status, reviewedBy, reviewNotes });
+      if (!result) {
+        return res.status(404).json({ message: 'الطلب غير موجود' });
+      }
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   return httpServer;
 }
