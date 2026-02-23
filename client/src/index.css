@@ -98,6 +98,21 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+html {
+  background-color: #7c3aed;
+}
+
+html::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top, 0px);
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  z-index: 9998;
+}
+
 body.keyboard-open .safe-area-bottom {
   padding-bottom: 0;
 }
