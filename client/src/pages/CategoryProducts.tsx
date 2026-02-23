@@ -43,7 +43,7 @@ export default function CategoryProducts() {
   const category = categories.find(c => c.id === categoryId);
 
   return (
-    <MobileLayout hideHeader>
+    <MobileLayout hideHeader hideNav>
       <div className="min-h-screen bg-gray-50 pb-24">
         {/* Header */}
         <div className="bg-white p-4 sticky top-0 z-10 shadow-sm flex items-center gap-3">
