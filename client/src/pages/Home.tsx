@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { useQuery } from '@tanstack/react-query';
 import { productsAPI, categoriesAPI, brandsAPI, productsByCityAPI, citiesAPI } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
-import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -91,99 +90,44 @@ export default function Home() {
     <MobileLayout hideHeader>
       <div className="pb-8 min-h-screen">
         
-        {/* Premium Header */}
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="gradient-primary text-white p-6 pb-28 rounded-b-[3rem] relative overflow-hidden shadow-2xl"
-        >
-          {/* Animated Background Elements */}
+        <div className="gradient-primary text-white p-6 pb-28 rounded-b-[3rem] relative overflow-hidden shadow-2xl">
           <div className="absolute inset-0 overflow-hidden">
-            <motion.div 
-              animate={{ 
-                scale: [1, 1.2, 1],
-                opacity: [0.1, 0.2, 0.1]
-              }}
-              transition={{ duration: 4, repeat: Infinity }}
-              className="absolute -top-20 -right-20 w-80 h-80 bg-white rounded-full blur-3xl"
-            />
-            <motion.div 
-              animate={{ 
-                scale: [1, 1.3, 1],
-                opacity: [0.05, 0.15, 0.05]
-              }}
-              transition={{ duration: 5, repeat: Infinity, delay: 1 }}
-              className="absolute bottom-0 -left-20 w-60 h-60 bg-cyan-300 rounded-full blur-3xl"
-            />
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
+            <div className="absolute -top-20 -right-20 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 -left-20 w-60 h-60 bg-cyan-300/10 rounded-full blur-3xl" />
           </div>
 
           <div className="relative z-10">
-            {/* Top Bar */}
             <div className="flex justify-between items-start mb-8">
               <div>
-                <motion.div 
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.1 }}
-                  className="flex items-center gap-2 mb-2"
-                >
+                <div className="flex items-center gap-2 mb-2">
                   <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/10">
                     <Sparkles className="w-5 h-5 text-yellow-300" />
                   </div>
                   <span className="text-2xl font-black tracking-tight">مزود</span>
-                </motion.div>
-                <motion.p 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                  className="text-purple-200 text-sm"
-                >
-                  مرحباً بك 👋
-                </motion.p>
-                <motion.h1 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.3 }}
-                  className="text-xl font-bold" 
-                  data-testid="text-facility-name"
-                >
+                </div>
+                <p className="text-purple-200 text-sm">مرحباً بك 👋</p>
+                <h1 className="text-xl font-bold" data-testid="text-facility-name">
                   {user?.facilityName || 'ضيف كريم'}
-                </motion.h1>
+                </h1>
                 <Link href="/profile">
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.4 }}
-                    className="flex items-center gap-1.5 text-xs text-purple-100 mt-2 bg-white/15 backdrop-blur-md w-fit px-3 py-1.5 rounded-full hover:bg-white/25 transition-all cursor-pointer border border-white/10"
-                  >
+                  <div className="flex items-center gap-1.5 text-xs text-purple-100 mt-2 bg-white/15 backdrop-blur-md w-fit px-3 py-1.5 rounded-full hover:bg-white/25 transition-all cursor-pointer border border-white/10">
                     <MapPin className="w-3.5 h-3.5" />
                     {userCity?.name || 'اختر مدينتك'}
-                  </motion.div>
+                  </div>
                 </Link>
               </div>
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 }}
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="bg-white/15 hover:bg-white/25 text-white rounded-2xl w-12 h-12 relative backdrop-blur-md border border-white/10" 
+                onClick={() => setLocation('/notifications')}
               >
-                <Button 
-                  size="icon" 
-                  variant="ghost" 
-                  className="bg-white/15 hover:bg-white/25 text-white rounded-2xl w-12 h-12 relative backdrop-blur-md border border-white/10" 
-                  onClick={() => setLocation('/notifications')}
-                >
-                  <Bell className="w-5 h-5" />
-                  <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white animate-pulse" />
-                </Button>
-              </motion.div>
+                <Bell className="w-5 h-5" />
+                <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white" />
+              </Button>
             </div>
 
-            {/* Premium Search Bar */}
-            <motion.form 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
+            <form 
               className="relative group"
               onSubmit={(e) => {
                 e.preventDefault();
@@ -192,7 +136,6 @@ export default function Home() {
                 }
               }}
             >
-              <div className="absolute inset-0 bg-white/30 blur-2xl rounded-3xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
               <div className="relative bg-white/95 backdrop-blur-xl text-gray-800 rounded-2xl flex items-center p-1.5 shadow-2xl shadow-black/10 border border-white/50">
                 <Search className="w-5 h-5 text-gray-400 mr-4 ml-2" />
                 <Input 
@@ -210,29 +153,17 @@ export default function Home() {
                   <Search className="w-5 h-5" />
                 </Button>
               </div>
-            </motion.form>
+            </form>
           </div>
-        </motion.div>
-
-        {/* Ads Carousel - Floating */}
-        <div className="px-4 -mt-20 relative z-20 mb-8">
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="rounded-3xl shadow-2xl overflow-hidden border-4 border-white/80 backdrop-blur-sm"
-          >
-            <AdsCarousel />
-          </motion.div>
         </div>
 
-        {/* Categories - Premium Cards */}
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="mb-8"
-        >
+        <div className="px-4 -mt-20 relative z-20 mb-8">
+          <div className="rounded-3xl shadow-2xl overflow-hidden border-4 border-white/80 backdrop-blur-sm">
+            <AdsCarousel />
+          </div>
+        </div>
+
+        <div className="mb-8">
           <div className="flex items-center justify-between px-5 mb-4">
             <h3 className="font-black text-lg flex items-center gap-3">
               <div className="w-1.5 h-6 rounded-full gradient-secondary" />
@@ -250,17 +181,13 @@ export default function Home() {
           </div>
           <div className="flex overflow-x-auto px-4 gap-4 no-scrollbar pb-2">
             {categories.map((cat: any, index: number) => (
-              <motion.div 
+              <div 
                 key={cat.id}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.6 + index * 0.1 }}
                 className="flex flex-col items-center gap-2 min-w-[80px] cursor-pointer group" 
                 data-testid={`category-${cat.id}`}
                 onClick={() => handleProtectedNavigation(`/category/${cat.id}`)}
               >
-                <div className={`w-[72px] h-[72px] rounded-[1.5rem] flex items-center justify-center shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl bg-gradient-to-br ${categoryColors[index % categoryColors.length]} relative overflow-hidden`}>
-                  <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className={`w-[72px] h-[72px] rounded-[1.5rem] flex items-center justify-center shadow-lg transition-all duration-200 group-active:scale-95 bg-gradient-to-br ${categoryColors[index % categoryColors.length]} relative overflow-hidden`}>
                   <span className="text-3xl relative z-10 drop-shadow-md">
                     {categoryIcons[cat.name] || cat.icon}
                   </span>
@@ -270,19 +197,13 @@ export default function Home() {
                     </div>
                   )}
                 </div>
-                <span className="text-xs font-bold text-center leading-tight text-gray-700 group-hover:text-primary transition-colors">{cat.name}</span>
-              </motion.div>
+                <span className="text-xs font-bold text-center leading-tight text-gray-700">{cat.name}</span>
+              </div>
             ))}
           </div>
-        </motion.div>
+        </div>
 
-        {/* Brands Section - Modern Style */}
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.7 }}
-          className="mb-8"
-        >
+        <div className="mb-8">
           <div className="flex items-center justify-between px-5 mb-4">
             <h3 className="font-black text-lg flex items-center gap-3">
               <div className="w-1.5 h-6 rounded-full bg-gradient-to-b from-blue-500 to-cyan-500" />
@@ -290,31 +211,22 @@ export default function Home() {
             </h3>
           </div>
           <div className="flex overflow-x-auto px-4 gap-4 no-scrollbar pb-2">
-            {brands.map((brand: any, index: number) => (
-              <motion.div 
+            {brands.map((brand: any) => (
+              <div 
                 key={brand.id} 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.7 + index * 0.05 }}
                 className="flex-shrink-0 flex flex-col items-center gap-2 cursor-pointer group" 
                 data-testid={`brand-${brand.id}`}
               >
-                <div className="w-[70px] h-[70px] rounded-2xl bg-white flex items-center justify-center shadow-premium group-hover:shadow-premium-hover transition-all duration-300 border border-gray-100/50 group-hover:border-primary/30 overflow-hidden">
-                  <span className="text-3xl group-hover:scale-110 transition-transform">{brand.logo}</span>
+                <div className="w-[70px] h-[70px] rounded-2xl bg-white flex items-center justify-center shadow-md transition-all duration-200 border border-gray-100/50 group-active:scale-95 overflow-hidden">
+                  <span className="text-3xl">{brand.logo}</span>
                 </div>
                 <span className="text-[11px] text-gray-600 text-center font-bold max-w-[70px] truncate">{brand.name}</span>
-              </motion.div>
+              </div>
             ))}
           </div>
-        </motion.div>
+        </div>
 
-        {/* Featured Products - Grid */}
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-          className="px-4 mb-8"
-        >
+        <div className="px-4 mb-8">
           <div className="flex items-center justify-between mb-5">
             <h3 className="font-black text-lg flex items-center gap-3">
               <div className="w-1.5 h-6 rounded-full bg-gradient-to-b from-orange-500 to-red-500" />
@@ -323,28 +235,14 @@ export default function Home() {
             </h3>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            {products.slice(0, 8).map((product: any, index: number) => (
-              <motion.div
-                key={product.id}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 + index * 0.05 }}
-              >
-                <ProductCard product={product} isFavorite={favoriteIds.includes(product.id)} />
-              </motion.div>
+            {products.slice(0, 8).map((product: any) => (
+              <ProductCard key={product.id} product={product} isFavorite={favoriteIds.includes(product.id)} />
             ))}
           </div>
-        </motion.div>
+        </div>
 
-        {/* Premium CTA Banner */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1 }}
-          className="px-4 mb-8"
-        >
+        <div className="px-4 mb-8">
           <div className="relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 shadow-2xl">
-            {/* Animated Background */}
             <div className="absolute inset-0 overflow-hidden">
               <div className="absolute top-0 right-0 w-40 h-40 bg-primary/20 rounded-full blur-3xl" />
               <div className="absolute bottom-0 left-0 w-32 h-32 bg-cyan-500/20 rounded-full blur-2xl" />
@@ -371,16 +269,10 @@ export default function Home() {
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
 
-        {/* Special Offers Section */}
         {products.filter((p: any) => p.originalPrice).length > 0 && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.1 }}
-            className="px-4 mb-8"
-          >
+          <div className="px-4 mb-8">
             <div className="flex items-center justify-between mb-5">
               <h3 className="font-black text-lg flex items-center gap-3">
                 <div className="w-1.5 h-6 rounded-full bg-gradient-to-b from-red-500 to-pink-500" />
@@ -395,18 +287,11 @@ export default function Home() {
               </Link>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              {products.filter((p: any) => p.originalPrice).slice(0, 4).map((product: any, index: number) => (
-                <motion.div
-                  key={`offer-${product.id}`}
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.1 + index * 0.05 }}
-                >
-                  <ProductCard product={product} isFavorite={favoriteIds.includes(product.id)} />
-                </motion.div>
+              {products.filter((p: any) => p.originalPrice).slice(0, 4).map((product: any) => (
+                <ProductCard key={`offer-${product.id}`} product={product} isFavorite={favoriteIds.includes(product.id)} />
               ))}
             </div>
-          </motion.div>
+          </div>
         )}
       </div>
     </MobileLayout>
