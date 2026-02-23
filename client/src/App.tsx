@@ -36,6 +36,7 @@ import AdminLogin from "@/pages/AdminLogin";
 import Promo from "@/pages/Promo";
 import Register from "@/pages/Register";
 import Terms from "@/pages/Terms";
+import DeleteAccount from "@/pages/DeleteAccount";
 import Driver from "@/pages/Driver";
 
 function Router() {
@@ -64,6 +65,7 @@ function Router() {
       <Route path="/notifications" component={Notifications} />
       <Route path="/support" component={Support} />
       <Route path="/terms" component={Terms} />
+      <Route path="/delete-account" component={DeleteAccount} />
       <Route path="/favorites" component={Favorites} />
       <Route path="/addresses" component={Addresses} />
       <Route path="/facility" component={FacilityDetails} />

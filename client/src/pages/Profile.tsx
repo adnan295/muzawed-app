@@ -202,7 +202,7 @@ export default function Profile() {
       items: [
         { icon: Gift, label: 'دعوة صديق', desc: 'اكسب رصيد مجاني', href: '/referral', highlight: true },
         { icon: HelpCircle, label: 'المساعدة والدعم', desc: 'تواصل مع خدمة العملاء', href: '/support' },
-        { icon: FileText, label: 'الشروط والأحكام', desc: 'سياسة الاستخدام', href: '/terms' },
+        { icon: FileText, label: 'الشروط والأحكام', desc: 'سياسة الاستخدام والخصوصية', href: '/terms' },
       ]
     },
   ];
