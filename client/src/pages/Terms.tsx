@@ -1,6 +1,6 @@
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Card } from '@/components/ui/card';
-import { FileText, Shield, Clock, CreditCard, Package, AlertCircle, Loader2, ChevronLeft } from 'lucide-react';
+import { FileText, Shield, Clock, CreditCard, Package, AlertCircle, Loader2, ChevronRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 
@@ -83,8 +83,8 @@ export default function Terms() {
     <MobileLayout hideHeader hideNav>
       <div className="min-h-screen bg-gray-50 pb-24">
         <div className="bg-white p-4 shadow-sm sticky top-0 z-10 flex items-center gap-3">
-          <button onClick={() => setLocation('/profile')} className="p-1" data-testid="button-back-terms">
-            <ChevronLeft className="w-5 h-5 text-gray-600" />
+          <button onClick={() => window.history.back()} className="p-1" data-testid="button-back-terms">
+            <ChevronRight className="w-5 h-5 text-gray-600" />
           </button>
           <div className="bg-primary/10 p-2 rounded-lg text-primary">
             <Shield className="w-5 h-5" />

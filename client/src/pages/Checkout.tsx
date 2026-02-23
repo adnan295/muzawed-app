@@ -4,7 +4,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { CreditCard, Calendar, CheckCircle2, MapPin, ShoppingBag, Clock, AlertCircle, Wallet, TrendingDown } from 'lucide-react';
+import { CreditCard, Calendar, CheckCircle2, MapPin, ShoppingBag, Clock, AlertCircle, Wallet, TrendingDown, ChevronRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useLocation, Link } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
@@ -312,7 +312,10 @@ export default function Checkout() {
     <MobileLayout hideHeader hideNav>
       <div className="min-h-screen bg-gray-50 pb-24">
         {/* Header */}
-        <div className="bg-white p-4 shadow-sm sticky top-0 z-10">
+        <div className="bg-white p-4 shadow-sm sticky top-0 z-10 flex items-center gap-3">
+          <button onClick={() => window.history.back()} className="p-1">
+            <ChevronRight className="w-5 h-5 text-gray-600" />
+          </button>
           <h1 className="text-xl font-bold">إتمام الطلب</h1>
         </div>
 

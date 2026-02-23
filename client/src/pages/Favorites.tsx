@@ -1,6 +1,6 @@
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { ProductCard } from '@/components/ui/ProductCard';
-import { Heart, ShoppingBag, Loader2 } from 'lucide-react';
+import { Heart, ShoppingBag, Loader2, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
@@ -62,7 +62,12 @@ export default function Favorites() {
     <MobileLayout hideHeader hideNav>
       <div className="min-h-screen bg-gray-50 pb-24">
         <div className="bg-white p-4 shadow-sm sticky top-0 z-10 flex items-center justify-between">
-          <h1 className="text-xl font-bold" data-testid="text-favorites-title">المفضلة</h1>
+          <div className="flex items-center gap-3">
+            <button onClick={() => window.history.back()} className="p-1">
+              <ChevronRight className="w-5 h-5 text-gray-600" />
+            </button>
+            <h1 className="text-xl font-bold" data-testid="text-favorites-title">المفضلة</h1>
+          </div>
           <span className="text-xs text-muted-foreground" data-testid="text-favorites-count">{favoriteProducts.length} منتجات</span>
         </div>
 

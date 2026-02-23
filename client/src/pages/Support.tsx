@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Phone, Mail, MessageCircle, HelpCircle, Clock, Loader2, Send, CheckCircle2, Ticket } from 'lucide-react';
+import { Phone, Mail, MessageCircle, HelpCircle, Clock, Loader2, Send, CheckCircle2, Ticket, ChevronRight } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -134,7 +134,10 @@ export default function Support() {
   return (
     <MobileLayout hideHeader hideNav>
       <div className="min-h-screen bg-gray-50 pb-24">
-        <div className="bg-primary p-6 pb-12 rounded-b-[2rem] text-white shadow-lg text-center">
+        <div className="bg-primary p-6 pb-12 rounded-b-[2rem] text-white shadow-lg text-center relative">
+          <button onClick={() => window.history.back()} className="absolute top-4 right-4 p-1 text-white">
+            <ChevronRight className="w-6 h-6" />
+          </button>
           <h1 className="text-xl font-bold mb-2" data-testid="text-support-title">مركز المساعدة</h1>
           <p className="text-white/80 text-sm">كيف يمكننا مساعدتك اليوم؟</p>
         </div>

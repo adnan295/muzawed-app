@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
-import { Globe, Bell, Lock, Info, Eye, EyeOff } from 'lucide-react';
+import { Globe, Bell, Lock, Info, Eye, EyeOff, ChevronRight } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/lib/AuthContext';
@@ -119,7 +119,10 @@ export default function Settings() {
   return (
     <MobileLayout hideHeader hideNav>
       <div className="min-h-screen bg-gray-50 pb-24">
-        <div className="bg-white p-4 shadow-sm sticky top-0 z-10">
+        <div className="bg-white p-4 shadow-sm sticky top-0 z-10 flex items-center gap-3">
+          <button onClick={() => window.history.back()} className="p-1">
+            <ChevronRight className="w-5 h-5 text-gray-600" />
+          </button>
           <h1 className="text-xl font-bold">الإعدادات</h1>
         </div>
 

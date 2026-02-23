@@ -2,7 +2,7 @@ import { MobileLayout } from '@/components/layout/MobileLayout';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { PRODUCTS } from '@/lib/data';
 import { Button } from '@/components/ui/button';
-import { Repeat } from 'lucide-react';
+import { Repeat, ChevronRight } from 'lucide-react';
 
 export default function BuyAgain() {
   // Mock data: items the user buys frequently
@@ -15,6 +15,9 @@ export default function BuyAgain() {
         {/* Header */}
         <div className="bg-white p-4 shadow-sm sticky top-0 z-10 flex items-center justify-between">
           <div className="flex items-center gap-2">
+             <button onClick={() => window.history.back()} className="p-1">
+               <ChevronRight className="w-5 h-5 text-gray-600" />
+             </button>
              <div className="bg-secondary/10 p-2 rounded-lg text-secondary">
                <Repeat className="w-5 h-5" />
              </div>

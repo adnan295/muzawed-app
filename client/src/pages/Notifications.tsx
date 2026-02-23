@@ -1,5 +1,5 @@
 import { MobileLayout } from '@/components/layout/MobileLayout';
-import { Bell, Package, Tag, Info, Loader2 } from 'lucide-react';
+import { Bell, Package, Tag, Info, Loader2, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
@@ -68,6 +68,9 @@ export default function Notifications() {
       <div className="min-h-screen bg-gray-50 pb-24">
         <div className="bg-white p-4 shadow-sm sticky top-0 z-10 flex items-center justify-between">
           <div className="flex items-center gap-2">
+            <button onClick={() => window.history.back()} className="p-1">
+              <ChevronRight className="w-5 h-5 text-gray-600" />
+            </button>
             <h1 className="text-xl font-bold" data-testid="text-notifications-title">الإشعارات</h1>
             {unreadCount > 0 && (
               <span className="bg-primary text-white text-xs px-2 py-0.5 rounded-full">{unreadCount}</span>

@@ -2,7 +2,7 @@ import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Clock, Package, CheckCircle2, XCircle, ShoppingBag } from 'lucide-react';
+import { Clock, Package, CheckCircle2, XCircle, ShoppingBag, ChevronRight } from 'lucide-react';
 import { useLocation, Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { ordersAPI } from '@/lib/api';
@@ -82,7 +82,10 @@ export default function Orders() {
   return (
     <MobileLayout hideHeader hideNav>
       <div className="min-h-screen bg-gray-50 pb-24">
-        <div className="bg-white p-4 shadow-sm sticky top-0 z-10">
+        <div className="bg-white p-4 shadow-sm sticky top-0 z-10 flex items-center gap-3">
+          <button onClick={() => window.history.back()} className="p-1">
+            <ChevronRight className="w-5 h-5 text-gray-600" />
+          </button>
           <h1 className="text-xl font-bold">طلباتي</h1>
         </div>
 

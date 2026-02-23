@@ -1,7 +1,7 @@
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Gift, Copy, Share2, Users, Loader2 } from 'lucide-react';
+import { Gift, Copy, Share2, Users, Loader2, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/AuthContext';
 import { useQuery } from '@tanstack/react-query';
@@ -76,6 +76,9 @@ export default function Referral() {
            </div>
            
            <div className="relative z-10 mt-4">
+             <button onClick={() => window.history.back()} className="absolute top-0 right-0 p-2 text-white">
+               <ChevronRight className="w-6 h-6" />
+             </button>
              <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white/10">
                <Gift className="w-10 h-10 text-white" />
              </div>
