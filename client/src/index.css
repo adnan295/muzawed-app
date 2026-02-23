@@ -88,6 +88,14 @@ body {
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
+  .sticky-safe-top {
+    top: env(safe-area-inset-top);
+  }
+}
+
+#root {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 body.keyboard-open .safe-area-bottom {

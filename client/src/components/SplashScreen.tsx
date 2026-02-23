@@ -19,7 +19,7 @@ export function SplashScreen({ onFinish }: { onFinish: () => void }) {
           exit={{ opacity: 0, scale: 1.1 }}
           transition={{ duration: 0.6, ease: 'easeInOut' }}
           className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden"
-          style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 30%, #5b21b6 60%, #4c1d95 100%)' }}
+          style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 30%, #5b21b6 60%, #4c1d95 100%)', top: 0, bottom: 0, height: '100dvh' }}
         >
           <div className="absolute inset-0 overflow-hidden">
             <motion.div

@@ -14,7 +14,7 @@ export function BackHeader({ title, children }: BackHeaderProps) {
     <motion.header
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      className="gradient-primary text-white p-4 pb-5 rounded-b-[1.5rem] shadow-xl relative z-10 overflow-hidden safe-area-top"
+      className="gradient-primary text-white p-4 pb-5 rounded-b-[1.5rem] shadow-xl relative z-10 overflow-hidden"
     >
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl animate-pulse" />
