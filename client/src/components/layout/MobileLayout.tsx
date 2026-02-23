@@ -11,9 +11,10 @@ import { useAuth } from '@/lib/AuthContext';
 interface MobileLayoutProps {
   children: React.ReactNode;
   hideHeader?: boolean;
+  hideNav?: boolean;
 }
 
-export function MobileLayout({ children, hideHeader = false }: MobileLayoutProps) {
+export function MobileLayout({ children, hideHeader = false, hideNav = false }: MobileLayoutProps) {
   const [location, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const { user } = useAuth();
@@ -114,7 +115,7 @@ export function MobileLayout({ children, hideHeader = false }: MobileLayoutProps
       </main>
 
       {/* Premium Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 max-w-md mx-auto px-4 pb-2 pt-1 safe-area-bottom">
+      {!hideNav && <nav className="fixed bottom-0 left-0 right-0 z-50 max-w-md mx-auto px-4 pb-2 pt-1 safe-area-bottom">
         <div className="bg-white rounded-[1.75rem] px-2 py-2 shadow-xl shadow-black/10">
           <div className="flex justify-around items-center">
             {navItems.map((item) => {
@@ -172,7 +173,7 @@ export function MobileLayout({ children, hideHeader = false }: MobileLayoutProps
             })}
           </div>
         </div>
-      </nav>
+      </nav>}
     </div>
   );
 }
