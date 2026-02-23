@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { FilterSheet } from '@/components/ui/FilterSheet';
 import { useQuery } from '@tanstack/react-query';
 import { productsAPI, categoriesAPI } from '@/lib/api';
+import { useAuth } from '@/lib/AuthContext';
 
 interface Product {
   id: number;
@@ -29,6 +30,17 @@ interface Category {
 export default function CategoryProducts() {
   const [, params] = useRoute('/category/:id');
   const categoryId = params?.id ? parseInt(params.id) : undefined;
+  const { user } = useAuth();
+
+  const { data: favoriteIds = [] } = useQuery<number[]>({
+    queryKey: ['favoriteIds', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const res = await fetch(`/api/favorites/${user.id}/ids`);
+      return res.json();
+    },
+    enabled: !!user?.id,
+  });
 
   const { data: products = [], isLoading } = useQuery<Product[]>({
     queryKey: ['products', categoryId],
@@ -83,7 +95,7 @@ export default function CategoryProducts() {
           ) : (
             <div className="grid grid-cols-2 gap-3">
               {products.map(product => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard key={product.id} product={product} isFavorite={favoriteIds.includes(product.id)} />
               ))}
             </div>
           )}

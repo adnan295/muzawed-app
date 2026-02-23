@@ -12,6 +12,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 
+
 export default function Home() {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
@@ -47,13 +48,23 @@ export default function Home() {
   });
 
   const { data: products = [] } = useQuery<any[]>({
-    queryKey: ['products', user?.cityId],
+    queryKey: ['products', user?.cityId, 'limit12'],
     queryFn: () => {
       if (user?.cityId) {
-        return productsByCityAPI.getByCity(user.cityId) as Promise<any[]>;
+        return productsByCityAPI.getByCity(user.cityId, 12) as Promise<any[]>;
       }
-      return productsAPI.getAll() as Promise<any[]>;
+      return productsAPI.getAll(undefined, 12) as Promise<any[]>;
     },
+  });
+
+  const { data: favoriteIds = [] } = useQuery<number[]>({
+    queryKey: ['favoriteIds', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const res = await fetch(`/api/favorites/${user.id}/ids`);
+      return res.json();
+    },
+    enabled: !!user?.id,
   });
 
   const userCity = cities.find((c: any) => c.id === user?.cityId);
@@ -319,7 +330,7 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8 + index * 0.05 }}
               >
-                <ProductCard product={product} />
+                <ProductCard product={product} isFavorite={favoriteIds.includes(product.id)} />
               </motion.div>
             ))}
           </div>
@@ -391,7 +402,7 @@ export default function Home() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 1.1 + index * 0.05 }}
                 >
-                  <ProductCard product={product} />
+                  <ProductCard product={product} isFavorite={favoriteIds.includes(product.id)} />
                 </motion.div>
               ))}
             </div>

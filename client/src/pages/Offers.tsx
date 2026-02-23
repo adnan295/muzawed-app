@@ -2,8 +2,22 @@ import { MobileLayout } from '@/components/layout/MobileLayout';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { PRODUCTS } from '@/lib/data';
 import { Percent, Timer } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function Offers() {
+  const { user } = useAuth();
+
+  const { data: favoriteIds = [] } = useQuery<number[]>({
+    queryKey: ['favoriteIds', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const res = await fetch(`/api/favorites/${user.id}/ids`);
+      return res.json();
+    },
+    enabled: !!user?.id,
+  });
+
   const offerProducts = PRODUCTS.filter(p => p.originalPrice);
 
   return (
@@ -40,11 +54,11 @@ export default function Offers() {
             <h3 className="font-bold text-lg mb-3">منتجات مخفضة</h3>
             <div className="grid grid-cols-2 gap-3">
               {offerProducts.map(product => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard key={product.id} product={product} isFavorite={favoriteIds.includes(product.id)} />
               ))}
               {/* Duplicate for demo density */}
               {offerProducts.map(product => (
-                <ProductCard key={`dup-${product.id}`} product={product} />
+                <ProductCard key={`dup-${product.id}`} product={product} isFavorite={favoriteIds.includes(product.id)} />
               ))}
             </div>
           </div>

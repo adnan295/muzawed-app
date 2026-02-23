@@ -78,7 +78,7 @@ export default function Favorites() {
         ) : favoriteProducts.length > 0 ? (
           <div className="p-4 grid grid-cols-2 gap-3">
             {favoriteProducts.map(product => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard key={product.id} product={product} isFavorite={true} />
             ))}
           </div>
         ) : (

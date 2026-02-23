@@ -7,16 +7,28 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useQuery } from '@tanstack/react-query';
 import { productsAPI, brandsAPI } from '@/lib/api';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function SearchResults() {
   const [match, params] = useRoute('/search/:query');
   const [, setLocation] = useLocation();
   const query = decodeURIComponent(params?.query || '').trim();
   const [searchInput, setSearchInput] = useState(query);
+  const { user } = useAuth();
 
   const { data: products = [] } = useQuery<any[]>({
     queryKey: ['products'],
     queryFn: () => productsAPI.getAll() as Promise<any[]>,
+  });
+
+  const { data: favoriteIds = [] } = useQuery<number[]>({
+    queryKey: ['favoriteIds', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const res = await fetch(`/api/favorites/${user.id}/ids`);
+      return res.json();
+    },
+    enabled: !!user?.id,
   });
 
   const { data: brands = [] } = useQuery<any[]>({
@@ -82,7 +94,7 @@ export default function SearchResults() {
           {filteredProducts.length > 0 ? (
             <div className="grid grid-cols-2 gap-3">
               {filteredProducts.map(product => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard key={product.id} product={product} isFavorite={favoriteIds.includes(product.id)} />
               ))}
             </div>
           ) : (

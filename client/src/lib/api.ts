@@ -46,8 +46,13 @@ export const authAPI = {
 
 // Products API
 export const productsAPI = {
-  getAll: (categoryId?: number) => 
-    request(`/products${categoryId ? `?categoryId=${categoryId}` : ""}`),
+  getAll: (categoryId?: number, limit?: number) => {
+    const params = new URLSearchParams();
+    if (categoryId) params.append('categoryId', categoryId.toString());
+    if (limit) params.append('limit', limit.toString());
+    const qs = params.toString();
+    return request(`/products${qs ? `?${qs}` : ""}`);
+  },
   getById: (id: number) => request(`/products/${id}`),
   search: (query: string) => request(`/products/search?q=${encodeURIComponent(query)}`),
 };
@@ -424,7 +429,10 @@ export const productInventoryAPI = {
 
 // Products by City API (for customer filtering)
 export const productsByCityAPI = {
-  getByCity: (cityId: number) => request(`/products/by-city/${cityId}`),
+  getByCity: (cityId: number, limit?: number) => {
+    const params = limit ? `?limit=${limit}` : '';
+    return request(`/products/by-city/${cityId}${params}`);
+  },
 };
 
 // Notifications API

@@ -585,7 +585,8 @@ export async function registerRoutes(
   app.get("/api/products", async (req, res) => {
     try {
       const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : undefined;
-      const products = await storage.getProducts(categoryId);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const products = await storage.getProducts(categoryId, limit);
       res.json(products);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -1064,6 +1065,16 @@ export async function registerRoutes(
   });
 
   // ==================== Favorites Routes ====================
+
+  app.get("/api/favorites/:userId/ids", requireUserAuth(), async (req, res) => {
+    try {
+      const favoriteItems = await storage.getFavorites(parseInt(req.params.userId));
+      const ids = favoriteItems.map(item => item.productId);
+      res.json(ids);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   app.get("/api/favorites/:userId", requireUserAuth(), async (req, res) => {
     try {
@@ -3193,7 +3204,8 @@ export async function registerRoutes(
   // Get products by city (for customer filtering)
   app.get("/api/products/by-city/:cityId", async (req, res) => {
     try {
-      const products = await storage.getProductsByCity(parseInt(req.params.cityId));
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const products = await storage.getProductsByCity(parseInt(req.params.cityId), limit);
       res.json(products);
     } catch (error: any) {
       res.status(500).json({ error: error.message });

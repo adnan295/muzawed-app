@@ -3,10 +3,22 @@ import { ProductCard } from '@/components/ui/ProductCard';
 import { PRODUCTS } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Repeat, ChevronRight } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function BuyAgain() {
-  // Mock data: items the user buys frequently
-  // In a real app, this comes from order history analysis
+  const { user } = useAuth();
+
+  const { data: favoriteIds = [] } = useQuery<number[]>({
+    queryKey: ['favoriteIds', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const res = await fetch(`/api/favorites/${user.id}/ids`);
+      return res.json();
+    },
+    enabled: !!user?.id,
+  });
+
   const frequentProducts = [PRODUCTS[1], PRODUCTS[0], PRODUCTS[5], PRODUCTS[3]];
 
   return (
@@ -38,11 +50,11 @@ export default function BuyAgain() {
 
           <div className="grid grid-cols-2 gap-3">
             {frequentProducts.map(product => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard key={product.id} product={product} isFavorite={favoriteIds.includes(product.id)} />
             ))}
             {/* Duplicate for demo */}
             {frequentProducts.map(product => (
-              <ProductCard key={`dup-${product.id}`} product={product} />
+              <ProductCard key={`dup-${product.id}`} product={product} isFavorite={favoriteIds.includes(product.id)} />
             ))}
           </div>
         </div>
