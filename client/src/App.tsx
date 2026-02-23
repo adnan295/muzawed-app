@@ -39,9 +39,17 @@ import PhoneVerification from "@/pages/PhoneVerification";
 import Terms from "@/pages/Terms";
 import DeleteAccount from "@/pages/DeleteAccount";
 import Driver from "@/pages/Driver";
+import { useScrollRestoration } from "@/hooks/useScrollRestoration";
+
+function ScrollRestoration() {
+  useScrollRestoration();
+  return null;
+}
 
 function Router() {
   return (
+    <>
+    <ScrollRestoration />
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/onboarding" component={Onboarding} />
@@ -78,6 +86,7 @@ function Router() {
       <Route path="/promo/:bannerId" component={Promo} />
       <Route component={NotFound} />
     </Switch>
+    </>
   );
 }
 
