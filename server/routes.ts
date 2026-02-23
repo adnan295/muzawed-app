@@ -223,6 +223,14 @@ export async function registerRoutes(
         return res.status(400).json({ error: "رقم الهاتف مطلوب" });
       }
 
+      // TEST MODE: static OTP 123456 - skip WhatsApp service
+      const TEST_MODE = true;
+      if (TEST_MODE) {
+        const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+        await storage.createOtp(phone, '123456', expiresAt);
+        return res.json({ success: true, message: "رمز التحقق للاختبار: 123456" });
+      }
+
       // Rate limiting: max 3 OTPs per 10 minutes
       const recentCount = await storage.getRecentOtpCount(phone, 10);
       if (recentCount >= 3) {
@@ -254,6 +262,21 @@ export async function registerRoutes(
       
       if (!phone || !code) {
         return res.status(400).json({ error: "رقم الهاتف ورمز التحقق مطلوبان" });
+      }
+
+      // TEST MODE: accept static OTP 123456
+      const TEST_MODE = true;
+      if (TEST_MODE) {
+        if (code === '123456') {
+          const { randomUUID } = await import('crypto');
+          const verificationToken = randomUUID();
+          const pendingOtp = await storage.getOtpByPhone(phone);
+          if (pendingOtp) {
+            await storage.markOtpUsedWithToken(pendingOtp.id, verificationToken);
+          }
+          return res.json({ success: true, verified: true, verificationToken });
+        }
+        return res.status(400).json({ error: "رمز التحقق غير صحيح" });
       }
 
       const { verifyWaVerifyOTP } = await import('./waverify');
