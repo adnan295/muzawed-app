@@ -1,7 +1,7 @@
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Gift, Copy, Share2, Users, Loader2 } from 'lucide-react';
+import { Gift, Copy, Share2, Users, Loader2, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/AuthContext';
 import { useQuery } from '@tanstack/react-query';
@@ -57,7 +57,7 @@ export default function Referral() {
 
   if (!isAuthenticated) {
     return (
-      <MobileLayout hideHeader>
+      <MobileLayout hideHeader hideNav>
         <div className="flex flex-col items-center justify-center h-[80vh] p-6 text-center">
           <Gift className="w-16 h-16 text-primary mb-4" />
           <h2 className="text-xl font-bold mb-2">سجل دخولك أولاً</h2>
@@ -68,7 +68,7 @@ export default function Referral() {
   }
 
   return (
-    <MobileLayout hideHeader>
+    <MobileLayout hideHeader hideNav>
       <div className="min-h-screen bg-gray-50 pb-24">
         <div className="bg-primary p-6 pb-20 rounded-b-[3rem] text-white shadow-lg relative overflow-hidden text-center">
            <div className="absolute top-0 left-0 w-full h-full opacity-10" 
@@ -76,6 +76,9 @@ export default function Referral() {
            </div>
            
            <div className="relative z-10 mt-4">
+             <button onClick={() => window.history.back()} className="absolute top-0 right-0 p-2 text-white">
+               <ChevronRight className="w-6 h-6" />
+             </button>
              <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white/10">
                <Gift className="w-10 h-10 text-white" />
              </div>

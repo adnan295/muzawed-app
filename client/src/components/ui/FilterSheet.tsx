@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -5,7 +6,6 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-  SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,64 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-export function FilterSheet() {
+export interface FilterValues {
+  sort: string;
+  brandId: number | null;
+  minPrice: number;
+  maxPrice: number;
+}
+
+interface Brand {
+  id: number;
+  name: string;
+  logo: string;
+}
+
+interface FilterSheetProps {
+  filters?: FilterValues;
+  onApply?: (filters: FilterValues) => void;
+  brands?: Brand[];
+  maxPriceLimit?: number;
+}
+
+const DEFAULT_FILTERS: FilterValues = {
+  sort: 'featured',
+  brandId: null,
+  minPrice: 0,
+  maxPrice: 999999,
+};
+
+export function FilterSheet({ filters, onApply, brands = [], maxPriceLimit = 50000 }: FilterSheetProps) {
+  const [localSort, setLocalSort] = useState(filters?.sort || 'featured');
+  const [localBrandId, setLocalBrandId] = useState<number | null>(filters?.brandId || null);
+  const [localPriceRange, setLocalPriceRange] = useState<number[]>([filters?.maxPrice && filters.maxPrice < maxPriceLimit ? filters.maxPrice : maxPriceLimit]);
+
+  useEffect(() => {
+    setLocalSort(filters?.sort || 'featured');
+    setLocalBrandId(filters?.brandId || null);
+    setLocalPriceRange([filters?.maxPrice && filters.maxPrice < maxPriceLimit ? filters.maxPrice : maxPriceLimit]);
+  }, [filters?.sort, filters?.brandId, filters?.maxPrice, maxPriceLimit]);
+
+  const handleApply = () => {
+    if (onApply) {
+      onApply({
+        sort: localSort,
+        brandId: localBrandId,
+        minPrice: 0,
+        maxPrice: localPriceRange[0] >= maxPriceLimit ? 999999 : localPriceRange[0],
+      });
+    }
+  };
+
+  const handleReset = () => {
+    setLocalSort('featured');
+    setLocalBrandId(null);
+    setLocalPriceRange([maxPriceLimit]);
+    if (onApply) {
+      onApply(DEFAULT_FILTERS);
+    }
+  };
+
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -32,20 +89,26 @@ export function FilterSheet() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
-          {/* Price Range */}
           <div className="space-y-4">
             <h3 className="font-bold text-sm">نطاق السعر</h3>
-            <Slider defaultValue={[50]} max={500} step={1} className="w-full" />
+            <Slider
+              value={localPriceRange}
+              onValueChange={setLocalPriceRange}
+              max={maxPriceLimit}
+              step={500}
+              className="w-full"
+            />
             <div className="flex justify-between text-xs text-muted-foreground font-medium">
               <span>0 ل.س</span>
-              <span>500+ ل.س</span>
+              <span className="font-bold text-primary">
+                {localPriceRange[0] >= maxPriceLimit ? `${maxPriceLimit.toLocaleString('ar-SY')}+ ل.س` : `${localPriceRange[0].toLocaleString('ar-SY')} ل.س`}
+              </span>
             </div>
           </div>
 
-          {/* Sort By */}
           <div className="space-y-4">
             <h3 className="font-bold text-sm">ترتيب حسب</h3>
-            <RadioGroup defaultValue="featured" className="grid grid-cols-2 gap-3">
+            <RadioGroup value={localSort} onValueChange={setLocalSort} className="grid grid-cols-2 gap-3">
               <div>
                 <RadioGroupItem value="featured" id="featured" className="peer sr-only" />
                 <Label
@@ -85,36 +148,38 @@ export function FilterSheet() {
             </RadioGroup>
           </div>
 
-          {/* Brands */}
-          <div className="space-y-4">
-            <h3 className="font-bold text-sm">العلامة التجارية</h3>
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2 space-x-reverse">
-                <Checkbox id="brand1" />
-                <Label htmlFor="brand1" className="text-sm font-normal mr-2">المراعي</Label>
-              </div>
-              <div className="flex items-center space-x-2 space-x-reverse">
-                <Checkbox id="brand2" />
-                <Label htmlFor="brand2" className="text-sm font-normal mr-2">نادك</Label>
-              </div>
-              <div className="flex items-center space-x-2 space-x-reverse">
-                <Checkbox id="brand3" />
-                <Label htmlFor="brand3" className="text-sm font-normal mr-2">الصافي</Label>
-              </div>
-              <div className="flex items-center space-x-2 space-x-reverse">
-                <Checkbox id="brand4" />
-                <Label htmlFor="brand4" className="text-sm font-normal mr-2">سعودية</Label>
+          {brands.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="font-bold text-sm">العلامة التجارية</h3>
+              <div className="space-y-3 max-h-48 overflow-y-auto">
+                {brands.map((brand) => (
+                  <div key={brand.id} className="flex items-center space-x-2 space-x-reverse">
+                    <Checkbox
+                      id={`brand-${brand.id}`}
+                      checked={localBrandId === brand.id}
+                      onCheckedChange={(checked) => {
+                        setLocalBrandId(checked ? brand.id : null);
+                      }}
+                    />
+                    <Label htmlFor={`brand-${brand.id}`} className="text-sm font-normal mr-2 flex items-center gap-2">
+                      <span>{brand.logo}</span>
+                      {brand.name}
+                    </Label>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="p-4 border-t border-gray-100 bg-white pb-8">
           <div className="flex gap-3">
-             <Button variant="outline" className="flex-1 h-12 rounded-xl font-bold">إعادة تعيين</Button>
-             <SheetClose asChild>
-               <Button className="flex-[2] h-12 rounded-xl font-bold shadow-lg shadow-primary/20">عرض النتائج</Button>
-             </SheetClose>
+            <SheetClose asChild>
+              <Button variant="outline" className="flex-1 h-12 rounded-xl font-bold" onClick={handleReset}>إعادة تعيين</Button>
+            </SheetClose>
+            <SheetClose asChild>
+              <Button className="flex-[2] h-12 rounded-xl font-bold shadow-lg shadow-primary/20" onClick={handleApply}>عرض النتائج</Button>
+            </SheetClose>
           </div>
         </div>
       </SheetContent>

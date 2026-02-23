@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { cartAPI } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 
@@ -25,9 +25,10 @@ interface Product {
 
 interface ProductCardProps {
   product: Product;
+  isFavorite?: boolean;
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, isFavorite: isFavoriteProp = false }: ProductCardProps) {
   const [quantity, setQuantity] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const { toast } = useToast();
@@ -43,18 +44,7 @@ export function ProductCard({ product }: ProductCardProps) {
     },
   });
 
-  // Favorites functionality
-  const { data: favoriteStatus } = useQuery({
-    queryKey: ['favorite', user?.id, product.id],
-    queryFn: async () => {
-      if (!user?.id) return { isFavorite: false };
-      const res = await fetch(`/api/favorites/${user.id}/${product.id}/check`);
-      return res.json();
-    },
-    enabled: !!user?.id,
-  });
-
-  const isFavorite = favoriteStatus?.isFavorite || false;
+  const isFavorite = isFavoriteProp;
 
   const toggleFavoriteMutation = useMutation({
     mutationFn: async () => {
@@ -70,7 +60,7 @@ export function ProductCard({ product }: ProductCardProps) {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['favorite', user?.id, product.id] });
+      queryClient.invalidateQueries({ queryKey: ['favoriteIds', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['favorites'] });
       toast({
         title: isFavorite ? "تمت الإزالة من المفضلة" : "تمت الإضافة للمفضلة",
@@ -150,18 +140,13 @@ export function ProductCard({ product }: ProductCardProps) {
         {/* Gradient Overlay on Hover */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[1.75rem] pointer-events-none" />
 
-        <div className="relative aspect-square bg-gradient-to-br from-gray-50 to-gray-100/50 p-5 overflow-hidden">
-          {/* Background Pattern */}
-          <div className="absolute inset-0 opacity-30">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-primary/10 rounded-full blur-2xl" />
-            <div className="absolute bottom-0 left-0 w-16 h-16 bg-secondary/10 rounded-full blur-xl" />
-          </div>
-
+        <div className="relative aspect-square bg-gradient-to-br from-gray-50 to-gray-100/50 overflow-hidden">
           {/* Product Image */}
           <motion.img 
             src={product.image} 
             alt={product.name}
-            className="w-full h-full object-contain relative z-10 drop-shadow-lg"
+            loading="lazy"
+            className="w-full h-full object-cover relative z-10"
             animate={{ scale: isHovered ? 1.1 : 1 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
           />

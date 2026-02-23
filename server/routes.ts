@@ -223,6 +223,14 @@ export async function registerRoutes(
         return res.status(400).json({ error: "رقم الهاتف مطلوب" });
       }
 
+      // TEST MODE: static OTP 123456 - skip WhatsApp service
+      const TEST_MODE = true;
+      if (TEST_MODE) {
+        const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+        await storage.createOtp(phone, '123456', expiresAt);
+        return res.json({ success: true, message: "رمز التحقق للاختبار: 123456" });
+      }
+
       // Rate limiting: max 3 OTPs per 10 minutes
       const recentCount = await storage.getRecentOtpCount(phone, 10);
       if (recentCount >= 3) {
@@ -254,6 +262,26 @@ export async function registerRoutes(
       
       if (!phone || !code) {
         return res.status(400).json({ error: "رقم الهاتف ورمز التحقق مطلوبان" });
+      }
+
+      // TEST MODE: accept static OTP 123456
+      const TEST_MODE = true;
+      if (TEST_MODE) {
+        if (code === '123456') {
+          const { randomUUID } = await import('crypto');
+          const verificationToken = randomUUID();
+          let pendingOtp = await storage.getOtpByPhone(phone);
+          if (!pendingOtp) {
+            const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+            await storage.createOtp(phone, '123456', expiresAt);
+            pendingOtp = await storage.getOtpByPhone(phone);
+          }
+          if (pendingOtp) {
+            await storage.markOtpUsedWithToken(pendingOtp.id, verificationToken);
+          }
+          return res.json({ success: true, verified: true, verificationToken });
+        }
+        return res.status(400).json({ error: "رمز التحقق غير صحيح" });
       }
 
       const { verifyWaVerifyOTP } = await import('./waverify');
@@ -554,10 +582,34 @@ export async function registerRoutes(
 
   // ==================== Products Routes ====================
   
+  app.get("/api/products/count", async (req, res) => {
+    try {
+      const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : undefined;
+      const sort = req.query.sort as string | undefined;
+      const brandId = req.query.brandId ? parseInt(req.query.brandId as string) : undefined;
+      const minPrice = req.query.minPrice ? parseFloat(req.query.minPrice as string) : undefined;
+      const maxPrice = req.query.maxPrice ? parseFloat(req.query.maxPrice as string) : undefined;
+      const filters = (sort || brandId || minPrice !== undefined || maxPrice !== undefined)
+        ? { sort, brandId, minPrice, maxPrice } : undefined;
+      const allProducts = await storage.getProducts(categoryId, undefined, undefined, filters);
+      res.json({ count: allProducts.length });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/products", async (req, res) => {
     try {
       const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : undefined;
-      const products = await storage.getProducts(categoryId);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : undefined;
+      const sort = req.query.sort as string | undefined;
+      const brandId = req.query.brandId ? parseInt(req.query.brandId as string) : undefined;
+      const minPrice = req.query.minPrice ? parseFloat(req.query.minPrice as string) : undefined;
+      const maxPrice = req.query.maxPrice ? parseFloat(req.query.maxPrice as string) : undefined;
+      const filters = (sort || brandId || minPrice !== undefined || maxPrice !== undefined)
+        ? { sort, brandId, minPrice, maxPrice } : undefined;
+      const products = await storage.getProducts(categoryId, limit, offset, filters);
       res.json(products);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -1036,6 +1088,16 @@ export async function registerRoutes(
   });
 
   // ==================== Favorites Routes ====================
+
+  app.get("/api/favorites/:userId/ids", requireUserAuth(), async (req, res) => {
+    try {
+      const favoriteItems = await storage.getFavorites(parseInt(req.params.userId));
+      const ids = favoriteItems.map(item => item.productId);
+      res.json(ids);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   app.get("/api/favorites/:userId", requireUserAuth(), async (req, res) => {
     try {
@@ -3165,7 +3227,8 @@ export async function registerRoutes(
   // Get products by city (for customer filtering)
   app.get("/api/products/by-city/:cityId", async (req, res) => {
     try {
-      const products = await storage.getProductsByCity(parseInt(req.params.cityId));
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const products = await storage.getProductsByCity(parseInt(req.params.cityId), limit);
       res.json(products);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -3889,6 +3952,47 @@ export async function registerRoutes(
       res.json({ success: true, count: result.count, message: `تم مزامنة ${result.count} منتج بنجاح` });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== Account Deletion Requests Routes ====================
+
+  // Account Deletion Requests - Public
+  app.post('/api/account-deletion-requests', async (req, res) => {
+    try {
+      const { phone, reason } = req.body;
+      if (!phone) {
+        return res.status(400).json({ message: 'رقم الهاتف مطلوب' });
+      }
+      const request = await storage.createAccountDeletionRequest({ phone, reason: reason || null });
+      res.json(request);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Account Deletion Requests - Admin
+  app.get('/api/admin/account-deletion-requests', async (req, res) => {
+    try {
+      const status = req.query.status as string | undefined;
+      const requests = await storage.getAccountDeletionRequests(status);
+      res.json(requests);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch('/api/admin/account-deletion-requests/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { status, reviewedBy, reviewNotes } = req.body;
+      const result = await storage.updateAccountDeletionRequest(id, { status, reviewedBy, reviewNotes });
+      if (!result) {
+        return res.status(404).json({ message: 'الطلب غير موجود' });
+      }
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
     }
   });
 

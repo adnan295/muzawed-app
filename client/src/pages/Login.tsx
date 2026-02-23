@@ -157,7 +157,7 @@ export default function Login() {
             <Button 
               variant="outline" 
               className="w-full h-12 rounded-xl border-primary/30 text-primary hover:bg-primary/5"
-              onClick={() => setLocation('/register')}
+              onClick={() => setLocation('/verify-phone')}
               data-testid="button-register"
             >
               إنشاء حساب جديد

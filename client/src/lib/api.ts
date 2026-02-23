@@ -34,12 +34,26 @@ export const authAPI = {
     method: "POST",
     body: JSON.stringify({ phone }),
   }),
+  sendOtp: (phone: string) => request("/auth/send-otp", {
+    method: "POST",
+    body: JSON.stringify({ phone }),
+  }),
+  verifyOtp: (phone: string, code: string) => request("/auth/verify-otp", {
+    method: "POST",
+    body: JSON.stringify({ phone, code }),
+  }),
 };
 
 // Products API
 export const productsAPI = {
-  getAll: (categoryId?: number) => 
-    request(`/products${categoryId ? `?categoryId=${categoryId}` : ""}`),
+  getAll: (categoryId?: number, limit?: number, offset?: number) => {
+    const params = new URLSearchParams();
+    if (categoryId) params.append('categoryId', categoryId.toString());
+    if (limit) params.append('limit', limit.toString());
+    if (offset) params.append('offset', offset.toString());
+    const qs = params.toString();
+    return request(`/products${qs ? `?${qs}` : ""}`);
+  },
   getById: (id: number) => request(`/products/${id}`),
   search: (query: string) => request(`/products/search?q=${encodeURIComponent(query)}`),
 };
@@ -416,7 +430,10 @@ export const productInventoryAPI = {
 
 // Products by City API (for customer filtering)
 export const productsByCityAPI = {
-  getByCity: (cityId: number) => request(`/products/by-city/${cityId}`),
+  getByCity: (cityId: number, limit?: number) => {
+    const params = limit ? `?limit=${limit}` : '';
+    return request(`/products/by-city/${cityId}${params}`);
+  },
 };
 
 // Notifications API

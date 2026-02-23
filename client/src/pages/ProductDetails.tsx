@@ -50,7 +50,7 @@ export default function ProductDetails() {
 
   if (isLoading || !product) {
     return (
-      <MobileLayout hideHeader>
+      <MobileLayout hideHeader hideNav>
         <div className="min-h-screen bg-gray-50 p-4">
           <div className="h-80 bg-gray-100 rounded-3xl animate-pulse mb-4" />
           <div className="h-8 bg-gray-100 rounded animate-pulse w-3/4 mb-2" />
@@ -91,7 +91,7 @@ export default function ProductDetails() {
   };
 
   return (
-    <MobileLayout hideHeader>
+    <MobileLayout hideHeader hideNav>
       <div className="bg-gray-50 min-h-screen pb-24 relative">
         {/* Header Actions */}
         <div className="fixed top-0 left-0 right-0 p-4 flex justify-between items-center z-20 pointer-events-none max-w-md mx-auto">
@@ -99,7 +99,7 @@ export default function ProductDetails() {
             size="icon" 
             variant="secondary" 
             className="rounded-full bg-white/80 backdrop-blur-md shadow-sm hover:bg-white pointer-events-auto h-10 w-10"
-            onClick={() => setLocation('/')}
+            onClick={() => window.history.back()}
             data-testid="button-back"
           >
             <ChevronRight className="w-5 h-5 text-foreground" />

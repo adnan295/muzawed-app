@@ -66,10 +66,28 @@ export default function Register() {
       return;
     }
 
-    if (!formData.password || formData.password.length < 6) {
+    if (!formData.password || formData.password.length < 8) {
       toast({
         title: "خطأ",
-        description: "كلمة السر يجب أن تكون 6 أحرف على الأقل",
+        description: "كلمة السر يجب أن تكون 8 أحرف على الأقل",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!/[A-Za-z]/.test(formData.password)) {
+      toast({
+        title: "خطأ",
+        description: "كلمة السر يجب أن تحتوي على حرف واحد على الأقل",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!/[0-9]/.test(formData.password)) {
+      toast({
+        title: "خطأ",
+        description: "كلمة السر يجب أن تحتوي على رقم واحد على الأقل",
         variant: "destructive",
       });
       return;
@@ -182,11 +200,11 @@ export default function Register() {
                   data-testid="input-password"
                   type={showPassword ? "text" : "password"}
                   className="pr-12 pl-12 bg-gray-50/50 h-12 rounded-xl border-gray-200 focus:border-primary" 
-                  placeholder="أدخل كلمة السر (6 أحرف على الأقل)"
+                  placeholder="أدخل كلمة السر (8 أحرف، حرف + رقم)"
                   value={formData.password}
                   onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                   required
-                  minLength={6}
+                  minLength={8}
                 />
                 <Lock className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <button

@@ -17,6 +17,7 @@ export async function initCapacitor() {
   try {
     await StatusBar.setStyle({ style: Style.Light });
     await StatusBar.setBackgroundColor({ color: '#7c3aed' });
+    await StatusBar.setOverlaysWebView({ overlay: false });
   } catch {}
 
   try {

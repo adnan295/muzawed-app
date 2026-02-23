@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MapPin, Plus, Trash2, Check, Home, Map, Building2 } from 'lucide-react';
+import { MapPin, Plus, Trash2, Check, Home, Map, Building2, ChevronRight } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { addressesAPI, citiesAPI } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
@@ -155,7 +155,7 @@ export default function Addresses() {
 
   if (!isAuthenticated) {
     return (
-      <MobileLayout hideHeader>
+      <MobileLayout hideHeader hideNav>
         <div className="flex flex-col items-center justify-center h-[80vh] p-4">
           <MapPin className="w-16 h-16 text-gray-300 mb-4" />
           <h2 className="text-xl font-bold mb-2">سجل دخولك أولاً</h2>
@@ -169,10 +169,15 @@ export default function Addresses() {
   }
 
   return (
-    <MobileLayout hideHeader>
+    <MobileLayout hideHeader hideNav>
       <div className="min-h-screen bg-gray-50 pb-24">
         <div className="bg-white p-4 shadow-sm sticky top-0 z-10 flex items-center justify-between">
-          <h1 className="text-xl font-bold">عناويني</h1>
+          <div className="flex items-center gap-3">
+            <button onClick={() => window.history.back()} className="p-1">
+              <ChevronRight className="w-5 h-5 text-gray-600" />
+            </button>
+            <h1 className="text-xl font-bold">عناويني</h1>
+          </div>
           <Dialog open={isAddOpen} onOpenChange={(open) => { setIsAddOpen(open); if (!open) setShowMap(false); }}>
             <DialogTrigger asChild>
               <Button size="sm" variant="ghost" className="text-primary hover:text-primary/80 p-0 h-auto font-bold">

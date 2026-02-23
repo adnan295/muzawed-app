@@ -141,6 +141,9 @@ import {
   type ErpProduct,
   type InsertErpProduct,
   erpProducts,
+  type AccountDeletionRequest,
+  type InsertAccountDeletionRequest,
+  accountDeletionRequests,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, gte, lte, count, or } from "drizzle-orm";
@@ -153,7 +156,7 @@ export interface IStorage {
   updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
 
   // Products
-  getProducts(categoryId?: number): Promise<Product[]>;
+  getProducts(categoryId?: number, limit?: number, offset?: number, filters?: { sort?: string; brandId?: number; minPrice?: number; maxPrice?: number }): Promise<Product[]>;
   getProduct(id: number): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined>;
@@ -342,7 +345,7 @@ export interface IStorage {
   createProductInventory(inventory: InsertProductInventory): Promise<ProductInventory>;
   updateProductInventory(id: number, inventory: Partial<InsertProductInventory>): Promise<ProductInventory | undefined>;
   deleteProductInventory(id: number): Promise<void>;
-  getProductsByCity(cityId: number): Promise<Product[]>;
+  getProductsByCity(cityId: number, limit?: number): Promise<Product[]>;
   
   // Product with Inventory (transactional)
   createProductWithInventory(product: InsertProduct, inventoryItems: { warehouseId: number; stock: number }[]): Promise<Product>;
@@ -501,6 +504,11 @@ export interface IStorage {
   incrementLoginAttempts(phone: string): Promise<{ attempts: number; isLocked: boolean }>;
   resetLoginAttempts(phone: string): Promise<void>;
   isAccountLocked(phone: string): Promise<boolean>;
+
+  // Account Deletion Requests - طلبات حذف الحساب
+  createAccountDeletionRequest(request: InsertAccountDeletionRequest): Promise<AccountDeletionRequest>;
+  getAccountDeletionRequests(status?: string): Promise<AccountDeletionRequest[]>;
+  updateAccountDeletionRequest(id: number, data: { status: string; reviewedBy: number; reviewNotes?: string }): Promise<AccountDeletionRequest | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -526,19 +534,46 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Products
-  async getProducts(categoryId?: number): Promise<Product[]> {
+  async getProducts(categoryId?: number, limit?: number, offset?: number, filters?: { sort?: string; brandId?: number; minPrice?: number; maxPrice?: number }): Promise<Product[]> {
+    const hasFilters = filters && (filters.sort || filters.brandId || filters.minPrice !== undefined || filters.maxPrice !== undefined);
+    
+    if (offset !== undefined && offset >= 0 || hasFilters) {
+      const conditions = [];
+      if (categoryId) conditions.push(eq(products.categoryId, categoryId));
+      if (filters?.brandId) conditions.push(eq(products.brandId, filters.brandId));
+      if (filters?.minPrice !== undefined) conditions.push(gte(sql`CAST(${products.price} AS NUMERIC)`, filters.minPrice));
+      if (filters?.maxPrice !== undefined) conditions.push(lte(sql`CAST(${products.price} AS NUMERIC)`, filters.maxPrice));
+
+      let orderBy;
+      switch (filters?.sort) {
+        case 'price-low': orderBy = asc(sql`CAST(${products.price} AS NUMERIC)`); break;
+        case 'price-high': orderBy = desc(sql`CAST(${products.price} AS NUMERIC)`); break;
+        case 'newest': orderBy = desc(products.createdAt); break;
+        default: orderBy = products.id; break;
+      }
+
+      let query = conditions.length > 0
+        ? db.select().from(products).where(and(...conditions)).orderBy(orderBy)
+        : db.select().from(products).orderBy(orderBy);
+      if (limit && limit > 0) query = query.limit(limit) as any;
+      if (offset !== undefined && offset >= 0) query = query.offset(offset) as any;
+      return await query;
+    }
+    
     const cacheKey = categoryId 
       ? `${CACHE_KEYS.PRODUCTS_BY_CATEGORY}${categoryId}` 
-      : CACHE_KEYS.PRODUCTS;
+      : limit ? `${CACHE_KEYS.PRODUCTS}_limit_${limit}` : CACHE_KEYS.PRODUCTS;
     
     const cached = cache.get<Product[]>(cacheKey);
     if (cached) return cached;
     
     let result: Product[];
     if (categoryId) {
-      result = await db.select().from(products).where(eq(products.categoryId, categoryId));
+      const query = db.select().from(products).where(eq(products.categoryId, categoryId));
+      result = limit ? await query.limit(limit) : await query;
     } else {
-      result = await db.select().from(products);
+      const query = db.select().from(products);
+      result = limit ? await query.limit(limit) : await query;
     }
     
     cache.set(cacheKey, result, CACHE_TTL.MEDIUM);
@@ -1713,7 +1748,7 @@ export class DatabaseStorage implements IStorage {
     await db.delete(productInventory).where(eq(productInventory.id, id));
   }
 
-  async getProductsByCity(cityId: number): Promise<Product[]> {
+  async getProductsByCity(cityId: number, limit?: number): Promise<Product[]> {
     const warehouse = await this.getWarehouseByCity(cityId);
     if (!warehouse) return [];
     
@@ -1723,7 +1758,8 @@ export class DatabaseStorage implements IStorage {
     const productIds = inventory.map(i => i.productId);
     if (productIds.length === 0) return [];
     
-    return await db.select().from(products).where(sql`${products.id} = ANY(${productIds})`);
+    const query = db.select().from(products).where(sql`${products.id} = ANY(${productIds})`);
+    return limit ? await query.limit(limit) : await query;
   }
 
   // Product with Inventory (transactional)
@@ -3245,6 +3281,29 @@ export class DatabaseStorage implements IStorage {
 
   async deleteErpProductsByWarehouse(warehouseId: number): Promise<void> {
     await db.delete(erpProducts).where(eq(erpProducts.warehouseId, warehouseId));
+  }
+
+  // Account Deletion Requests
+  async createAccountDeletionRequest(request: InsertAccountDeletionRequest): Promise<AccountDeletionRequest> {
+    const [result] = await db.insert(accountDeletionRequests).values(request).returning();
+    return result;
+  }
+
+  async getAccountDeletionRequests(status?: string): Promise<AccountDeletionRequest[]> {
+    if (status) {
+      return db.select().from(accountDeletionRequests).where(eq(accountDeletionRequests.status, status)).orderBy(desc(accountDeletionRequests.createdAt));
+    }
+    return db.select().from(accountDeletionRequests).orderBy(desc(accountDeletionRequests.createdAt));
+  }
+
+  async updateAccountDeletionRequest(id: number, data: { status: string; reviewedBy: number; reviewNotes?: string }): Promise<AccountDeletionRequest | undefined> {
+    const [result] = await db.update(accountDeletionRequests).set({
+      status: data.status,
+      reviewedBy: data.reviewedBy,
+      reviewNotes: data.reviewNotes,
+      reviewedAt: new Date(),
+    }).where(eq(accountDeletionRequests.id, id)).returning();
+    return result || undefined;
   }
 }
 

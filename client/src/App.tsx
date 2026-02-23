@@ -1,3 +1,4 @@
+import { useState, useCallback } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -6,6 +7,7 @@ import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/lib/AuthContext";
 import { NavigationProvider } from "@/lib/NavigationContext";
+import { SplashScreen } from "@/components/SplashScreen";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import Categories from "@/pages/Categories";
@@ -35,16 +37,27 @@ import Admin from "@/pages/Admin";
 import AdminLogin from "@/pages/AdminLogin";
 import Promo from "@/pages/Promo";
 import Register from "@/pages/Register";
+import PhoneVerification from "@/pages/PhoneVerification";
 import Terms from "@/pages/Terms";
+import DeleteAccount from "@/pages/DeleteAccount";
 import Driver from "@/pages/Driver";
+import { useScrollRestoration } from "@/hooks/useScrollRestoration";
+
+function ScrollRestoration() {
+  useScrollRestoration();
+  return null;
+}
 
 function Router() {
   return (
+    <>
+    <ScrollRestoration />
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/verify-phone" component={PhoneVerification} />
       <Route path="/categories" component={Categories} />
       <Route path="/category/:id" component={CategoryProducts} />
       <Route path="/cart" component={Cart} />
@@ -63,7 +76,8 @@ function Router() {
       <Route path="/buy-again" component={BuyAgain} />
       <Route path="/notifications" component={Notifications} />
       <Route path="/support" component={Support} />
-      <Route path="/terms" component={Terms} />
+      <Route path="/privacy-policy" component={Terms} />
+      <Route path="/delete-account" component={DeleteAccount} />
       <Route path="/favorites" component={Favorites} />
       <Route path="/addresses" component={Addresses} />
       <Route path="/facility" component={FacilityDetails} />
@@ -74,15 +88,20 @@ function Router() {
       <Route path="/promo/:bannerId" component={Promo} />
       <Route component={NotFound} />
     </Switch>
+    </>
   );
 }
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
+  const handleSplashFinish = useCallback(() => setShowSplash(false), []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <NavigationProvider>
           <TooltipProvider>
+            {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
             <Toaster />
             <SonnerToaster position="top-center" richColors />
             <Router />
