@@ -8,6 +8,7 @@ import { FilterSheet, type FilterValues } from '@/components/ui/FilterSheet';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { categoriesAPI, brandsAPI } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
+import { useNavigation } from '@/lib/NavigationContext';
 
 interface Product {
   id: number;
@@ -52,6 +53,7 @@ export default function CategoryProducts() {
   const { user } = useAuth();
   const observerRef = useRef<IntersectionObserver | null>(null);
   const [filters, setFilters] = useState<FilterValues>(DEFAULT_FILTERS);
+  const { goBack } = useNavigation();
 
   const { data: favoriteIds = [] } = useQuery<number[]>({
     queryKey: ['favoriteIds', user?.id],
@@ -148,7 +150,7 @@ export default function CategoryProducts() {
     <MobileLayout hideHeader hideNav>
       <div className="min-h-screen bg-gray-50 pb-24">
         <div className="bg-white p-4 sticky top-0 z-10 shadow-sm flex items-center gap-3">
-          <Button size="icon" variant="ghost" className="h-10 w-10 -mr-2" onClick={() => history.back()}>
+          <Button size="icon" variant="ghost" className="h-10 w-10 -mr-2" onClick={goBack}>
             <ChevronRight className="w-6 h-6" />
           </Button>
           <div className="flex-1">
