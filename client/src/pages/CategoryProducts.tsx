@@ -76,6 +76,17 @@ export default function CategoryProducts() {
     queryFn: () => categoriesAPI.getAll() as Promise<Category[]>,
   });
 
+  const { data: countData } = useQuery<{ count: number }>({
+    queryKey: ['productsCount', categoryId],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (categoryId) params.append('categoryId', categoryId.toString());
+      const res = await fetch(`/api/products/count?${params.toString()}`);
+      return res.json();
+    },
+  });
+
+  const totalCount = countData?.count ?? 0;
   const category = categories.find(c => c.id === categoryId);
 
   const lastProductRef = useCallback(
@@ -110,7 +121,7 @@ export default function CategoryProducts() {
           </Button>
           <div className="flex-1">
              <h1 className="text-lg font-bold">{category?.name || 'المنتجات'}</h1>
-             <p className="text-xs text-muted-foreground">{products.length} منتج</p>
+             <p className="text-xs text-muted-foreground">{totalCount} منتج</p>
           </div>
           <Button size="icon" variant="outline" className="h-10 w-10 rounded-xl border-gray-200">
             <Search className="w-5 h-5 text-gray-600" />

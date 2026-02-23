@@ -582,6 +582,16 @@ export async function registerRoutes(
 
   // ==================== Products Routes ====================
   
+  app.get("/api/products/count", async (req, res) => {
+    try {
+      const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : undefined;
+      const allProducts = await storage.getProducts(categoryId);
+      res.json({ count: allProducts.length });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/products", async (req, res) => {
     try {
       const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : undefined;
