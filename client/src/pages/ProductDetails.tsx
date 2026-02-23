@@ -99,7 +99,7 @@ export default function ProductDetails() {
             size="icon" 
             variant="secondary" 
             className="rounded-full bg-white/80 backdrop-blur-md shadow-sm hover:bg-white pointer-events-auto h-10 w-10"
-            onClick={() => setLocation('/')}
+            onClick={() => window.history.back()}
             data-testid="button-back"
           >
             <ChevronRight className="w-5 h-5 text-foreground" />
