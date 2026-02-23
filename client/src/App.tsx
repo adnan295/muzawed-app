@@ -35,6 +35,7 @@ import Admin from "@/pages/Admin";
 import AdminLogin from "@/pages/AdminLogin";
 import Promo from "@/pages/Promo";
 import Register from "@/pages/Register";
+import PhoneVerification from "@/pages/PhoneVerification";
 import Terms from "@/pages/Terms";
 import DeleteAccount from "@/pages/DeleteAccount";
 import Driver from "@/pages/Driver";
@@ -46,6 +47,7 @@ function Router() {
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/verify-phone" component={PhoneVerification} />
       <Route path="/categories" component={Categories} />
       <Route path="/category/:id" component={CategoryProducts} />
       <Route path="/cart" component={Cart} />

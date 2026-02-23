@@ -34,6 +34,14 @@ export const authAPI = {
     method: "POST",
     body: JSON.stringify({ phone }),
   }),
+  sendOtp: (phone: string) => request("/auth/send-otp", {
+    method: "POST",
+    body: JSON.stringify({ phone }),
+  }),
+  verifyOtp: (phone: string, code: string) => request("/auth/verify-otp", {
+    method: "POST",
+    body: JSON.stringify({ phone, code }),
+  }),
 };
 
 // Products API
