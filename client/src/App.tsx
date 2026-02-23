@@ -64,7 +64,7 @@ function Router() {
       <Route path="/buy-again" component={BuyAgain} />
       <Route path="/notifications" component={Notifications} />
       <Route path="/support" component={Support} />
-      <Route path="/terms" component={Terms} />
+      <Route path="/privacy-policy" component={Terms} />
       <Route path="/delete-account" component={DeleteAccount} />
       <Route path="/favorites" component={Favorites} />
       <Route path="/addresses" component={Addresses} />
