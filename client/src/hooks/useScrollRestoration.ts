@@ -2,44 +2,32 @@ import { useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
 
 const scrollPositions = new Map<string, number>();
+let isBackNavigation = false;
+
+window.addEventListener('popstate', () => {
+  isBackNavigation = true;
+});
 
 export function useScrollRestoration() {
   const [location] = useLocation();
-  const prevLocationRef = useRef<string>(location);
-  const isPopStateRef = useRef(false);
+  const prevLocationRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const onPopState = () => {
-      isPopStateRef.current = true;
-    };
-    window.addEventListener('popstate', onPopState);
-    return () => window.removeEventListener('popstate', onPopState);
-  }, []);
+    const prev = prevLocationRef.current;
 
-  useEffect(() => {
-    const saveCurrentScroll = () => {
-      scrollPositions.set(location, window.scrollY);
-    };
-    window.addEventListener('beforeunload', saveCurrentScroll);
-    return () => window.removeEventListener('beforeunload', saveCurrentScroll);
-  }, [location]);
-
-  useEffect(() => {
-    const prevPath = prevLocationRef.current;
-
-    if (prevPath !== location) {
-      scrollPositions.set(prevPath, window.scrollY);
+    if (prev !== null && prev !== location) {
+      scrollPositions.set(prev, window.scrollY);
     }
 
-    if (isPopStateRef.current) {
+    if (isBackNavigation && prev !== null) {
       const saved = scrollPositions.get(location);
-      if (saved !== undefined) {
+      requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          setTimeout(() => window.scrollTo(0, saved), 0);
+          window.scrollTo(0, saved ?? 0);
         });
-      }
-      isPopStateRef.current = false;
-    } else if (prevPath !== location) {
+      });
+      isBackNavigation = false;
+    } else if (prev !== null && prev !== location) {
       window.scrollTo(0, 0);
     }
 
