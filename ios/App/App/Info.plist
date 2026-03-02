@@ -47,12 +47,6 @@
         <string>UIStatusBarStyleLightContent</string>
         <key>ITSAppUsesNonExemptEncryption</key>
         <false/>
-        <key>NSCameraUsageDescription</key>
-        <string>يحتاج التطبيق للوصول إلى الكاميرا لتصوير المنتجات والمستندات</string>
-        <key>NSPhotoLibraryUsageDescription</key>
-        <string>يحتاج التطبيق للوصول إلى مكتبة الصور لاختيار صور المنتجات</string>
-        <key>NSPhotoLibraryAddUsageDescription</key>
-        <string>يحتاج التطبيق لحفظ الصور في مكتبة الصور</string>
         <key>NSLocationWhenInUseUsageDescription</key>
         <string>يحتاج التطبيق للوصول إلى موقعك لتحديد عنوان التوصيل</string>
         <key>CFBundleLocalizations</key>
