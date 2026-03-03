@@ -35,13 +35,13 @@ const config: CapacitorConfig = {
     allowMixedContent: false,
     captureInput: true,
     webContentsDebuggingEnabled: false,
-    backgroundColor: '#7c3aed',
+    backgroundColor: '#f8f8fb',
   },
   ios: {
     contentInset: 'always',
     allowsLinkPreview: false,
     scrollEnabled: true,
-    backgroundColor: '#7c3aed',
+    backgroundColor: '#f8f8fb',
     preferredContentMode: 'mobile',
   },
 };
