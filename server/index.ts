@@ -15,6 +15,22 @@ const httpServer = createServer(app);
 // Trust proxy for rate limiting behind reverse proxy
 app.set('trust proxy', 1);
 
+// CORS for Capacitor native apps
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const allowedOrigins = ['capacitor://localhost', 'ionic://localhost', 'http://localhost', 'https://localhost'];
+  if (origin && allowedOrigins.some(o => origin.startsWith(o))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 // Security headers - رؤوس الأمان
 app.use(helmet({
   contentSecurityPolicy: {
