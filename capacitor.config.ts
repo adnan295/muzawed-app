@@ -1,29 +1,29 @@
-import type { CapacitorConfig } from '@capacitor/cli';
-import { KeyboardResize } from '@capacitor/keyboard';
+import type { CapacitorConfig } from "@capacitor/cli";
+import { KeyboardResize } from "@capacitor/keyboard";
 
 const config: CapacitorConfig = {
-  appId: 'com.muzawed.app',
-  appName: 'مزود',
-  webDir: 'dist/public',
+  appId: "com.muzawed.app",
+  appName: "Muzwd",
+  webDir: "dist/public",
   server: {
-    androidScheme: 'https',
-    iosScheme: 'https',
-    url: 'https://muzwd.site',
+    androidScheme: "https",
+    iosScheme: "https",
+    url: "https://muzwd.site",
     cleartext: false,
   },
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
       launchAutoHide: true,
-      backgroundColor: '#7c3aed',
+      backgroundColor: "#7c3aed",
       showSpinner: false,
-      androidScaleType: 'CENTER_CROP',
+      androidScaleType: "CENTER_CROP",
       splashFullScreen: true,
       splashImmersive: true,
     },
     StatusBar: {
-      style: 'LIGHT',
-      backgroundColor: '#7c3aed',
+      style: "LIGHT",
+      backgroundColor: "#7c3aed",
       overlaysWebView: false,
     },
     Keyboard: {
@@ -35,14 +35,14 @@ const config: CapacitorConfig = {
     allowMixedContent: false,
     captureInput: true,
     webContentsDebuggingEnabled: false,
-    backgroundColor: '#f8f8fb',
+    backgroundColor: "#f8f8fb",
   },
   ios: {
-    contentInset: 'always',
+    contentInset: "always",
     allowsLinkPreview: false,
     scrollEnabled: true,
-    backgroundColor: '#f8f8fb',
-    preferredContentMode: 'mobile',
+    backgroundColor: "#f8f8fb",
+    preferredContentMode: "mobile",
   },
 };
 
