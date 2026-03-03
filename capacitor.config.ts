@@ -8,7 +8,8 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
     iosScheme: 'https',
-    allowNavigation: ['muzawed-app-adnan295.replit.app', '*.replit.app', '*.replit.dev'],
+    url: 'https://muzawed-app-adnan295.replit.app',
+    cleartext: false,
   },
   plugins: {
     SplashScreen: {

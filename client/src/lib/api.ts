@@ -1,14 +1,4 @@
-import { Capacitor } from '@capacitor/core';
-
-const getApiBase = () => {
-  if (Capacitor.isNativePlatform()) {
-    const serverUrl = (import.meta as any).env?.VITE_SERVER_URL || 'https://muzawed-app-adnan295.replit.app';
-    return `${serverUrl}/api`;
-  }
-  return '/api';
-};
-
-const API_BASE = getApiBase();
+const API_BASE = '/api';
 
 async function request<T>(
   url: string,
