@@ -8,7 +8,7 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
     iosScheme: 'https',
-    url: 'https://muzawed-app-adnan295.replit.app',
+    url: 'https://muzwd.site',
     cleartext: false,
   },
   plugins: {
