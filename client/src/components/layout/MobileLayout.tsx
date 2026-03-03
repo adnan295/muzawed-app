@@ -64,7 +64,7 @@ export function MobileLayout({ children, hideHeader = false, hideNav = false }: 
                 <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
                   <Sparkles className="w-5 h-5 text-white" />
                 </div>
-                <div className="font-bold text-2xl tracking-tight">مزود</div>
+                <div className="font-bold text-2xl tracking-tight">Muzwd</div>
               </div>
               <Link href="/notifications">
                 <Button size="icon" variant="ghost" className="h-11 w-11 rounded-2xl bg-white/15 hover:bg-white/25 text-white relative backdrop-blur-sm border border-white/10">

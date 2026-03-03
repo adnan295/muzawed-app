@@ -125,7 +125,7 @@ export default function Register() {
       
       login(response.user);
       toast({
-        title: "مرحباً بك في مزود",
+        title: "مرحباً بك في Muzwd",
         description: "تم إنشاء حسابك بنجاح",
       });
       setLocation('/');

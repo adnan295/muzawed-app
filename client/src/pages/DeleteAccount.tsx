@@ -118,7 +118,7 @@ export default function DeleteAccount() {
           </div>
           <div>
             <h1 className="text-lg font-bold" data-testid="text-delete-title">طلب حذف الحساب</h1>
-            <p className="text-xs text-muted-foreground">تطبيق مزود - منصة التوزيع بالجملة</p>
+            <p className="text-xs text-muted-foreground">تطبيق Muzwd - منصة التوزيع بالجملة</p>
           </div>
         </div>
 
