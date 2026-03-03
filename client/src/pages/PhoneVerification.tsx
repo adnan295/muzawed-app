@@ -158,7 +158,7 @@ export default function PhoneVerification() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary/5 to-white flex items-center justify-center p-4">
+    <div className="min-h-full bg-gradient-to-b from-primary/5 to-white flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
           <div className="w-20 h-20 bg-gradient-to-br from-primary to-purple-600 rounded-3xl mx-auto flex items-center justify-center text-white text-4xl font-bold mb-4 shadow-2xl shadow-primary/30">
