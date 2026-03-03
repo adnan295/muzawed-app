@@ -14,13 +14,21 @@ async function request<T>(
   url: string,
   options?: RequestInit
 ): Promise<T> {
-  const response = await fetch(`${API_BASE}${url}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
-  });
+  const fullUrl = `${API_BASE}${url}`;
+  
+  let response: Response;
+  try {
+    response = await fetch(fullUrl, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+      },
+    });
+  } catch (networkError: any) {
+    console.error('Network error:', fullUrl, networkError);
+    throw new Error("خطأ في الاتصال بالخادم. تأكد من اتصالك بالإنترنت");
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: "حدث خطأ" }));

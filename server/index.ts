@@ -16,10 +16,10 @@ const httpServer = createServer(app);
 app.set('trust proxy', 1);
 
 // CORS for Capacitor native apps
+const capacitorOrigins = ['capacitor://localhost', 'ionic://localhost', 'http://localhost', 'https://localhost'];
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  const allowedOrigins = ['capacitor://localhost', 'ionic://localhost', 'http://localhost', 'https://localhost'];
-  if (origin && allowedOrigins.some(o => origin.startsWith(o))) {
+  if (origin && capacitorOrigins.some(o => origin.startsWith(o))) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -31,20 +31,26 @@ app.use((req, res, next) => {
   next();
 });
 
-// Security headers - رؤوس الأمان
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https:", "blob:"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
-      connectSrc: ["'self'", "https:", "wss:"],
+// Security headers - رؤوس الأمان (disabled for Capacitor native origins)
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && capacitorOrigins.some(o => origin.startsWith(o))) {
+    return next();
+  }
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        imgSrc: ["'self'", "data:", "https:", "blob:"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        connectSrc: ["'self'", "https:", "wss:"],
+      },
     },
-  },
-  crossOriginEmbedderPolicy: false,
-}));
+    crossOriginEmbedderPolicy: false,
+  })(req, res, next);
+});
 
 // Rate limiting - حماية من الهجمات المتكررة
 const generalLimiter = rateLimit({
