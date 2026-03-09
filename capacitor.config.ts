@@ -13,8 +13,8 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 2000,
-      launchAutoHide: true,
+      launchShowDuration: 10000,
+      launchAutoHide: false,
       backgroundColor: "#7c3aed",
       showSpinner: false,
       androidScaleType: "CENTER_CROP",

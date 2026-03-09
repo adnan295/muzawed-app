@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { hideNativeSplash } from '@/lib/capacitor';
 
 export function SplashScreen({ onFinish }: { onFinish: () => void }) {
   const [phase, setPhase] = useState(0);
 
   useEffect(() => {
+    hideNativeSplash();
     const t1 = setTimeout(() => setPhase(1), 400);
     const t2 = setTimeout(() => setPhase(2), 1200);
     const t3 = setTimeout(() => setPhase(3), 2000);
