@@ -22,6 +22,11 @@ export interface ErpApiResponse {
 
 export async function fetchErpProducts(erpUrl: string, apiKey?: string | null): Promise<ErpApiResponse> {
   try {
+    let cleanUrl = erpUrl.replace(/\/+$/, '');
+    if (cleanUrl.endsWith('/api/public/products')) {
+      cleanUrl = cleanUrl.replace(/\/api\/public\/products$/, '');
+    }
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -30,7 +35,7 @@ export async function fetchErpProducts(erpUrl: string, apiKey?: string | null): 
       headers['Authorization'] = `Bearer ${apiKey}`;
     }
     
-    const response = await fetch(`${erpUrl}/api/public/products`, {
+    const response = await fetch(`${cleanUrl}/api/public/products`, {
       method: 'GET',
       headers,
       signal: AbortSignal.timeout(30000),
