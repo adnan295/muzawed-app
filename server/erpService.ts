@@ -1,4 +1,7 @@
 import { storage } from "./storage";
+import { db } from "./db";
+import { products, productInventory, categories, erpProducts as erpProductsTable } from "@shared/schema";
+import { eq, and } from "drizzle-orm";
 
 export interface ErpProduct {
   id: string;
@@ -63,27 +66,144 @@ export async function syncErpProducts(warehouseId: number): Promise<{ success: b
       await storage.updateErpSettingSync(erpSetting.id, 'error', 'لم يتم العثور على منتجات');
       return { success: false, count: 0, error: 'لم يتم العثور على منتجات' };
     }
-    
-    await storage.deleteErpProductsByWarehouse(warehouseId);
-    
-    for (const product of result.products) {
-      await storage.createErpProduct({
-        warehouseId,
-        externalId: product.id,
-        barcode: product.barcode || null,
-        name: product.name,
-        category: product.category || null,
-        price: product.price || '0',
-        priceNew: product.priceNew || null,
-        priceUsd: product.priceUsd || null,
-        resellerDiscount: product.resellerDiscount || null,
-        availableQuantity: product.availableQuantity || 0,
-      });
-    }
+
+    const syncedCount = await db.transaction(async (tx) => {
+      const allCategories = await tx.select().from(categories);
+      const categoryMap = new Map<string, number>();
+      for (const cat of allCategories) {
+        categoryMap.set(cat.name.trim(), cat.id);
+      }
+
+      let defaultCategoryId = categoryMap.get('عام');
+      if (!defaultCategoryId) {
+        const [newCat] = await tx.insert(categories).values({
+          name: 'عام',
+          icon: '📦',
+          color: 'from-blue-400 to-blue-500',
+        }).returning();
+        defaultCategoryId = newCat.id;
+        categoryMap.set('عام', defaultCategoryId);
+      }
+
+      const existingProducts = await tx.select().from(products);
+      const productNameMap = new Map<string, typeof existingProducts[0]>();
+      for (const p of existingProducts) {
+        productNameMap.set(p.name.trim(), p);
+      }
+
+      const existingInventory = await tx.select().from(productInventory)
+        .where(eq(productInventory.warehouseId, warehouseId));
+      const inventoryMap = new Map<number, typeof existingInventory[0]>();
+      for (const inv of existingInventory) {
+        inventoryMap.set(inv.productId, inv);
+      }
+
+      await tx.delete(erpProductsTable).where(eq(erpProductsTable.warehouseId, warehouseId));
+
+      const syncedProductIds = new Set<number>();
+      let count = 0;
+
+      for (const erpProduct of result.products) {
+        await tx.insert(erpProductsTable).values({
+          warehouseId,
+          externalId: erpProduct.id,
+          barcode: erpProduct.barcode || null,
+          name: erpProduct.name,
+          category: erpProduct.category || null,
+          price: erpProduct.price || '0',
+          priceNew: erpProduct.priceNew || null,
+          priceUsd: erpProduct.priceUsd || null,
+          resellerDiscount: erpProduct.resellerDiscount || null,
+          availableQuantity: erpProduct.availableQuantity || 0,
+        });
+
+        const catName = (erpProduct.category || '').trim();
+        let categoryId: number;
+        if (catName && categoryMap.has(catName)) {
+          categoryId = categoryMap.get(catName)!;
+        } else if (catName) {
+          const [newCat] = await tx.insert(categories).values({
+            name: catName,
+            icon: '📦',
+            color: 'from-blue-400 to-blue-500',
+          }).returning();
+          categoryId = newCat.id;
+          categoryMap.set(catName, categoryId);
+        } else {
+          categoryId = defaultCategoryId!;
+        }
+
+        const productPrice = erpProduct.priceNew || erpProduct.price || '0';
+        const originalPrice = (erpProduct.priceNew && erpProduct.price && erpProduct.priceNew !== erpProduct.price) 
+          ? erpProduct.price 
+          : null;
+        const stock = erpProduct.availableQuantity || 0;
+        const trimmedName = erpProduct.name.trim();
+
+        let productId: number;
+        const existingProd = productNameMap.get(trimmedName);
+
+        if (existingProd) {
+          await tx.update(products).set({
+            categoryId,
+            price: productPrice,
+            originalPrice,
+            stock,
+          }).where(eq(products.id, existingProd.id));
+          productId = existingProd.id;
+        } else {
+          const [newProduct] = await tx.insert(products).values({
+            name: trimmedName,
+            categoryId,
+            price: productPrice,
+            priceCurrency: 'SYP',
+            originalPrice,
+            image: '',
+            minOrder: 1,
+            unit: 'كرتون',
+            stock,
+          }).returning();
+          productId = newProduct.id;
+          productNameMap.set(trimmedName, newProduct);
+        }
+
+        syncedProductIds.add(productId);
+
+        const existingInv = inventoryMap.get(productId);
+        if (existingInv) {
+          await tx.update(productInventory).set({
+            stock,
+            priceOverride: productPrice !== '0' ? productPrice : null,
+            isActive: true,
+          }).where(eq(productInventory.id, existingInv.id));
+        } else {
+          await tx.insert(productInventory).values({
+            productId,
+            warehouseId,
+            stock,
+            priceOverride: productPrice !== '0' ? productPrice : null,
+            isActive: true,
+          });
+        }
+
+        count++;
+      }
+
+      for (const inv of existingInventory) {
+        if (!syncedProductIds.has(inv.productId)) {
+          await tx.update(productInventory).set({
+            isActive: false,
+            stock: 0,
+          }).where(eq(productInventory.id, inv.id));
+        }
+      }
+
+      return count;
+    });
     
     await storage.updateErpSettingSync(erpSetting.id, 'success');
     
-    return { success: true, count: result.products.length };
+    return { success: true, count: syncedCount };
   } catch (error: any) {
     const errorMessage = error.message || 'خطأ غير معروف';
     await storage.updateErpSettingSync(erpSetting.id, 'error', errorMessage);

@@ -60,6 +60,7 @@ Preferred communication style: Simple, everyday language.
 - **Profile Page Backend Integration:** All profile menu buttons connected to backend. Favorites count, notification unread count displayed with badges. FacilityDetails page fetches/updates user data from API. Notifications page loads real notifications from database.
 - **Privacy Policy & Terms Page:** `/terms` route with combined privacy policy and terms & conditions. Supports admin-editable content via `privacy_policy` and `terms` site settings keys. Falls back to default sections when no custom content is set. Includes link to delete account page.
 - **Account Deletion Requests:** `accountDeletionRequests` table. `/delete-account` page with detailed info (deleted data, retained data, steps). Public POST `/api/account-deletion-requests`. Admin can view/approve/reject requests from Settings tab. Admin GET/PATCH `/api/admin/account-deletion-requests`.
+- **ERP Integration System:** `erpSettings` table links warehouses to external ERP systems (URL + API key). `erpProducts` table stores raw imported data. Sync endpoint `POST /api/erp-products/:warehouseId/sync` fetches products from `{erpUrl}/api/public/products`, saves to `erp_products` for reference, AND creates/updates real `products` + `product_inventory` records so products appear in the store. Categories are auto-created from ERP category names. Stale inventory is deactivated on re-sync. All sync operations are transactional.
 - **Future Enhancement - WhatsApp OTP Verification:** Planned feature to add phone verification via WhatsApp using Twilio. Requires Twilio account setup (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, VERIFY_SERVICE_SID). Implementation plan: add verification_requests table, POST /api/auth/send-otp and /api/auth/verify-otp endpoints, two-step login UI with OTP input.
 
 # External Dependencies
@@ -76,7 +77,7 @@ Preferred communication style: Simple, everyday language.
 - **Config:** `capacitor.config.ts` — appId: `com.muzawed.app`, webDir: `dist/public`.
 - **Android:** Project in `android/` folder, ready for Android Studio. Theme color: #7c3aed. RTL support enabled.
 - **iOS:** Project structure in `ios/` folder. Requires `pod install` on a Mac with Xcode.
-- **Native Features:** StatusBar (purple), SplashScreen (auto-hide), Keyboard (hides bottom nav), App back button (double-tap to exit on root pages).
+- **Native Features:** StatusBar (purple), SplashScreen (manual hide after web content loads, 6s fallback timeout), Keyboard (hides bottom nav), App back button (double-tap to exit on root pages).
 - **Build Flow:**
   1. `npx vite build` — builds web assets to `dist/public`
   2. `npx cap sync` — copies web assets to native projects
