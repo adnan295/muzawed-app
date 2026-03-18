@@ -39,12 +39,12 @@ export default function Referral() {
   };
 
   const shareReferral = async () => {
-    const shareText = `انضم إلى مزود - منصة الجملة الأولى في سوريا واحصل على خصم على أول طلب!\n\nاستخدم كود الدعوة: ${referralCode}`;
+    const shareText = `انضم إلى Muzwd - منصة الجملة الأولى في سوريا واحصل على خصم على أول طلب!\n\nاستخدم كود الدعوة: ${referralCode}`;
     
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'دعوة للانضمام إلى مزود',
+          title: 'دعوة للانضمام إلى Muzwd',
           text: shareText,
         });
       } catch (err) {

@@ -190,6 +190,10 @@ export async function registerRoutes(
       
       // Create wallet for new user
       await storage.createWallet({ userId: user.id, balance: "0" });
+
+      // Create server session so user is logged in immediately after registration
+      req.session.userId = user.id;
+      req.session.userPhone = user.phone;
       
       // Don't send password in response
       const { password: _, ...userWithoutPassword } = user;
@@ -667,20 +671,50 @@ export async function registerRoutes(
 
   app.put("/api/products/:id", async (req, res) => {
     try {
+      const productId = parseInt(req.params.id);
       const { inventory, ...productData } = req.body;
+
+      const existingProduct = await storage.getProduct(productId);
+
+      let product;
       if (inventory && Array.isArray(inventory)) {
-        const product = await storage.updateProductWithInventory(parseInt(req.params.id), productData, inventory);
+        product = await storage.updateProductWithInventory(productId, productData, inventory);
         if (!product) {
           return res.status(404).json({ error: "المنتج غير موجود" });
         }
-        res.json(product);
       } else {
-        const product = await storage.updateProduct(parseInt(req.params.id), productData);
+        product = await storage.updateProduct(productId, productData);
         if (!product) {
           return res.status(404).json({ error: "المنتج غير موجود" });
         }
-        res.json(product);
       }
+
+      if (
+        existingProduct &&
+        productData.price !== undefined &&
+        parseFloat(productData.price) < parseFloat(existingProduct.price as string)
+      ) {
+        const usersWhoOrdered = await storage.getUsersWhoOrderedProduct(productId);
+        const promotionUsers = await storage.getUsersWithPromotionsEnabled();
+        const notifyUsers = usersWhoOrdered.filter((id) => promotionUsers.includes(id));
+
+        const oldPrice = parseFloat(existingProduct.price as string).toLocaleString("ar-SY");
+        const newPrice = parseFloat(productData.price).toLocaleString("ar-SY");
+
+        for (const userId of notifyUsers) {
+          await storage.createNotification({
+            userId,
+            staffId: null,
+            type: "promotion",
+            title: `📉 انخفض سعر ${existingProduct.name}`,
+            message: `انخفض السعر من ${oldPrice} إلى ${newPrice} ل.س — اطلب الآن!`,
+            isRead: false,
+            data: JSON.stringify({ productId, type: "price_drop" }),
+          });
+        }
+      }
+
+      res.json(product);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -1625,6 +1659,46 @@ export async function registerRoutes(
     try {
       await storage.deletePromotion(parseInt(req.params.id));
       res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/flash-sales/active", async (req, res) => {
+    try {
+      const sales = await storage.getActiveFlashSales();
+      res.json(sales);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/promotions/:id/notify", async (req, res) => {
+    try {
+      const promo = await storage.getPromotion(parseInt(req.params.id));
+      if (!promo) return res.status(404).json({ error: "العرض غير موجود" });
+
+      const userIds = await storage.getUsersWithPromotionsEnabled();
+      const endTime = new Date(promo.endDate);
+      const hoursLeft = Math.ceil((endTime.getTime() - Date.now()) / (1000 * 60 * 60));
+
+      let notifsSent = 0;
+      for (const userId of userIds) {
+        await storage.createNotification({
+          userId,
+          staffId: null,
+          type: "promotion",
+          title: `⚡ ${promo.name}`,
+          message: promo.description
+            ? `${promo.description} — ينتهي خلال ${hoursLeft} ساعة`
+            : `عرض خاص ينتهي خلال ${hoursLeft} ساعة`,
+          isRead: false,
+          data: JSON.stringify({ promotionId: promo.id, type: "flash_sale" }),
+        });
+        notifsSent++;
+      }
+
+      res.json({ success: true, notificationsSent: notifsSent });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

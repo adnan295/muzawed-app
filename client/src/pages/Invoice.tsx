@@ -53,7 +53,7 @@ export default function Invoice() {
   const handleShare = async () => {
     const shareData = {
       title: `فاتورة رقم ${orderId}`,
-      text: `فاتورة من شركة مزود - رقم الفاتورة: INV-${orderId}`,
+      text: `فاتورة من شركة Muzwd - رقم الفاتورة: INV-${orderId}`,
       url: window.location.href
     };
 
@@ -111,7 +111,7 @@ export default function Invoice() {
             م
           </div>
           <h1 className="text-xl font-bold mb-1">فاتورة</h1>
-          <p className="text-sm text-muted-foreground">شركة مزود لتقنية المعلومات</p>
+          <p className="text-sm text-muted-foreground">شركة Muzwd لتقنية المعلومات</p>
         </div>
 
         {/* Info Grid */}

@@ -4,6 +4,7 @@ import { ProductCard } from '@/components/ui/ProductCard';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, Search, Bell, MapPin, Sparkles, TrendingUp, Gift, ArrowLeft, Lock } from 'lucide-react';
 import { AdsCarousel } from '@/components/ui/AdsCarousel';
+import { FlashSaleBanner } from '@/components/ui/FlashSaleBanner';
 import { Link, useLocation } from 'wouter';
 import { Input } from '@/components/ui/input';
 import { useQuery } from '@tanstack/react-query';
@@ -103,7 +104,7 @@ export default function Home() {
                   <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/10">
                     <Sparkles className="w-5 h-5 text-yellow-300" />
                   </div>
-                  <span className="text-2xl font-black tracking-tight">مزود</span>
+                  <span className="text-2xl font-black tracking-tight">Muzwd</span>
                 </div>
                 <p className="text-purple-200 text-sm">مرحباً بك 👋</p>
                 <h1 className="text-xl font-bold" data-testid="text-facility-name">
@@ -162,6 +163,8 @@ export default function Home() {
             <AdsCarousel />
           </div>
         </div>
+
+        <FlashSaleBanner />
 
         <div className="mb-8">
           <div className="flex items-center justify-between px-5 mb-4">

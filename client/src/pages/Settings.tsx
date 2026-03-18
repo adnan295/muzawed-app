@@ -10,9 +10,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useAuth } from '@/lib/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import type { NotificationPreferences } from '@shared/schema';
 
 export default function Settings() {
+  const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -194,7 +196,12 @@ export default function Settings() {
           </div>
 
           <div className="pt-4 text-center">
-             <Button variant="ghost" className="text-destructive hover:bg-destructive/5 hover:text-destructive w-full">
+             <Button 
+               variant="ghost" 
+               className="text-destructive hover:bg-destructive/5 hover:text-destructive w-full"
+               onClick={() => setLocation('/delete-account')}
+               data-testid="button-delete-account"
+             >
                حذف الحساب نهائياً
              </Button>
           </div>

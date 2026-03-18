@@ -15,20 +15,42 @@ const httpServer = createServer(app);
 // Trust proxy for rate limiting behind reverse proxy
 app.set('trust proxy', 1);
 
-// Security headers - رؤوس الأمان
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https:", "blob:"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
-      connectSrc: ["'self'", "https:", "wss:"],
+// CORS for Capacitor native apps
+const capacitorOrigins = ['capacitor://localhost', 'ionic://localhost', 'http://localhost', 'https://localhost'];
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && capacitorOrigins.some(o => origin.startsWith(o))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
+// Security headers - رؤوس الأمان (disabled for Capacitor native origins)
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && capacitorOrigins.some(o => origin.startsWith(o))) {
+    return next();
+  }
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        imgSrc: ["'self'", "data:", "https:", "blob:"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        connectSrc: ["'self'", "https:", "wss:"],
+      },
     },
-  },
-  crossOriginEmbedderPolicy: false,
-}));
+    crossOriginEmbedderPolicy: false,
+  })(req, res, next);
+});
 
 // Rate limiting - حماية من الهجمات المتكررة
 const generalLimiter = rateLimit({

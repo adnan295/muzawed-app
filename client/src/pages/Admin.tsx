@@ -3014,7 +3014,7 @@ export default function Admin() {
               </motion.div>
               <div>
                 <h1 className="text-3xl font-bold">لوحة التحكم المتقدمة</h1>
-                <p className="text-purple-200 text-sm">إدارة +10,000 عميل • منصة مزود للجملة • الإصدار 2.0</p>
+                <p className="text-purple-200 text-sm">إدارة +10,000 عميل • منصة Muzwd للجملة • الإصدار 2.0</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -5880,6 +5880,24 @@ export default function Admin() {
                         <div className="text-xs text-gray-500 mb-4">
                           {new Date(promo.startDate).toLocaleDateString('ar-SY')} - {new Date(promo.endDate).toLocaleDateString('ar-SY')}
                         </div>
+                        {promo.type === 'flash_sale' && status === 'active' && (
+                          <Button
+                            className="w-full rounded-xl mb-2 text-sm bg-gradient-to-l from-orange-500 to-red-500 text-white border-0 gap-2"
+                            onClick={async () => {
+                              try {
+                                const r = await fetch(`/api/promotions/${promo.id}/notify`, { method: 'POST' });
+                                const data = await r.json();
+                                toast({ title: `تم إرسال ${data.notificationsSent} إشعار للمستخدمين`, className: 'bg-green-50 border-green-200' });
+                              } catch {
+                                toast({ title: 'حدث خطأ أثناء الإرسال', variant: 'destructive' });
+                              }
+                            }}
+                            data-testid={`button-notify-promotion-${promo.id}`}
+                          >
+                            <Bell className="w-4 h-4" />
+                            إشعار المستخدمين الآن
+                          </Button>
+                        )}
                         <div className="flex gap-2">
                           <Button variant="outline" className="flex-1 rounded-xl text-sm bg-white/80" onClick={() => {setEditingPromotion(promo); setIsEditPromotionOpen(true);}} data-testid={`button-edit-promotion-${promo.id}`}>تحرير</Button>
                           <Button variant="outline" className="rounded-xl text-sm bg-white/80 text-red-600 hover:bg-red-50" onClick={() => {setPromotionToDelete(promo); setIsDeletePromotionOpen(true);}} data-testid={`button-delete-promotion-${promo.id}`}><Trash2 className="w-4 h-4" /></Button>

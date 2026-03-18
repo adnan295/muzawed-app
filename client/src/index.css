@@ -67,11 +67,14 @@
   --gradient-accent: 200 80% 55%;
 }
 
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   font-family: var(--font-sans);
   background: linear-gradient(135deg, hsl(240 20% 98%) 0%, hsl(260 20% 97%) 100%);
-  min-height: 100vh;
-  min-height: 100dvh;
   direction: rtl;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -94,8 +97,12 @@ body {
 }
 
 #root {
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: linear-gradient(135deg, hsl(240 20% 98%) 0%, hsl(260 20% 97%) 100%);
 }
 
 html {

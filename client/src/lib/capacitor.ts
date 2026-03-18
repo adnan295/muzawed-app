@@ -7,12 +7,19 @@ import { SplashScreen } from '@capacitor/splash-screen';
 export const isNative = Capacitor.isNativePlatform();
 export const platform = Capacitor.getPlatform();
 
+export async function hideNativeSplash() {
+  if (!isNative) return;
+  try {
+    await SplashScreen.hide({ fadeOutDuration: 300 });
+  } catch {}
+}
+
 export async function initCapacitor() {
   if (!isNative) return;
 
-  try {
-    await SplashScreen.hide();
-  } catch {}
+  setTimeout(() => {
+    hideNativeSplash();
+  }, 6000);
 
   try {
     await StatusBar.setStyle({ style: Style.Light });

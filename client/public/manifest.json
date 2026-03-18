@@ -1,7 +1,7 @@
 {
-  "name": "مزود - سوق الجملة",
-  "short_name": "مزود",
-  "description": "تطبيق مزود لخدمات البيع بالجملة للشركات والأفراد في سوريا",
+  "name": "Muzwd - سوق الجملة",
+  "short_name": "Muzwd",
+  "description": "تطبيق Muzwd لخدمات البيع بالجملة للشركات والأفراد في سوريا",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { hideNativeSplash } from '@/lib/capacitor';
 
 export function SplashScreen({ onFinish }: { onFinish: () => void }) {
   const [phase, setPhase] = useState(0);
 
   useEffect(() => {
+    hideNativeSplash();
     const t1 = setTimeout(() => setPhase(1), 400);
     const t2 = setTimeout(() => setPhase(2), 1200);
     const t3 = setTimeout(() => setPhase(3), 2000);
@@ -103,7 +105,7 @@ export function SplashScreen({ onFinish }: { onFinish: () => void }) {
               className="text-center"
             >
               <h1 className="text-5xl font-black text-white tracking-tight mb-2">
-                مزود
+                Muzwd
               </h1>
               <motion.div
                 initial={{ width: 0 }}
@@ -117,7 +119,7 @@ export function SplashScreen({ onFinish }: { onFinish: () => void }) {
                 transition={{ duration: 0.5 }}
                 className="text-purple-200 text-sm font-medium"
               >
-                مزودك الأول للتجارة بالجملة
+                مزوّدك الأول للتجارة بالجملة
               </motion.p>
             </motion.div>
 
