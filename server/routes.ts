@@ -190,6 +190,10 @@ export async function registerRoutes(
       
       // Create wallet for new user
       await storage.createWallet({ userId: user.id, balance: "0" });
+
+      // Create server session so user is logged in immediately after registration
+      req.session.userId = user.id;
+      req.session.userPhone = user.phone;
       
       // Don't send password in response
       const { password: _, ...userWithoutPassword } = user;
