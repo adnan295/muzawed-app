@@ -1,6 +1,6 @@
 # Overview
 
-This project is a wholesale e-commerce mobile application named "Sary" (ساري), specifically designed for the Syrian market. It enables businesses and facilities to purchase products in bulk at wholesale prices. The application offers a comprehensive e-commerce experience, including product browsing, shopping cart functionality, secure checkout, order management, a wallet system for prepayments, and robust user authentication.
+This project is a wholesale e-commerce mobile application named "Muzwd" (مزود), specifically designed for the Syrian market. It enables businesses and facilities to purchase products in bulk at wholesale prices. The application offers a comprehensive e-commerce experience, including product browsing, shopping cart functionality, secure checkout, order management, a wallet system for prepayments, and robust user authentication.
 
 The application is a full-stack TypeScript project, featuring a React frontend (built with Vite) and an Express.js backend. It uses PostgreSQL as its database, managed through Drizzle ORM. The UI is styled with Tailwind CSS and leverages shadcn/ui components, providing full right-to-left (RTL) support for the Arabic language.
 

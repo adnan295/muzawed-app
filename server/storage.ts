@@ -239,6 +239,9 @@ export interface IStorage {
   createPromotion(promo: InsertPromotion): Promise<Promotion>;
   updatePromotion(id: number, promo: Partial<InsertPromotion>): Promise<Promotion | undefined>;
   deletePromotion(id: number): Promise<void>;
+  getActiveFlashSales(): Promise<Promotion[]>;
+  getUsersWithPromotionsEnabled(): Promise<number[]>;
+  getUsersWhoOrderedProduct(productId: number): Promise<number[]>;
 
   // Suppliers
   getSuppliers(): Promise<Supplier[]>;
@@ -1201,6 +1204,40 @@ export class DatabaseStorage implements IStorage {
 
   async deletePromotion(id: number): Promise<void> {
     await db.delete(promotions).where(eq(promotions.id, id));
+  }
+
+  async getActiveFlashSales(): Promise<Promotion[]> {
+    const now = new Date();
+    return await db
+      .select()
+      .from(promotions)
+      .where(
+        and(
+          eq(promotions.type, "flash_sale"),
+          eq(promotions.isActive, true),
+          lte(promotions.startDate, now),
+          gte(promotions.endDate, now)
+        )
+      )
+      .orderBy(desc(promotions.priority), desc(promotions.createdAt));
+  }
+
+  async getUsersWithPromotionsEnabled(): Promise<number[]> {
+    const prefs = await db
+      .select({ userId: notificationPreferences.userId })
+      .from(notificationPreferences)
+      .where(eq(notificationPreferences.promotionsEnabled, true));
+    return prefs.map((p) => p.userId);
+  }
+
+  async getUsersWhoOrderedProduct(productId: number): Promise<number[]> {
+    const rows = await db
+      .select({ userId: orders.userId })
+      .from(orderItems)
+      .innerJoin(orders, eq(orderItems.orderId, orders.id))
+      .where(eq(orderItems.productId, productId));
+    const uniqueIds = [...new Set(rows.map((r) => r.userId).filter((id): id is number => id !== null))];
+    return uniqueIds;
   }
 
   // Suppliers

@@ -41,6 +41,7 @@ import PhoneVerification from "@/pages/PhoneVerification";
 import Terms from "@/pages/Terms";
 import DeleteAccount from "@/pages/DeleteAccount";
 import Driver from "@/pages/Driver";
+import FlashSales from "@/pages/FlashSales";
 import { useScrollRestoration } from "@/hooks/useScrollRestoration";
 
 function ScrollRestoration() {
@@ -85,6 +86,7 @@ function Router() {
       <Route path="/admin" component={Admin} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/driver" component={Driver} />
+      <Route path="/flash-sales" component={FlashSales} />
       <Route path="/promo/:bannerId" component={Promo} />
       <Route component={NotFound} />
     </Switch>
