@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
+import { haptic } from '@/lib/haptics';
 
 interface MobileLayoutProps {
   children: React.ReactNode;
@@ -109,7 +110,7 @@ export function MobileLayout({ children, hideHeader = false, hideNav = false }: 
             {navItems.map((item) => {
               const isActive = location === item.href;
               return (
-                <Link key={item.href} href={item.href}>
+                <Link key={item.href} href={item.href} onClick={() => !isActive && haptic.selection()}>
                   <motion.div 
                     className="relative"
                     whileTap={{ scale: 0.9 }}

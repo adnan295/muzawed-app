@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { cartAPI } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
+import { haptic } from '@/lib/haptics';
 
 interface Product {
   id: number;
@@ -73,6 +74,7 @@ export function ProductCard({ product, isFavorite: isFavoriteProp = false }: Pro
   const handleToggleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user) {
+      haptic.warning();
       toast({
         title: "يرجى تسجيل الدخول",
         description: "قم بتسجيل الدخول لإضافة المنتجات للمفضلة",
@@ -80,6 +82,7 @@ export function ProductCard({ product, isFavorite: isFavoriteProp = false }: Pro
       });
       return;
     }
+    haptic.light();
     toggleFavoriteMutation.mutate();
   };
 
@@ -91,6 +94,7 @@ export function ProductCard({ product, isFavorite: isFavoriteProp = false }: Pro
   const handleIncrement = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (quantity === 0) {
+      haptic.medium();
       setQuantity(product.minOrder);
       if (user) {
         addToCartMutation.mutate({
@@ -105,6 +109,7 @@ export function ProductCard({ product, isFavorite: isFavoriteProp = false }: Pro
         className: "gradient-secondary text-white border-none",
       });
     } else {
+      haptic.light();
       setQuantity(q => q + 1);
     }
   };
@@ -112,8 +117,10 @@ export function ProductCard({ product, isFavorite: isFavoriteProp = false }: Pro
   const handleDecrement = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (quantity > product.minOrder) {
+      haptic.light();
       setQuantity(q => q - 1);
     } else {
+      haptic.light();
       setQuantity(0);
     }
   };

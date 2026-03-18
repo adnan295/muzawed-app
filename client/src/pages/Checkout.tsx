@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cartAPI, addressesAPI, ordersAPI, deliverySettingsAPI, warehousesAPI, creditsAPI, walletAPI } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
+import { haptic } from '@/lib/haptics';
 import {
   Dialog,
   DialogContent,
@@ -253,6 +254,7 @@ export default function Checkout() {
       return await ordersAPI.create(orderData, orderItems);
     },
     onSuccess: (data: any) => {
+      haptic.success();
       setOrderId(data.id);
       setIsSuccess(true);
       queryClient.invalidateQueries({ queryKey: ['cart'] });
@@ -270,6 +272,7 @@ export default function Checkout() {
       }, 2000);
     },
     onError: (error: any) => {
+      haptic.error();
       toast({
         title: "خطأ",
         description: error.message || "حدث خطأ أثناء إنشاء الطلب",
