@@ -16,9 +16,9 @@ import { useScrollRestoration } from "@/hooks/useScrollRestoration";
 // Eager — critical first-paint routes only
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
-import NotFound from "@/pages/not-found";
 
 // Lazy — all other pages (each gets its own JS chunk)
+const NotFound = lazy(() => import("@/pages/not-found"));
 const Onboarding = lazy(() => import("@/pages/Onboarding"));
 const Register = lazy(() => import("@/pages/Register"));
 const PhoneVerification = lazy(() => import("@/pages/PhoneVerification"));

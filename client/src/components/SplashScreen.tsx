@@ -39,16 +39,8 @@ function prefetchHomeData() {
       const ttl60s = now + 60_000;
       const ttl30s = now + 30_000;
 
-      // Seed query keys that match Home page / AdsCarousel / FlashSaleBanner exactly
-      queryClient.setQueryData(['categories'], data.categories, { updatedAt: ttl60s });
-      queryClient.setQueryData(['brands'], data.brands, { updatedAt: ttl60s });
-      queryClient.setQueryData(['cities'], data.cities, { updatedAt: ttl60s });
-
-      // Seed products for both guest (undefined cityId) and logged-in users
-      queryClient.setQueryData(['products', undefined, 'limit12'], data.products, { updatedAt: ttl60s });
-      if (cityId) {
-        queryClient.setQueryData(['products', cityId, 'limit12'], data.products, { updatedAt: ttl60s });
-      }
+      // Seed Home page primary query key: ['home-data', cityId | null]
+      queryClient.setQueryData(['home-data', cityId ?? null], data, { updatedAt: ttl60s });
 
       // AdsCarousel key: ['/api/banners/active', cityId | undefined]
       queryClient.setQueryData(['/api/banners/active', cityId ?? undefined], data.banners, { updatedAt: ttl60s });

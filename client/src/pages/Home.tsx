@@ -8,7 +8,6 @@ import { FlashSaleBanner } from '@/components/ui/FlashSaleBanner';
 import { Link, useLocation } from 'wouter';
 import { Input } from '@/components/ui/input';
 import { useQuery } from '@tanstack/react-query';
-import { productsAPI, categoriesAPI, brandsAPI, productsByCityAPI, citiesAPI } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -32,30 +31,21 @@ export default function Home() {
     setLocation(path);
   };
 
-  const { data: categories = [] } = useQuery<any[]>({
-    queryKey: ['categories'],
-    queryFn: () => categoriesAPI.getAll() as Promise<any[]>,
-  });
-
-  const { data: brands = [] } = useQuery<any[]>({
-    queryKey: ['brands'],
-    queryFn: () => brandsAPI.getAll() as Promise<any[]>,
-  });
-
-  const { data: cities = [] } = useQuery<any[]>({
-    queryKey: ['cities'],
-    queryFn: () => citiesAPI.getAll() as Promise<any[]>,
-  });
-
-  const { data: products = [] } = useQuery<any[]>({
-    queryKey: ['products', user?.cityId, 'limit12'],
-    queryFn: () => {
-      if (user?.cityId) {
-        return productsByCityAPI.getByCity(user.cityId, 12) as Promise<any[]>;
-      }
-      return productsAPI.getAll(undefined, 12) as Promise<any[]>;
+  const { data: homeData } = useQuery<any>({
+    queryKey: ['home-data', user?.cityId ?? null],
+    queryFn: async () => {
+      const url = user?.cityId ? `/api/home-data?cityId=${user.cityId}` : '/api/home-data';
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('فشل تحميل البيانات');
+      return res.json();
     },
+    staleTime: 1000 * 60 * 5,
   });
+
+  const categories: any[] = homeData?.categories ?? [];
+  const brands: any[] = homeData?.brands ?? [];
+  const cities: any[] = homeData?.cities ?? [];
+  const products: any[] = homeData?.products ?? [];
 
   const { data: favoriteIds = [] } = useQuery<number[]>({
     queryKey: ['favoriteIds', user?.id],
