@@ -13,15 +13,15 @@ import { APP_VERSION, isVersionOutdated } from "@/lib/appVersion";
 import { Capacitor } from "@capacitor/core";
 import { useScrollRestoration } from "@/hooks/useScrollRestoration";
 
-// Eager — critical first-paint routes
+// Eager — critical first-paint routes only
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
-import Register from "@/pages/Register";
-import Onboarding from "@/pages/Onboarding";
-import PhoneVerification from "@/pages/PhoneVerification";
 import NotFound from "@/pages/not-found";
 
-// Lazy — all other pages (split into separate chunks to reduce initial JS)
+// Lazy — all other pages (each gets its own JS chunk)
+const Onboarding = lazy(() => import("@/pages/Onboarding"));
+const Register = lazy(() => import("@/pages/Register"));
+const PhoneVerification = lazy(() => import("@/pages/PhoneVerification"));
 const Categories = lazy(() => import("@/pages/Categories"));
 const Cart = lazy(() => import("@/pages/Cart"));
 const Profile = lazy(() => import("@/pages/Profile"));

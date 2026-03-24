@@ -3915,15 +3915,22 @@ export async function registerRoutes(
 
   // Single request that returns everything the Home page needs on first load.
   // Called by SplashScreen during the animation to pre-warm the React Query cache.
+  // Combines all data the Home page needs into a single network round-trip.
+  // Optional ?cityId=N seeds city-specific product query as well.
   app.get("/api/home-data", async (req, res) => {
     try {
-      const [categories, brands, cities, products] = await Promise.all([
+      const cityId = req.query.cityId ? parseInt(req.query.cityId as string) : undefined;
+      const [categories, brands, cities, products, banners, flashSales] = await Promise.all([
         storage.getCategories(),
         storage.getBrands(),
         storage.getCities(),
-        storage.getProducts(undefined, 12),
+        cityId
+          ? storage.getProductsByCity(cityId, 12)
+          : storage.getProducts(undefined, 12),
+        storage.getActiveBanners(cityId),
+        storage.getActiveFlashSales(),
       ]);
-      res.json({ categories, brands, cities, products });
+      res.json({ categories, brands, cities, products, banners, flashSales });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

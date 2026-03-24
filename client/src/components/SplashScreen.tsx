@@ -3,22 +3,61 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { hideNativeSplash } from '@/lib/capacitor';
 import { queryClient } from '@/lib/queryClient';
 
+// Read cached user from localStorage so we can include cityId in the request
+function getCachedCityId(): number | undefined {
+  try {
+    const saved = localStorage.getItem('muzwd_user');
+    if (!saved) return undefined;
+    const user = JSON.parse(saved);
+    return user?.cityId ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 // Fetch the combined home-data endpoint during the splash animation.
-// One network round-trip pre-warms the React Query cache for categories,
-// brands, cities, and featured products — so the Home page renders instantly.
+// One network round-trip pre-warms the React Query cache for all Home page data.
+// If a cached user has a cityId, it's passed to the endpoint so city-specific
+// products and banners are seeded too.
 function prefetchHomeData() {
-  fetch('/api/home-data', { credentials: 'include' })
+  const cityId = getCachedCityId();
+  const url = cityId
+    ? `/api/home-data?cityId=${cityId}`
+    : '/api/home-data';
+
+  fetch(url, { credentials: 'include' })
     .then(r => r.json())
-    .then((data: { categories: any[]; brands: any[]; cities: any[]; products: any[] }) => {
-      const ttl = 60_000; // 1 minute
-      queryClient.setQueryData(['categories'], data.categories, { updatedAt: Date.now() + ttl });
-      queryClient.setQueryData(['brands'], data.brands, { updatedAt: Date.now() + ttl });
-      queryClient.setQueryData(['cities'], data.cities, { updatedAt: Date.now() + ttl });
-      // Guest user: cityId = undefined
-      queryClient.setQueryData(['products', undefined, 'limit12'], data.products, { updatedAt: Date.now() + ttl });
+    .then((data: {
+      categories: any[];
+      brands: any[];
+      cities: any[];
+      products: any[];
+      banners: any[];
+      flashSales: any[];
+    }) => {
+      const now = Date.now();
+      const ttl60s = now + 60_000;
+      const ttl30s = now + 30_000;
+
+      // Seed query keys that match Home page / AdsCarousel / FlashSaleBanner exactly
+      queryClient.setQueryData(['categories'], data.categories, { updatedAt: ttl60s });
+      queryClient.setQueryData(['brands'], data.brands, { updatedAt: ttl60s });
+      queryClient.setQueryData(['cities'], data.cities, { updatedAt: ttl60s });
+
+      // Seed products for both guest (undefined cityId) and logged-in users
+      queryClient.setQueryData(['products', undefined, 'limit12'], data.products, { updatedAt: ttl60s });
+      if (cityId) {
+        queryClient.setQueryData(['products', cityId, 'limit12'], data.products, { updatedAt: ttl60s });
+      }
+
+      // AdsCarousel key: ['/api/banners/active', cityId | undefined]
+      queryClient.setQueryData(['/api/banners/active', cityId ?? undefined], data.banners, { updatedAt: ttl60s });
+
+      // FlashSaleBanner key: ['flash-sales-active']
+      queryClient.setQueryData(['flash-sales-active'], data.flashSales, { updatedAt: ttl30s });
     })
     .catch(() => {
-      // Network error — cache stays empty; Home page will fetch individually as usual
+      // Network error — cache stays empty; pages will fetch individually as usual
     });
 }
 
