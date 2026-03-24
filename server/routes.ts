@@ -3911,6 +3911,24 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== Home Data (combined endpoint for fast startup) ====================
+
+  // Single request that returns everything the Home page needs on first load.
+  // Called by SplashScreen during the animation to pre-warm the React Query cache.
+  app.get("/api/home-data", async (req, res) => {
+    try {
+      const [categories, brands, cities, products] = await Promise.all([
+        storage.getCategories(),
+        storage.getBrands(),
+        storage.getCities(),
+        storage.getProducts(undefined, 12),
+      ]);
+      res.json({ categories, brands, cities, products });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ==================== App Version Check ====================
 
   // Public endpoint — returns minimum required Android version and Play Store URL

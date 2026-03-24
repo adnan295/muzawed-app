@@ -3,20 +3,23 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { hideNativeSplash } from '@/lib/capacitor';
 import { queryClient } from '@/lib/queryClient';
 
-// Kick off background fetches while the user watches the splash animation.
-// These populate React Query's cache so the Home page renders instantly.
-function prefetchCriticalData() {
-  const prefetch = (url: string, key: string[]) =>
-    queryClient.prefetchQuery({
-      queryKey: key,
-      queryFn: () => fetch(url, { credentials: 'include' }).then(r => r.json()),
-      staleTime: 60 * 1000,
+// Fetch the combined home-data endpoint during the splash animation.
+// One network round-trip pre-warms the React Query cache for categories,
+// brands, cities, and featured products — so the Home page renders instantly.
+function prefetchHomeData() {
+  fetch('/api/home-data', { credentials: 'include' })
+    .then(r => r.json())
+    .then((data: { categories: any[]; brands: any[]; cities: any[]; products: any[] }) => {
+      const ttl = 60_000; // 1 minute
+      queryClient.setQueryData(['categories'], data.categories, { updatedAt: Date.now() + ttl });
+      queryClient.setQueryData(['brands'], data.brands, { updatedAt: Date.now() + ttl });
+      queryClient.setQueryData(['cities'], data.cities, { updatedAt: Date.now() + ttl });
+      // Guest user: cityId = undefined
+      queryClient.setQueryData(['products', undefined, 'limit12'], data.products, { updatedAt: Date.now() + ttl });
+    })
+    .catch(() => {
+      // Network error — cache stays empty; Home page will fetch individually as usual
     });
-
-  prefetch('/api/categories', ['categories']);
-  prefetch('/api/brands', ['brands']);
-  prefetch('/api/cities', ['cities']);
-  prefetch('/api/products?limit=12', ['products', undefined, 'limit12']);
 }
 
 export function SplashScreen({ onFinish }: { onFinish: () => void }) {
@@ -25,9 +28,8 @@ export function SplashScreen({ onFinish }: { onFinish: () => void }) {
   useEffect(() => {
     hideNativeSplash();
 
-    // Start background data fetches immediately — they run in parallel
-    // with the animation and pre-warm the cache before the Home page mounts.
-    prefetchCriticalData();
+    // Fire the combined prefetch immediately — runs in parallel with the animation
+    prefetchHomeData();
 
     const t1 = setTimeout(() => setPhase(1), 300);
     const t2 = setTimeout(() => setPhase(2), 800);
