@@ -1056,6 +1056,8 @@ function SiteSettingsSection() {
   });
 
   const settingsConfig = [
+    { key: 'min_android_version', label: 'الحد الأدنى لإصدار التطبيق (Android)', placeholder: '1.0.0', description: 'المستخدمون الذين يملكون إصداراً أقل من هذا سيُطلب منهم التحديث تلقائياً. اتركه كـ 1.0.0 لعدم إجبار أحد على التحديث.' },
+    { key: 'play_store_url', label: 'رابط التطبيق على Google Play', placeholder: 'https://play.google.com/store/apps/details?id=com.muzawed.app', description: 'الرابط الذي سيُوجَّه إليه المستخدم عند الضغط على زر "تحديث الآن".' },
     { key: 'exchange_rate_usd', label: 'سعر صرف الدولار (ل.س)', placeholder: '15000', description: 'سعر الصرف للمنتجات المسعرة بالدولار - سيتم عرض السعر بالليرة السورية للعملاء' },
     { key: 'privacy_policy', label: 'سياسة الخصوصية', placeholder: 'أدخل نص سياسة الخصوصية هنا...' },
     { key: 'terms', label: 'الشروط والأحكام', placeholder: 'أدخل نص الشروط والأحكام هنا...' },

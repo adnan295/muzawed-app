@@ -3911,6 +3911,24 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== App Version Check ====================
+
+  // Public endpoint — returns minimum required Android version and Play Store URL
+  app.get("/api/app/version", async (req, res) => {
+    try {
+      const [minVersionSetting, playStoreUrlSetting] = await Promise.all([
+        storage.getSiteSetting("min_android_version"),
+        storage.getSiteSetting("play_store_url"),
+      ]);
+      res.json({
+        minVersion: minVersionSetting?.value || "1.0.0",
+        playStoreUrl: playStoreUrlSetting?.value || "https://play.google.com/store/apps/details?id=com.muzawed.app",
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ==================== ERP Settings Routes ====================
   
   // Get all ERP settings

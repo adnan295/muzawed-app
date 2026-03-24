@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -8,6 +8,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/lib/AuthContext";
 import { NavigationProvider } from "@/lib/NavigationContext";
 import { SplashScreen } from "@/components/SplashScreen";
+import { UpdateModal } from "@/components/UpdateModal";
+import { APP_VERSION, isVersionOutdated } from "@/lib/appVersion";
+import { Capacitor } from "@capacitor/core";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import Categories from "@/pages/Categories";
@@ -94,9 +97,33 @@ function Router() {
   );
 }
 
+interface VersionInfo {
+  minVersion: string;
+  playStoreUrl: string;
+}
+
 function App() {
   const [showSplash, setShowSplash] = useState(true);
-  const handleSplashFinish = useCallback(() => setShowSplash(false), []);
+  const [updateInfo, setUpdateInfo] = useState<VersionInfo | null>(null);
+  const handleSplashFinish = useCallback(() => {
+    setShowSplash(false);
+  }, []);
+
+  // Check for app updates after splash dismisses — Android only
+  useEffect(() => {
+    if (showSplash) return;
+    if (!Capacitor.isNativePlatform()) return;
+    if (Capacitor.getPlatform() !== "android") return;
+
+    fetch("/api/app/version")
+      .then((r) => r.json())
+      .then((data: VersionInfo) => {
+        if (data?.minVersion && isVersionOutdated(APP_VERSION, data.minVersion)) {
+          setUpdateInfo(data);
+        }
+      })
+      .catch(() => {});
+  }, [showSplash]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -104,6 +131,13 @@ function App() {
         <NavigationProvider>
           <TooltipProvider>
             {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
+            {updateInfo && !showSplash && (
+              <UpdateModal
+                playStoreUrl={updateInfo.playStoreUrl}
+                currentVersion={APP_VERSION}
+                minVersion={updateInfo.minVersion}
+              />
+            )}
             <Toaster />
             <SonnerToaster position="top-center" richColors />
             <Router />
