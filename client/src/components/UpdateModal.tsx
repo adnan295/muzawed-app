@@ -33,7 +33,7 @@ export function UpdateModal({ playStoreUrl, currentVersion, minVersion }: Update
             </svg>
           </div>
           <h2 className="text-2xl font-black text-white mb-1">تحديث مطلوب</h2>
-          <p className="text-purple-200 text-sm">يتوفر إصدار جديد من التطبيق</p>
+          <p className="text-purple-200 text-sm">يتوفر إصدار جديد من تطبيق <span className="font-bold text-white">Muzwd</span></p>
         </div>
 
         <div className="px-6 py-6 text-center space-y-4">
