@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, lazy, Suspense } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -36,16 +36,31 @@ import OrderDetails from "@/pages/OrderDetails";
 import Cards from "@/pages/Cards";
 import Referral from "@/pages/Referral";
 import Invoice from "@/pages/Invoice";
-import Admin from "@/pages/Admin";
 import AdminLogin from "@/pages/AdminLogin";
 import Promo from "@/pages/Promo";
 import Register from "@/pages/Register";
 import PhoneVerification from "@/pages/PhoneVerification";
 import Terms from "@/pages/Terms";
 import DeleteAccount from "@/pages/DeleteAccount";
-import Driver from "@/pages/Driver";
 import FlashSales from "@/pages/FlashSales";
 import { useScrollRestoration } from "@/hooks/useScrollRestoration";
+
+// Lazy-load heavy pages to keep the initial JS bundle small
+const Admin = lazy(() => import("@/pages/Admin"));
+const Driver = lazy(() => import("@/pages/Driver"));
+
+function PageFallback() {
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-white">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-10 h-10 rounded-2xl bg-purple-100 flex items-center justify-center animate-pulse">
+          <div className="w-5 h-5 rounded-full bg-purple-400" />
+        </div>
+        <p className="text-sm text-gray-400">جاري التحميل...</p>
+      </div>
+    </div>
+  );
+}
 
 function ScrollRestoration() {
   useScrollRestoration();
@@ -55,44 +70,46 @@ function ScrollRestoration() {
 function Router() {
   return (
     <>
-    <ScrollRestoration />
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/onboarding" component={Onboarding} />
-      <Route path="/login" component={Login} />
-      <Route path="/register" component={Register} />
-      <Route path="/verify-phone" component={PhoneVerification} />
-      <Route path="/categories" component={Categories} />
-      <Route path="/category/:id" component={CategoryProducts} />
-      <Route path="/cart" component={Cart} />
-      <Route path="/profile" component={Profile} />
-      <Route path="/product/:id" component={ProductDetails} />
-      <Route path="/checkout" component={Checkout} />
-      <Route path="/orders" component={Orders} />
-      <Route path="/orders/:id" component={OrderDetails} />
-      <Route path="/order/:id" component={OrderDetails} />
-      <Route path="/invoice/:id" component={Invoice} />
-      <Route path="/wallet" component={Wallet} />
-      <Route path="/cards" component={Cards} />
-      <Route path="/referral" component={Referral} />
-      <Route path="/search/:query" component={SearchResults} />
-      <Route path="/offers" component={Offers} />
-      <Route path="/buy-again" component={BuyAgain} />
-      <Route path="/notifications" component={Notifications} />
-      <Route path="/support" component={Support} />
-      <Route path="/privacy-policy" component={Terms} />
-      <Route path="/delete-account" component={DeleteAccount} />
-      <Route path="/favorites" component={Favorites} />
-      <Route path="/addresses" component={Addresses} />
-      <Route path="/facility" component={FacilityDetails} />
-      <Route path="/settings" component={Settings} />
-      <Route path="/admin" component={Admin} />
-      <Route path="/admin/login" component={AdminLogin} />
-      <Route path="/driver" component={Driver} />
-      <Route path="/flash-sales" component={FlashSales} />
-      <Route path="/promo/:bannerId" component={Promo} />
-      <Route component={NotFound} />
-    </Switch>
+      <ScrollRestoration />
+      <Suspense fallback={<PageFallback />}>
+        <Switch>
+          <Route path="/" component={Home} />
+          <Route path="/onboarding" component={Onboarding} />
+          <Route path="/login" component={Login} />
+          <Route path="/register" component={Register} />
+          <Route path="/verify-phone" component={PhoneVerification} />
+          <Route path="/categories" component={Categories} />
+          <Route path="/category/:id" component={CategoryProducts} />
+          <Route path="/cart" component={Cart} />
+          <Route path="/profile" component={Profile} />
+          <Route path="/product/:id" component={ProductDetails} />
+          <Route path="/checkout" component={Checkout} />
+          <Route path="/orders" component={Orders} />
+          <Route path="/orders/:id" component={OrderDetails} />
+          <Route path="/order/:id" component={OrderDetails} />
+          <Route path="/invoice/:id" component={Invoice} />
+          <Route path="/wallet" component={Wallet} />
+          <Route path="/cards" component={Cards} />
+          <Route path="/referral" component={Referral} />
+          <Route path="/search/:query" component={SearchResults} />
+          <Route path="/offers" component={Offers} />
+          <Route path="/buy-again" component={BuyAgain} />
+          <Route path="/notifications" component={Notifications} />
+          <Route path="/support" component={Support} />
+          <Route path="/privacy-policy" component={Terms} />
+          <Route path="/delete-account" component={DeleteAccount} />
+          <Route path="/favorites" component={Favorites} />
+          <Route path="/addresses" component={Addresses} />
+          <Route path="/facility" component={FacilityDetails} />
+          <Route path="/settings" component={Settings} />
+          <Route path="/admin" component={Admin} />
+          <Route path="/admin/login" component={AdminLogin} />
+          <Route path="/driver" component={Driver} />
+          <Route path="/flash-sales" component={FlashSales} />
+          <Route path="/promo/:bannerId" component={Promo} />
+          <Route component={NotFound} />
+        </Switch>
+      </Suspense>
     </>
   );
 }

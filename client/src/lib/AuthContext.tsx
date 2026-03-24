@@ -23,46 +23,45 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function readLocalUser(): User | null {
+  try {
+    const saved = localStorage.getItem("muzwd_user");
+    return saved ? JSON.parse(saved) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(readLocalUser);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
     const checkSession = async () => {
       try {
-        const res = await fetch('/api/auth/session', {
-          credentials: 'include'
-        });
+        const res = await fetch('/api/auth/session', { credentials: 'include' });
         const data = await res.json();
-        
+
+        if (cancelled) return;
+
         if (data.authenticated && data.user) {
           setUser(data.user);
           localStorage.setItem("muzwd_user", JSON.stringify(data.user));
         } else {
-          const saved = localStorage.getItem("muzwd_user");
-          if (saved) {
-            const localUser = JSON.parse(saved);
-            const loginRes = await fetch('/api/auth/session', {
-              credentials: 'include'
-            });
-            const loginData = await loginRes.json();
-            if (!loginData.authenticated) {
-              localStorage.removeItem("muzwd_user");
-            }
-          }
+          setUser(null);
+          localStorage.removeItem("muzwd_user");
         }
-      } catch (error) {
-        console.error('Session check failed:', error);
-        const saved = localStorage.getItem("muzwd_user");
-        if (saved) {
-          setUser(JSON.parse(saved));
-        }
+      } catch {
+        // Network error — keep optimistic local user but stop blocking
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     checkSession();
+    return () => { cancelled = true; };
   }, []);
 
   const login = (user: User) => {
@@ -76,9 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         method: 'POST',
         credentials: 'include'
       });
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
+    } catch {}
     setUser(null);
     localStorage.removeItem("muzwd_user");
   };
@@ -94,23 +91,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshUser = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`/api/users/${user.id}`, {
-        credentials: 'include'
-      });
+      const res = await fetch(`/api/users/${user.id}`, { credentials: 'include' });
       if (res.ok) {
         const freshUser = await res.json();
         setUser(freshUser);
         localStorage.setItem("muzwd_user", JSON.stringify(freshUser));
       }
-    } catch (error) {
-      console.error('Failed to refresh user:', error);
-    }
+    } catch {}
   }, [user?.id]);
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      login, 
+    <AuthContext.Provider value={{
+      user,
+      login,
       logout,
       updateUser,
       refreshUser,

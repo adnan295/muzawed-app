@@ -1,12 +1,34 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { hideNativeSplash } from '@/lib/capacitor';
+import { queryClient } from '@/lib/queryClient';
+
+// Kick off background fetches while the user watches the splash animation.
+// These populate React Query's cache so the Home page renders instantly.
+function prefetchCriticalData() {
+  const prefetch = (url: string, key: string[]) =>
+    queryClient.prefetchQuery({
+      queryKey: key,
+      queryFn: () => fetch(url, { credentials: 'include' }).then(r => r.json()),
+      staleTime: 60 * 1000,
+    });
+
+  prefetch('/api/categories', ['categories']);
+  prefetch('/api/brands', ['brands']);
+  prefetch('/api/cities', ['cities']);
+  prefetch('/api/products?limit=12', ['products', undefined, 'limit12']);
+}
 
 export function SplashScreen({ onFinish }: { onFinish: () => void }) {
   const [phase, setPhase] = useState(0);
 
   useEffect(() => {
     hideNativeSplash();
+
+    // Start background data fetches immediately — they run in parallel
+    // with the animation and pre-warm the cache before the Home page mounts.
+    prefetchCriticalData();
+
     const t1 = setTimeout(() => setPhase(1), 300);
     const t2 = setTimeout(() => setPhase(2), 800);
     const t3 = setTimeout(() => setPhase(3), 1400);
