@@ -1,150 +1,230 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { hideNativeSplash } from '@/lib/capacitor';
+import { queryClient } from '@/lib/queryClient';
+
+function getCachedCityId(): number | undefined {
+  try {
+    const saved = localStorage.getItem('muzwd_user');
+    if (!saved) return undefined;
+    const user = JSON.parse(saved);
+    return user?.cityId ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function prefetchHomeData() {
+  const cityId = getCachedCityId();
+  const url = cityId
+    ? `/api/home-data?cityId=${cityId}`
+    : '/api/home-data';
+
+  fetch(url, { credentials: 'include' })
+    .then(r => r.json())
+    .then((data: {
+      categories: any[];
+      brands: any[];
+      cities: any[];
+      products: any[];
+      banners: any[];
+      flashSales: any[];
+    }) => {
+      const now = Date.now();
+      const ttl60s = now + 60_000;
+      const ttl30s = now + 30_000;
+
+      queryClient.setQueryData(['home-data', cityId ?? null], data, { updatedAt: ttl60s });
+      queryClient.setQueryData(['/api/banners/active', cityId ?? undefined], data.banners, { updatedAt: ttl60s });
+      queryClient.setQueryData(['flash-sales-active'], data.flashSales, { updatedAt: ttl30s });
+    })
+    .catch(() => {});
+}
 
 export function SplashScreen({ onFinish }: { onFinish: () => void }) {
   const [phase, setPhase] = useState(0);
 
   useEffect(() => {
     hideNativeSplash();
-    const t1 = setTimeout(() => setPhase(1), 400);
-    const t2 = setTimeout(() => setPhase(2), 1200);
-    const t3 = setTimeout(() => setPhase(3), 2000);
-    const t4 = setTimeout(() => onFinish(), 2800);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
+    prefetchHomeData();
+
+    const t1 = setTimeout(() => setPhase(1), 300);
+    const t2 = setTimeout(() => setPhase(2), 800);
+    const t3 = setTimeout(() => setPhase(3), 1400);
+    const t4 = setTimeout(() => onFinish(), 1900);
+    const tSafety = setTimeout(() => onFinish(), 5000);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
+      clearTimeout(tSafety);
+    };
   }, [onFinish]);
 
   return (
     <AnimatePresence>
       {phase < 3 && (
         <motion.div
-          exit={{ opacity: 0, scale: 1.1 }}
-          transition={{ duration: 0.6, ease: 'easeInOut' }}
-          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden"
-          style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 30%, #5b21b6 60%, #4c1d95 100%)', top: 0, bottom: 0, height: '100dvh' }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.45 }}
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-between overflow-hidden"
+          style={{ background: 'linear-gradient(160deg, #1e1040 0%, #3b1fa8 45%, #5b21b6 75%, #4c1d95 100%)' }}
         >
-          <div className="absolute inset-0 overflow-hidden">
-            <motion.div
-              animate={{ scale: [1, 1.4, 1], opacity: [0.08, 0.18, 0.08] }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-              className="absolute -top-32 -right-32 w-96 h-96 bg-white rounded-full blur-3xl"
-            />
-            <motion.div
-              animate={{ scale: [1, 1.5, 1], opacity: [0.05, 0.12, 0.05] }}
-              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-              className="absolute -bottom-24 -left-24 w-80 h-80 bg-cyan-300 rounded-full blur-3xl"
-            />
-            <motion.div
-              animate={{ scale: [1, 1.3, 1], opacity: [0.03, 0.1, 0.03] }}
-              transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-              className="absolute top-1/3 left-1/4 w-64 h-64 bg-pink-300 rounded-full blur-3xl"
-            />
+          {/* Top accent line */}
+          <div
+            className="w-full h-0.5 opacity-30"
+            style={{ background: 'linear-gradient(90deg, transparent, #a78bfa, transparent)' }}
+          />
 
-            {[...Array(20)].map((_, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 100 }}
-                animate={{
-                  opacity: [0, 0.4, 0],
-                  y: [100, -200],
-                }}
-                transition={{
-                  duration: 3 + Math.random() * 2,
-                  repeat: Infinity,
-                  delay: Math.random() * 2,
-                  ease: 'easeOut',
-                }}
-                className="absolute rounded-full bg-white/20"
-                style={{
-                  width: 3 + Math.random() * 5,
-                  height: 3 + Math.random() * 5,
-                  left: `${Math.random() * 100}%`,
-                  bottom: '-10%',
-                }}
-              />
-            ))}
-          </div>
+          {/* Subtle corner glow — static, GPU-friendly */}
+          <div
+            className="absolute top-0 right-0 w-72 h-72 rounded-full pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(167,139,250,0.12) 0%, transparent 70%)', transform: 'translate(30%, -30%)' }}
+          />
+          <div
+            className="absolute bottom-0 left-0 w-64 h-64 rounded-full pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.10) 0%, transparent 70%)', transform: 'translate(-30%, 30%)' }}
+          />
 
-          <div className="relative z-10 flex flex-col items-center gap-6">
+          {/* Center content */}
+          <div className="flex-1 flex flex-col items-center justify-center gap-8 px-8">
+
+            {/* Logo mark */}
             <motion.div
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: phase >= 0 ? 1 : 0, rotate: 0 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 15, duration: 0.8 }}
+              initial={{ scale: 0.6, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
               className="relative"
             >
-              <div className="w-28 h-28 rounded-[2rem] bg-white/15 backdrop-blur-xl flex items-center justify-center border border-white/20 shadow-2xl shadow-black/20">
-                <motion.div
-                  animate={{ rotate: [0, 5, -5, 0] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                >
-                  <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
-                    <path d="M28 8L44 18V38L28 48L12 38V18L28 8Z" fill="white" fillOpacity="0.9" />
-                    <path d="M28 8L44 18L28 28L12 18L28 8Z" fill="white" />
-                    <path d="M28 28V48L12 38V18L28 28Z" fill="white" fillOpacity="0.7" />
-                    <path d="M28 28V48L44 38V18L28 28Z" fill="white" fillOpacity="0.5" />
-                    <circle cx="28" cy="26" r="6" fill="#7c3aed" />
-                    <path d="M25 26L27 28L31 24" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </motion.div>
-              </div>
-
+              {/* Outer ring — single pulse animation only */}
               <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: phase >= 1 ? 1 : 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 15 }}
-                className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-yellow-400 flex items-center justify-center shadow-lg"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: phase >= 1 ? 1 : 0.8, opacity: phase >= 1 ? 1 : 0 }}
+                transition={{ duration: 0.5 }}
+                className="absolute inset-0 rounded-[2.5rem]"
+                style={{ border: '1px solid rgba(167,139,250,0.25)', margin: '-10px' }}
+              />
+
+              <div
+                className="w-32 h-32 rounded-[2rem] flex items-center justify-center shadow-2xl"
+                style={{
+                  background: 'linear-gradient(145deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.06) 100%)',
+                  border: '1px solid rgba(255,255,255,0.18)',
+                  boxShadow: '0 20px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2)',
+                }}
               >
-                <span className="text-sm">✨</span>
-              </motion.div>
+                <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
+                  {/* Hexagon wholesale/supply chain mark */}
+                  <path
+                    d="M30 6L50 18V42L30 54L10 42V18L30 6Z"
+                    fill="white"
+                    fillOpacity="0.12"
+                    stroke="rgba(255,255,255,0.4)"
+                    strokeWidth="1"
+                  />
+                  <path
+                    d="M30 6L50 18L30 30L10 18L30 6Z"
+                    fill="white"
+                    fillOpacity="0.9"
+                  />
+                  <path
+                    d="M30 30V54L10 42V18L30 30Z"
+                    fill="white"
+                    fillOpacity="0.6"
+                  />
+                  <path
+                    d="M30 30V54L50 42V18L30 30Z"
+                    fill="white"
+                    fillOpacity="0.35"
+                  />
+                  {/* Center check mark */}
+                  <circle cx="30" cy="28" r="7" fill="#5b21b6" />
+                  <path
+                    d="M27 28L29 30.5L33 25.5"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
             </motion.div>
 
+            {/* Brand text */}
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: phase >= 1 ? 1 : 0, y: phase >= 1 ? 0 : 30 }}
-              transition={{ duration: 0.6, ease: 'easeOut' }}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: phase >= 1 ? 1 : 0, y: phase >= 1 ? 0 : 16 }}
+              transition={{ duration: 0.45 }}
               className="text-center"
+              dir="rtl"
             >
-              <h1 className="text-5xl font-black text-white tracking-tight mb-2">
-                Muzwd
+              {/* English name */}
+              <div className="flex items-center justify-center gap-3 mb-1">
+                <div className="h-px w-8 bg-white/20" />
+                <span className="text-white/50 text-xs tracking-[0.25em] uppercase font-medium">Muzwd</span>
+                <div className="h-px w-8 bg-white/20" />
+              </div>
+
+              {/* Arabic name — primary */}
+              <h1
+                className="text-white font-black leading-none mb-3"
+                style={{ fontSize: '3.25rem', textShadow: '0 2px 20px rgba(0,0,0,0.3)', letterSpacing: '-0.01em' }}
+              >
+                مزود
               </h1>
+
+              {/* Divider accent */}
               <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: phase >= 1 ? 80 : 0 }}
-                transition={{ duration: 0.4, delay: 0.2 }}
-                className="h-1 bg-gradient-to-l from-yellow-400 to-white/60 rounded-full mx-auto mb-3"
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: phase >= 1 ? 1 : 0 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+                className="h-0.5 rounded-full mx-auto mb-3"
+                style={{
+                  width: '80px',
+                  background: 'linear-gradient(90deg, transparent, #a78bfa, #e9d5ff, #a78bfa, transparent)',
+                  transformOrigin: 'center',
+                }}
               />
+
+              {/* Tagline */}
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: phase >= 2 ? 1 : 0 }}
-                transition={{ duration: 0.5 }}
-                className="text-purple-200 text-sm font-medium"
+                transition={{ duration: 0.4 }}
+                className="text-purple-200 text-base font-medium"
+                style={{ letterSpacing: '0.01em' }}
               >
-                مزوّدك الأول للتجارة بالجملة
+                منصة الجملة للتجار السوريين
               </motion.p>
             </motion.div>
+          </div>
 
+          {/* Bottom progress bar */}
+          <div className="w-full pb-12 px-12">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: phase >= 2 ? 1 : 0 }}
-              transition={{ duration: 0.5 }}
-              className="flex gap-1.5 mt-4"
+              transition={{ duration: 0.3 }}
             >
-              {[0, 1, 2].map((i) => (
-                <motion.div
-                  key={i}
-                  animate={{
-                    scale: [1, 1.4, 1],
-                    opacity: [0.4, 1, 0.4],
+              {/* Track */}
+              <div className="h-0.5 w-full rounded-full bg-white/10 overflow-hidden">
+                {/* Fill — CSS transition driven by phase */}
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: phase === 0 ? '0%' : phase === 1 ? '35%' : phase === 2 ? '70%' : '100%',
+                    transitionDuration: '600ms',
+                    transitionTimingFunction: 'ease-out',
+                    background: 'linear-gradient(90deg, #7c3aed, #a78bfa, #e9d5ff)',
                   }}
-                  transition={{
-                    duration: 0.8,
-                    repeat: Infinity,
-                    delay: i * 0.2,
-                    ease: 'easeInOut',
-                  }}
-                  className="w-2 h-2 rounded-full bg-white"
                 />
-              ))}
+              </div>
+
+              {/* Bottom label */}
+              <p className="text-center text-white/30 text-xs mt-3 tracking-widest" dir="rtl">
+                جاري التحميل...
+              </p>
             </motion.div>
           </div>
         </motion.div>

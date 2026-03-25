@@ -3911,6 +3911,49 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== Home Data (combined endpoint for fast startup) ====================
+
+  // Single request that returns everything the Home page needs on first load.
+  // Called by SplashScreen during the animation to pre-warm the React Query cache.
+  // Combines all data the Home page needs into a single network round-trip.
+  // Optional ?cityId=N seeds city-specific product query as well.
+  app.get("/api/home-data", async (req, res) => {
+    try {
+      const cityId = req.query.cityId ? parseInt(req.query.cityId as string) : undefined;
+      const [categories, brands, cities, products, banners, flashSales] = await Promise.all([
+        storage.getCategories(),
+        storage.getBrands(),
+        storage.getCities(),
+        cityId
+          ? storage.getProductsByCity(cityId, 12)
+          : storage.getProducts(undefined, 12),
+        storage.getActiveBanners(cityId),
+        storage.getActiveFlashSales(),
+      ]);
+      res.json({ categories, brands, cities, products, banners, flashSales });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== App Version Check ====================
+
+  // Public endpoint — returns minimum required Android version and Play Store URL
+  app.get("/api/app/version", async (req, res) => {
+    try {
+      const [minVersionSetting, playStoreUrlSetting] = await Promise.all([
+        storage.getSiteSetting("min_android_version"),
+        storage.getSiteSetting("play_store_url"),
+      ]);
+      res.json({
+        minVersion: minVersionSetting?.value || "1.0.0",
+        playStoreUrl: playStoreUrlSetting?.value || "https://play.google.com/store/apps/details?id=com.muzawed.app",
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ==================== ERP Settings Routes ====================
   
   // Get all ERP settings

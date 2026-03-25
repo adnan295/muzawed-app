@@ -1,4 +1,4 @@
-import { Plus, Minus, ShoppingBag, Heart, Sparkles } from 'lucide-react';
+import { Plus, Minus, ShoppingBag, Heart, Sparkles, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +32,7 @@ interface ProductCardProps {
 export function ProductCard({ product, isFavorite: isFavoriteProp = false }: ProductCardProps) {
   const [quantity, setQuantity] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
@@ -149,14 +150,21 @@ export function ProductCard({ product, isFavorite: isFavoriteProp = false }: Pro
 
         <div className="relative aspect-square bg-gradient-to-br from-gray-50 to-gray-100/50 overflow-hidden">
           {/* Product Image */}
-          <motion.img 
-            src={product.image} 
-            alt={product.name}
-            loading="lazy"
-            className="w-full h-full object-cover relative z-10"
-            animate={{ scale: isHovered ? 1.1 : 1 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-          />
+          {!imgError && product.image ? (
+            <motion.img 
+              src={product.image} 
+              alt={product.name}
+              loading="lazy"
+              className="w-full h-full object-cover relative z-10"
+              animate={{ scale: isHovered ? 1.1 : 1 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-50">
+              <Package className="w-12 h-12 text-purple-200" />
+            </div>
+          )}
 
           {/* Discount Badge */}
           {discount > 0 && (

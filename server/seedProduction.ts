@@ -7,6 +7,31 @@ import path from "path";
 
 export async function seedProductionIfEmpty() {
   try {
+    // Always ensure all products and inventory have stock = 10000
+    const client0 = await pool.connect();
+    try {
+      const updated = await client0.query(`UPDATE products SET stock = 10000 WHERE stock != 10000`);
+      const updatedInv = await client0.query(`UPDATE product_inventory SET stock = 10000 WHERE stock != 10000`);
+      if (updated.rowCount > 0) console.log(`Updated ${updated.rowCount} products to stock=10000`);
+      if (updatedInv.rowCount > 0) console.log(`Updated ${updatedInv.rowCount} inventory rows to stock=10000`);
+
+      // Insert missing product_inventory rows for all products x active warehouses
+      const inserted = await client0.query(`
+        INSERT INTO product_inventory (product_id, warehouse_id, stock, is_active)
+        SELECT p.id, w.id, 10000, true
+        FROM products p
+        CROSS JOIN warehouses w
+        WHERE w.is_active = true
+          AND NOT EXISTS (
+            SELECT 1 FROM product_inventory pi
+            WHERE pi.product_id = p.id AND pi.warehouse_id = w.id
+          )
+      `);
+      if (inserted.rowCount > 0) console.log(`Created ${inserted.rowCount} missing inventory records at stock=10000`);
+    } finally {
+      client0.release();
+    }
+
     const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(products);
     
     if (Number(count) > 0 && Number(count) >= 50) {

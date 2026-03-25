@@ -879,7 +879,20 @@ export class DatabaseStorage implements IStorage {
         eq(productInventory.warehouseId, warehouseId)
       ));
     
-    const currentStock = inventory?.stock || 0;
+    // If a warehouse inventory record exists and has stock, use it
+    if (inventory && inventory.stock > 0) {
+      return {
+        available: inventory.stock >= quantity,
+        currentStock: inventory.stock
+      };
+    }
+
+    // Fall back to products.stock (covers products not yet assigned to a warehouse inventory)
+    const [product] = await db.select({ stock: products.stock })
+      .from(products)
+      .where(eq(products.id, productId));
+
+    const currentStock = product?.stock ?? 0;
     return {
       available: currentStock >= quantity,
       currentStock
